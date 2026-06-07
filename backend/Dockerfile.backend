@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 安装 curl 用于健康检查，安装 tzdata 设置时区为上海
+RUN apt-get update && apt-get install -y --no-install-recommends curl tzdata && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+
+ENV TZ=Asia/Shanghai
+
+# 先复制依赖文件（利用 Docker 缓存层）
+COPY requirements.txt .
+
+# 加上 --trusted-host 忽略网络校验问题
+RUN pip install --no-cache-dir -r requirements.txt --trusted-host pypi.org --trusted-host files.pythonhosted.org
+
+COPY . .
+
+# 暴露端口
+EXPOSE 8000
+
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

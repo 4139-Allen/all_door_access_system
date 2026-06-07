@@ -1,0 +1,639 @@
+from sqlalchemy.orm import Session
+
+from core.config import AUTO_CREATE_ADMIN, ADMIN_USERNAME, ADMIN_PASSWORD
+from core.exceptions import NotFoundError
+from utils.service_exception_handler import service_exception_handler
+from database.db import SessionLocal
+from database.models.user import User
+from database.models.role import Role
+from database.models.door_log import DoorLog
+from database.models.user_device import UserDevice
+from utils.auth import verify_password, hash_password, build_login_response
+from typing import Optional
+from utils.logger import AppLogger
+from services.stat_service import invalidate_all_stat_cache
+from services.permission_service import invalidate_user_perm_cache
+from schemas.user_schema import UserCreate
+
+logger = AppLogger.get_logger()
+
+
+@service_exception_handler
+def login_user(db: Session, username: str, password: str) -> dict:
+    """
+    用户登录
+
+    返回:
+        dict: {"token", "role", "username", "avatar"}
+
+    异常:
+        ValueError: 用户不存在或密码错误
+    """
+    username = username.strip()
+    user = db.query(User).filter(User.username == username).first()
+
+    if not user:
+        raise ValueError("用户不存在")
+
+    if not user.password:
+        raise ValueError("该账号未设置密码，请使用手机号登录")
+
+    if not verify_password(password, user.password):
+        raise ValueError("密码错误")
+
+    logger.info(f"用户登录成功 | 用户名: {username} | 用户ID: {user.id}")
+    return build_login_response(user)
+
+
+@service_exception_handler
+def db_create_user(db: Session, username: str, password: str = None, role: str = "user", phone: str = None, email: str = None) -> User:
+    """
+    创建新用户
+
+    参数:
+        db: 数据库会话
+        username: 用户名
+        password: 密码（可选，None 表示未设置密码）
+        role: 角色，默认为 user
+        phone: 手机号（可选）
+        email: 邮箱（可选）
+
+    返回:
+        User: 创建的用户对象
+
+    异常:
+        ValueError: 用户名已存在
+    """
+    username = username.strip()
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
+        logger.warning(f"⚠️  创建用户失败 | 用户名: {username} | 原因: 已存在")
+        raise ValueError(f"用户名 '{username}' 已存在")
+
+    if phone:
+        existing_phone = db.query(User).filter(User.phone == phone).first()
+        if existing_phone:
+            raise ValueError("该手机号已被注册")
+
+    if email:
+        existing_email = db.query(User).filter(User.email == email).first()
+        if existing_email:
+            raise ValueError("该邮箱已被注册")
+
+    hashed = hash_password(password) if password else None
+    user = User(username=username, password=hashed, role=role, phone=phone, email=email)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    invalidate_all_stat_cache()
+
+    logger.info(f"👤 创建用户成功 | 用户名: {username} | 角色: {role} | 用户ID: {user.id}")
+    return user
+
+
+@service_exception_handler
+def bulk_create_users(db: Session, user_list: list[UserCreate]) -> dict:
+    """
+    批量创建用户（一次事务提交）
+
+    参数:
+        db: 数据库会话
+        user_list: 已通过 Pydantic 验证的用户数据列表
+
+    返回:
+        dict: {"success_count": int, "fail_list": list[str]}
+    """
+    if not user_list:
+        return {"success_count": 0, "fail_list": []}
+
+    # 1. 批量查重：一次查询找出所有已存在的用户名
+    usernames = [u.username for u in user_list]
+    existing = db.query(User.username).filter(User.username.in_(usernames)).all()
+    existing_set = {row[0] for row in existing}
+
+    # 2. 分离成功和失败（同时检测文件内重复）
+    users_to_create = []
+    fail_list = []
+    seen_in_file = set()
+    for u in user_list:
+        if u.username in seen_in_file:
+            fail_list.append(f"用户名 '{u.username}' 在文件中重复")
+        elif u.username in existing_set:
+            fail_list.append(f"用户名 '{u.username}' 已存在")
+        else:
+            seen_in_file.add(u.username)
+            users_to_create.append(u)
+
+    # 3. 批量哈希密码 + 构建对象
+    new_users = []
+    for u in users_to_create:
+        hashed = hash_password(u.password)
+        new_users.append(User(username=u.username, password=hashed, role=u.role))
+
+    # 4. 一次插入 + 一次提交
+    if new_users:
+        db.add_all(new_users)
+        db.commit()
+
+    invalidate_all_stat_cache()
+
+    logger.info(f"📦 批量创建用户 | 成功: {len(new_users)} | 失败: {len(fail_list)}")
+    return {"success_count": len(new_users), "fail_list": fail_list}
+
+
+@service_exception_handler
+def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> bool:
+    """
+    删除用户及其关联数据
+
+    参数:
+        db: 数据库会话
+        user_id: 用户ID
+        current_user: 当前操作用户
+
+    返回:
+        bool: 是否删除成功
+
+    异常:
+        ValueError: 不能删除自己、不能删除管理员
+        NotFoundError: 用户不存在
+    """
+    # 不能删除自己
+    if current_user and current_user.id == user_id:
+        raise ValueError("不能删除自己")
+
+    # 先检查用户是否存在
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        logger.warning(f"⚠️  删除用户失败 | 用户ID: {user_id} | 原因: 用户不存在")
+        raise NotFoundError("用户不存在")
+
+    # 不能删除管理员
+    if user.role == "admin":
+        raise ValueError("无权删除超级管理员")
+
+    username = user.username
+
+    # 检查用户是否绑定了设备，已绑定则拒绝删除
+    has_bind = db.query(UserDevice).filter(UserDevice.user_id == user_id).first()
+    if has_bind:
+        raise ValueError("该用户已绑定设备，请先解绑后再删除")
+
+    # 删除用户（DoorLog 由数据库 ondelete=SET NULL 自动置空 user_id）
+    db.delete(user)
+    db.commit()
+
+    invalidate_all_stat_cache()
+
+    logger.info(f"🗑️  删除用户成功 | 用户名: {username} | 用户ID: {user_id}")
+    return True
+
+
+@service_exception_handler
+def update_user_role(db: Session, user_id: int, new_role: str, current_user: User) -> dict:
+    """
+    修改用户角色
+
+    参数:
+        db: 数据库会话
+        user_id: 目标用户 ID
+        new_role: 新角色标识（如 "operator"）
+        current_user: 当前操作用户
+
+    返回:
+        dict: {"user_id", "username", "role", "role_name"}
+
+    异常:
+        ValueError: 不能修改自己、角色不存在、不能降级最后一个管理员
+        NotFoundError: 用户不存在
+    """
+    # 不能修改自己的角色
+    if current_user.id == user_id:
+        raise ValueError("不能修改自己的角色")
+
+    # 查询目标用户
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise NotFoundError("用户不存在")
+
+    # 超级管理员角色不可修改
+    if user.role == "admin":
+        raise ValueError("超级管理员角色不可修改")
+
+    # 查询角色是否存在
+    role_obj = db.query(Role).filter(Role.code == new_role).first()
+    if not role_obj:
+        raise ValueError(f"角色 '{new_role}' 不存在")
+
+    # 角色没变则直接返回
+    if user.role == new_role:
+        return {"user_id": user.id, "username": user.username, "role": user.role, "role_name": role_obj.name}
+
+    # 更新角色
+    old_role = user.role
+    user.role = new_role
+    db.commit()
+
+    # 清除该用户的权限缓存
+    invalidate_user_perm_cache(user_id)
+
+    logger.info(f"✅ 修改用户角色成功 | 用户ID: {user_id} | {old_role} → {new_role}")
+    return {"user_id": user.id, "username": user.username, "role": new_role, "role_name": role_obj.name}
+
+
+@service_exception_handler
+def get_users_list(db: Session, page: int, size: int, username: Optional[str] = None, role: Optional[str] = None) -> \
+tuple[int, list]:
+    """
+    获取用户列表（支持分页和筛选）
+
+    参数:
+        db: 数据库会话
+        page: 页码
+        size: 每页数量
+        username: 用户名模糊搜索
+        role: 角色筛选
+
+    返回:
+        (total, users): 总数和用户列表
+    """
+    query = db.query(User)
+
+    if username:
+        query = query.filter(User.username.contains(username))
+    if role:
+        query = query.filter(User.role == role)
+
+    total = query.count()
+    users = query.offset((page - 1) * size).limit(size).all()
+
+    return total, users
+
+
+def get_users_list_formatted(db: Session, page: int, size: int, username: Optional[str] = None, role: Optional[str] = None) -> dict:
+    """获取用户列表（带格式化，直接返回可响应的数据）"""
+    from database.models.role import Role
+
+    total, users = get_users_list(db, page, size, username, role)
+
+    # 批量查询角色名称
+    role_codes = {u.role for u in users}
+    roles = db.query(Role.code, Role.name).filter(Role.code.in_(role_codes)).all()
+    role_name_map = {r.code: r.name for r in roles}
+
+    return {
+        "total": total,
+        "list": [{
+            "id": u.id,
+            "username": u.username,
+            "role": u.role,
+            "role_name": role_name_map.get(u.role, u.role),
+            "avatar": u.avatar or "",
+            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else ""
+        } for u in users]
+    }
+
+
+@service_exception_handler
+def import_users_from_bytes(db: Session, file_contents: bytes, filename: str = "") -> dict:
+    """
+    从 Excel 文件字节流批量导入用户
+
+    参数:
+        db: 数据库会话
+        file_contents: Excel 文件内容（bytes）
+        filename: 原始文件名（用于校验扩展名）
+
+    返回:
+        dict: {"success_count", "fail_count", "fail_list", "msg"}
+
+    异常:
+        ValueError: 文件格式不正确或数据为空
+    """
+    import io
+    import openpyxl
+
+    if filename and not filename.endswith(('.xlsx', '.xls')):
+        raise ValueError("仅支持 .xlsx / .xls 格式")
+
+    wb = openpyxl.load_workbook(io.BytesIO(file_contents), read_only=True)
+    ws = wb.active
+
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    if not rows:
+        raise ValueError("Excel 中没有数据")
+
+    valid_users = []
+    fail_list = []
+
+    for i, row in enumerate(rows, start=2):
+        username = str(row[0]).strip() if row[0] else ""
+        password = str(row[1]).strip() if len(row) > 1 and row[1] else "123456"
+
+        if not username:
+            fail_list.append(f"第{i}行：用户名为空")
+            continue
+
+        try:
+            validated = UserCreate(username=username, password=password)
+            valid_users.append(validated)
+        except Exception as e:
+            fail_list.append(f"第{i}行：{str(e)}")
+
+    wb.close()
+
+    result = bulk_create_users(db, valid_users)
+    success_count = result["success_count"]
+    fail_list.extend(result["fail_list"])
+
+    msg = f"成功导入 {success_count} 个用户"
+    if fail_list:
+        msg += f"，{len(fail_list)} 个失败"
+
+    return {
+        "success_count": success_count,
+        "fail_count": len(fail_list),
+        "fail_list": fail_list,
+        "msg": msg
+    }
+
+
+@service_exception_handler
+def get_user_devices(db: Session, user_id: int) -> list:
+    """
+    获取用户绑定的设备ID列表
+
+    参数:
+        db: 数据库会话
+        user_id: 用户ID
+
+    返回:
+        list: 设备ID列表
+    """
+    binds = db.query(UserDevice).filter(UserDevice.user_id == user_id).all()
+    return [b.device_id for b in binds]
+
+
+def get_user_profile(user: User, db: Session) -> dict:
+    """获取用户个人信息"""
+    from database.models.role import Role
+    role_obj = db.query(Role.name).filter(Role.code == user.role).first()
+    role_name = role_obj.name if role_obj else user.role
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "role": user.role,
+        "role_name": role_name,
+        "avatar": user.avatar,
+        "has_password": bool(user.password),
+        "created_at": user.created_at.strftime("%Y-%m-%d %H:%M:%S") if user.created_at else None
+    }
+
+
+@service_exception_handler
+def update_username(db: Session, user: User, new_username: str) -> None:
+    """修改用户名"""
+    new_username = new_username.strip()
+    if new_username == user.username:
+        raise ValueError("新用户名与当前用户名相同")
+
+    existing = db.query(User).filter(User.username == new_username).first()
+    if existing:
+        raise ValueError(f"用户名 '{new_username}' 已被使用")
+
+    user.username = new_username
+    db.commit()
+    logger.info(f"用户修改用户名 | 用户ID: {user.id} | 新用户名: {new_username}")
+
+
+@service_exception_handler
+def update_avatar(db: Session, user: User, avatar_path: str) -> None:
+    """更新头像路径"""
+    user.avatar = avatar_path
+    db.commit()
+    logger.info(f"用户更新头像 | 用户ID: {user.id}")
+
+
+@service_exception_handler
+def change_user_password(db: Session, user: User, old_password: str | None, new_password: str) -> bool:
+    """
+    修改用户密码
+
+    参数:
+        db: 数据库会话
+        user: 用户对象
+        old_password: 原密码（可为 None，表示用户未设置过密码）
+        new_password: 新密码
+
+    返回:
+        bool: 是否修改成功
+
+    异常:
+        ValueError: 原密码错误或密码长度不符合要求
+    """
+    # 如果用户已设置密码，必须验证旧密码
+    if user.password:
+        if not old_password:
+            raise ValueError("请输入原密码")
+        if not verify_password(old_password, user.password):
+            logger.warning(f"❌ 修改密码失败 | 用户: {user.username} | 原因: 原密码错误")
+            raise ValueError("原密码错误")
+
+    if len(new_password) < 6:
+        logger.warning(f"❌ 修改密码失败 | 用户: {user.username} | 原因: 密码长度不足6位")
+        raise ValueError("密码长度不能小于6位")
+
+    if len(new_password.encode('utf-8')) > 72:
+        logger.warning(f"❌ 修改密码失败 | 用户: {user.username} | 原因: 新密码过长")
+        raise ValueError("新密码过长，不能超过72字节")
+
+    user.password = hash_password(new_password)
+    db.commit()
+
+    logger.info(f"🔑 修改密码成功 | 用户: {user.username} | 用户ID: {user.id}")
+    return True
+
+
+@service_exception_handler
+def reset_user_password(db: Session, phone: str, new_password: str) -> bool:
+    """
+    通过手机号重置密码
+
+    参数:
+        db: 数据库会话
+        phone: 手机号
+        new_password: 新密码
+
+    异常:
+        ValueError: 用户不存在或密码不符合要求
+    """
+    user = db.query(User).filter(User.phone == phone).first()
+    if not user:
+        raise ValueError("该手机号未注册")
+
+    if len(new_password) < 6:
+        raise ValueError("密码长度不能小于6位")
+
+    if len(new_password.encode('utf-8')) > 72:
+        raise ValueError("新密码过长，不能超过72字节")
+
+    user.password = hash_password(new_password)
+    db.commit()
+
+    logger.info(f"🔑 重置密码成功 | 手机号: {phone} | 用户ID: {user.id}")
+    return True
+
+
+@service_exception_handler
+def login_by_phone_service(db: Session, phone: str, code: str) -> dict:
+    """
+    手机号验证码登录（未注册自动创建）
+
+    返回:
+        dict: {"token", "role", "username", "avatar"}
+
+    异常:
+        ValueError: 验证码错误
+    """
+    from services.verify_code_service import check_sms_code
+
+    if not check_sms_code(phone, code):
+        raise ValueError("验证码错误或已过期")
+
+    user = db.query(User).filter(User.phone == phone).first()
+    if not user:
+        user = db_create_user(db, username=phone, password=None, role="user", phone=phone)
+        logger.info(f"手机号自动注册: {phone}, 用户ID: {user.id}")
+
+    return build_login_response(user)
+
+
+@service_exception_handler
+def login_by_email_service(db: Session, email: str, code: str) -> dict:
+    """
+    邮箱验证码登录（未注册自动创建）
+
+    返回:
+        dict: {"token", "role", "username", "avatar"}
+
+    异常:
+        ValueError: 验证码错误
+    """
+    from services.verify_code_service import verify_code
+
+    if not verify_code(email, code):
+        raise ValueError("验证码错误或已过期")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = db_create_user(db, username=email, password=None, role="user", email=email)
+        logger.info(f"邮箱自动注册: {email}, 用户ID: {user.id}")
+
+    return build_login_response(user)
+
+
+@service_exception_handler
+def reset_user_password_service(db: Session, phone: str, code: str, new_password: str) -> bool:
+    """
+    通过手机号+验证码重置密码
+
+    异常:
+        ValueError: 手机号格式不正确、验证码错误、用户不存在
+    """
+    import re
+    from services.verify_code_service import check_sms_code
+
+    if not re.match(r'^1[3-9]\d{9}$', phone):
+        raise ValueError("请输入正确的手机号")
+
+    if not check_sms_code(phone, code):
+        raise ValueError("验证码错误或已过期")
+
+    return reset_user_password(db, phone, new_password)
+
+
+@service_exception_handler
+def upload_avatar_service(db: Session, user: User, file_contents: bytes, filename: str, content_type: str) -> str:
+    """
+    上传头像
+
+    参数:
+        db: 数据库会话
+        user: 当前用户
+        file_contents: 文件内容
+        filename: 原始文件名
+        content_type: MIME 类型
+
+    返回:
+        str: 头像 URL
+
+    异常:
+        ValueError: 文件类型不合法、文件过大
+    """
+    import os
+    import uuid
+
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if content_type not in allowed_types:
+        raise ValueError("仅支持 JPG、PNG、GIF、WebP 格式的图片")
+
+    if len(file_contents) > 1 * 1024 * 1024:
+        raise ValueError("头像文件大小不能超过 1MB")
+
+    # 删除旧头像文件
+    if user.avatar:
+        old_path = user.avatar.lstrip("/")
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    ext = filename.split(".")[-1] if "." in filename else "jpg"
+    new_filename = f"{user.id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join("uploads", "avatars", new_filename)
+    with open(filepath, "wb") as f:
+        f.write(file_contents)
+
+    avatar_url = f"/uploads/avatars/{new_filename}"
+    update_avatar(db, user, avatar_url)
+
+    return avatar_url
+
+
+"""
+管理员初始化
+用于创建默认管理员账户
+"""
+def init_admin():
+    """
+    初始化默认管理员账户
+    """
+    if not AUTO_CREATE_ADMIN:
+        logger.info("ℹ️  自动创建管理员功能已禁用")
+        return
+
+    db = SessionLocal()
+    try:
+        # 检查是否已存在管理员
+        admin_exists = db.query(User).filter(User.role == "admin").first()
+
+        if admin_exists:
+            logger.info("✅ 管理员账户已存在")
+            return
+
+        # 复用 db_create_user 创建管理员
+        admin_user = db_create_user(db, ADMIN_USERNAME, ADMIN_PASSWORD, role="admin")
+
+        logger.info("=" * 50)
+        logger.info("✅ 默认管理员账户创建成功！")
+        logger.info(f"👤 用户名: {admin_user.username}")
+        logger.info(f"🔑 密码: {ADMIN_PASSWORD}")
+        logger.warning("⚠️  请在首次登录后立即修改密码！")
+        logger.info("=" * 50)
+
+    except Exception as e:
+        logger.error(f"❌ 创建管理员失败: {str(e)}")
+        raise
+    finally:
+        db.close()
+
+

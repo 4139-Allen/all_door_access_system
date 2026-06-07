@@ -1,0 +1,8 @@
+改两处 #define 即可：
+
+  1. main.c:24 — COMM_MODE_W5500 → COMM_MODE_ESP8266
+  2. menu.c:17 — COMM_MODE_W5500 → COMM_MODE_ESP8266
+
+  WiFi 模式下，W5500 代码被 #if 排除，ESP8266 串口通信路径自动启用：
+  - 远程开门：UART 收到 "OPEN_DOOR\n" → 开锁（main.c ESP8266 代码段）
+  - 上报状态：printf("CARD_OK\n") 等经 UART 发给 ESP32-S3 → 转发 MQTT（menu.c #else 分支）

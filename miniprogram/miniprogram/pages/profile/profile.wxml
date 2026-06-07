@@ -1,0 +1,54 @@
+<view class="profile-page">
+  <!-- 未登录 -->
+  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+    <text class="empty-icon">👤</text>
+    <text class="empty-text">请先登录</text>
+    <view class="btn-primary login-hint" bindtap="goLogin">去登录</view>
+  </view>
+
+  <!-- 已登录 -->
+  <view wx:if="{{isLoggedIn}}">
+    <!-- 用户信息卡片 -->
+    <view class="user-card">
+      <view class="user-avatar">{{username.charAt(0).toUpperCase()}}</view>
+      <view class="user-info">
+        <view class="user-name">{{username}}</view>
+        <view class="user-role">{{role === 'admin' ? '管理员' : '普通用户'}}</view>
+      </view>
+    </view>
+
+    <!-- 操作列表 -->
+    <view class="menu-list">
+      <view class="menu-item" bindtap="showChangePassword">
+        <text class="menu-icon">🔑</text>
+        <text class="menu-text">修改密码</text>
+        <text class="menu-arrow">></text>
+      </view>
+      <view class="menu-item" bindtap="logout">
+        <text class="menu-icon">🚪</text>
+        <text class="menu-text logout-text">退出登录</text>
+        <text class="menu-arrow">></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 修改密码弹窗 -->
+  <view class="modal-mask" wx:if="{{showPasswordModal}}" bindtap="hideChangePassword">
+    <view class="modal-body" catchtap="">
+      <view class="modal-title">修改密码</view>
+      <view class="form-item">
+        <input class="form-input" placeholder="原密码" password value="{{oldPassword}}" bindinput="onOldPasswordInput" />
+      </view>
+      <view class="form-item">
+        <input class="form-input" placeholder="新密码（至少6位）" password value="{{newPassword}}" bindinput="onNewPasswordInput" />
+      </view>
+      <view class="form-item">
+        <input class="form-input" placeholder="确认新密码" password value="{{confirmPassword}}" bindinput="onConfirmPasswordInput" />
+      </view>
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="hideChangePassword">取消</view>
+        <view class="modal-btn confirm" bindtap="changePassword">确定</view>
+      </view>
+    </view>
+  </view>
+</view>

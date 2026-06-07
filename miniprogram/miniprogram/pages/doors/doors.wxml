@@ -1,0 +1,73 @@
+<view class="doors-page">
+  <!-- 未登录提示 -->
+  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+    <text class="empty-icon">🔒</text>
+    <text class="empty-text">请先登录</text>
+    <view class="btn-primary login-hint" bindtap="goLogin">去登录</view>
+  </view>
+
+  <!-- 已登录 -->
+  <view wx:if="{{isLoggedIn}}">
+    <!-- 统计卡片 -->
+    <view class="stats-row" wx:if="{{stats}}">
+      <view class="stat-card">
+        <view class="stat-num">{{stats.device_online || 0}}</view>
+        <view class="stat-label">在线设备</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-num">{{stats.device_offline || 0}}</view>
+        <view class="stat-label">离线设备</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-num">{{stats.today_log || 0}}</view>
+        <view class="stat-label">今日开门</view>
+      </view>
+    </view>
+
+    <!-- 设备列表标题 -->
+    <view class="section-title">我的设备</view>
+
+    <!-- 加载中 -->
+    <view class="loading" wx:if="{{loading && devices.length === 0}}">
+      <text class="text-muted">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && devices.length === 0}}">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">暂无可用设备</text>
+      <text class="text-muted">请联系管理员绑定设备</text>
+    </view>
+
+    <!-- 设备卡片列表 -->
+    <view class="device-list">
+      <view class="device-card" wx:for="{{devices}}" wx:key="id">
+        <view class="device-info">
+          <view class="device-name-row">
+            <text class="device-name">{{item.name}}</text>
+            <view class="device-status {{item.status === 'online' ? 'status-online' : 'status-offline'}}">
+              {{item.status === 'online' ? '在线' : '离线'}}
+            </view>
+          </view>
+          <view class="device-location">📍 {{item.location}}</view>
+          <view class="device-meta" wx:if="{{item.last_online_at}}">
+            <text class="meta-text">最近在线: {{item.last_online_at}}</text>
+          </view>
+        </view>
+        <view class="device-action" wx:if="{{canOpen}}">
+          <button
+            class="open-btn {{item.status !== 'online' ? 'disabled' : ''}}"
+            bindtap="openDoor"
+            data-id="{{item.id}}"
+            data-name="{{item.name}}"
+            disabled="{{item.status !== 'online' || openingId === item.id}}"
+            loading="{{openingId === item.id}}"
+          >
+            <text wx:if="{{openingId !== item.id}}">开门</text>
+            <text wx:else>开门中</text>
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

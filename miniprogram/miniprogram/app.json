@@ -1,0 +1,45 @@
+{
+  "pages": [
+    "pages/doors/doors",
+    "pages/logs/logs",
+    "pages/profile/profile",
+    "pages/login/login"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1e293b",
+    "navigationBarTitleText": "智能门禁",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f1f5f9"
+  },
+  "tabBar": {
+    "color": "#94a3b8",
+    "selectedColor": "#6366f1",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/doors/doors",
+        "text": "开门",
+        "iconPath": "images/door.png",
+        "selectedIconPath": "images/door-active.png"
+      },
+      {
+        "pagePath": "pages/logs/logs",
+        "text": "记录",
+        "iconPath": "images/log.png",
+        "selectedIconPath": "images/log-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/user.png",
+        "selectedIconPath": "images/user-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "debug": false
+}
