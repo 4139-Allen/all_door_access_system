@@ -1,0 +1,43 @@
+<view class="login-page">
+  <!-- Logo -->
+  <view class="logo-section">
+    <view class="logo-icon">
+      <view class="lock-icon">
+        <view class="lock-shackle"></view>
+        <view class="lock-body"></view>
+      </view>
+    </view>
+    <text class="logo-title">智能门禁</text>
+    <text class="logo-sub">管理控制系统</text>
+  </view>
+
+  <!-- 微信一键登录 -->
+  <view class="wx-login-section" wx:if="{{!showPasswordForm}}">
+    <button class="wx-login-btn" bindtap="wxLogin" loading="{{loading}}">
+      <text wx:if="{{!loading}}">微信一键登录</text>
+      <text wx:else>登录中...</text>
+    </button>
+    <view class="switch-btn" bindtap="toggleForm">
+      <text class="text-muted">使用账号密码登录</text>
+    </view>
+  </view>
+
+  <!-- 账号密码登录 -->
+  <view class="password-form" wx:if="{{showPasswordForm}}">
+    <view class="form-item">
+      <text class="form-label">用户名</text>
+      <input class="form-input" placeholder="请输入用户名" value="{{username}}" bindinput="onUsernameInput" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">密码</text>
+      <input class="form-input" placeholder="请输入密码" password value="{{password}}" bindinput="onPasswordInput" />
+    </view>
+    <button class="login-btn" bindtap="passwordLogin" loading="{{loading}}">
+      <text wx:if="{{!loading}}">登录</text>
+      <text wx:else>登录中...</text>
+    </button>
+    <view class="switch-btn" bindtap="toggleForm">
+      <text class="text-muted">返回微信登录</text>
+    </view>
+  </view>
+</view>

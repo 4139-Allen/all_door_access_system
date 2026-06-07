@@ -1,0 +1,89 @@
+/* 全局样式 */
+page {
+  background: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1e293b;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+/* 重置按钮样式 */
+button {
+  background: initial;
+  border: none;
+  padding: 0;
+  margin: 0;
+  line-height: inherit;
+  font-size: inherit;
+}
+
+button::after {
+  border: none;
+}
+
+/* 通用容器 */
+.container {
+  padding: 24rpx 32rpx;
+}
+
+/* 卡片样式 */
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 主题色 */
+.text-primary {
+  color: #6366f1;
+}
+
+.text-muted {
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+.text-success {
+  color: #22c55e;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+/* 主按钮 */
+.btn-primary {
+  background: #6366f1;
+  color: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx 0;
+  font-size: 30rpx;
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+}
+
+.btn-primary:active {
+  background: #4f46e5;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+  color: #94a3b8;
+}
+
+.empty-state .empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.empty-state .empty-text {
+  font-size: 28rpx;
+}

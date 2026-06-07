@@ -1,0 +1,112 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# 环境变量文件（所有 .env 相关文件均不提交）
+*.env
+*.env.docker
+backend/.env*
+deploy/.env*
+
+# SSL 证书和私钥（绝对不能提交）
+SSL/
+*.pem
+*.key
+*.cer
+*.crt
+*.p12
+*.pfx
+*.jks
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 日志文件
+logs/
+*.log
+
+# 数据库
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# 测试相关
+.pytest_cache/
+.coverage
+htmlcov/
+test.db
+*.cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Node modules (for frontend)
+web/node_modules/
+web/dist/
+web/dist-ssr/
+
+# Frontend logs
+web/logs/
+web/*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# === Keil uVision ===
+stm32/Output/
+stm32/Listing/
+stm32/Project/*.uvguix.*
+stm32/Project/DebugConfig/
+*.o
+*.crf
+*.dep
+*.axf
+*.map
+*.lst
+*.htm
+*.lnp
+*.sct
+*.iex
+*.elf
+
+# === PlatformIO ===
+stm32/ESP8266/.pio/

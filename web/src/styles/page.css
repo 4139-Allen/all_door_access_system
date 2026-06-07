@@ -1,0 +1,137 @@
+/* ===== 共享页面布局样式 ===== */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.header-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #909399;
+}
+
+.total-count {
+  font-size: 14px;
+  color: #606266;
+}
+
+/* Toolbar / filter card */
+.toolbar-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.toolbar-section {
+  flex: 1;
+  min-width: 280px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+}
+
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: #ebeef5;
+  flex-shrink: 0;
+}
+
+.filter-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+/* Table card */
+.table-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.table-header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+/* ===== Action Buttons ===== */
+.action-btn-delete {
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  background: #fff;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.action-btn-delete:hover {
+  border-color: #ef4444;
+  color: #fff;
+  background: #ef4444;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .toolbar-divider {
+    display: none;
+  }
+  .toolbar-section {
+    min-width: 100%;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-header {
+    padding: 16px;
+  }
+  .toolbar-section {
+    padding: 12px;
+  }
+}

@@ -1,0 +1,120 @@
+﻿version: '3.3'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: door-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 784m
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DB:-door_access_system}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:6
+    container_name: door-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: door-mqtt
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/log
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  fastapi:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.backend
+    container_name: door-api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    env_file: .env
+    environment:
+      - MQTT_BROKER_HOST=mosquitto
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+    volumes:
+      - ../backend/logs:/app/logs
+      - uploads-data:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ../web
+      dockerfile: Dockerfile.frontend
+    container_name: door-frontend
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../SSL/doorlink.top.pem:/etc/nginx/ssl/doorlink.top.pem:ro
+      - ../SSL/doorlink.top.key:/etc/nginx/ssl/doorlink.top.key:ro
+    depends_on:
+      fastapi:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  redis-data:
+  mosquitto-data:
+  mosquitto-logs:
+  uploads-data:

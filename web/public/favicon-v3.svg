@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 黑色背景 -->
+  <rect width="64" height="64" rx="16" fill="#000000"/>
+
+  <!-- 锁身 -->
+  <rect x="20" y="28" width="24" height="20" rx="4" fill="none" stroke="#ffffff" stroke-width="3"/>
+
+  <!-- 锁环 -->
+  <path d="M26 28 L26 22 Q26 16 32 16 Q38 16 38 22 L38 28" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- 锁孔 -->
+  <circle cx="32" cy="37" r="3" fill="#ffffff"/>
+  <rect x="30.5" y="37" width="3" height="5" rx="1" fill="#ffffff"/>
+</svg>

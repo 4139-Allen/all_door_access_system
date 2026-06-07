@@ -1,0 +1,29 @@
+.venv
+__pycache__
+.git
+.gitignore
+.env
+*.pyc
+*.pyo
+*.pyd
+
+# 前端相关
+frontend/node_modules
+frontend/dist
+
+# 日志和数据库
+logs
+*.db
+*.sqlite
+
+# IDE
+.idea
+.vscode
+
+# Docker
+docker-compose.override.yml
+
+# 测试
+.pytest_cache
+.coverage
+htmlcov
