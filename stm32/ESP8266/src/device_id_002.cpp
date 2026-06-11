@@ -1,15 +1,16 @@
 
 /*
-   ESP32-S3 MQTT 透传固件（适配 STM32 门禁系统）
+   ESP MQTT 透传固件（适配 STM32 门禁系统）
+   支持 ESP32-S3 和 ESP-01S (ESP8266) 两个版本
 
    功能：
-     后端通过 MQTT 发送 "OPEN_DOOR" → ESP32-S3 订阅收到 → UART 发给 STM32
-     STM32 回复 "OK" → ESP32-S3 通过 MQTT 发回后端
+     后端通过 MQTT 发送 "OPEN_DOOR" → ESP 订阅收到 → UART 发给 STM32
+     STM32 回复 "OK" → ESP 通过 MQTT 发回后端
      定时发送 "ONLINE" 心跳
 
-   接线（ESP32-S3 → STM32）：
-     ESP32-S3 GPIO17 (Serial1 RX) → STM32 PA9  (USART1_TX)
-     ESP32-S3 GPIO18 (Serial1 TX) → STM32 PA10 (USART1_RX)
+   接线：
+     ESP32-S3: GPIO17(RX) → STM32 PA9(TX), GPIO18(TX) → STM32 PA10(RX)
+     ESP-01S:  TX(GPIO1)  → STM32 PA10(RX), RX(GPIO3) → STM32 PA9(TX)
      GND → GND
 
    烧录前修改：
@@ -19,10 +20,15 @@
 
    需要 Arduino 库：
      - PubSubClient by Nick O'Leary
-     - WiFi（ESP32 内置）
 */
 
-#include <WiFi.h>
+// ==================== 板子适配 ====================
+#ifdef BOARD_ESP01S
+  #include <ESP8266WiFi.h>
+#else
+  #include <WiFi.h>
+#endif
+
 #include <PubSubClient.h>
 
 // ==================== 配置项（根据实际修改）====================
@@ -30,7 +36,7 @@ const char *ssid = "iPhone";             // WiFi 名称
 const char *password = "123456889";      // WiFi 密码
 const char *mqtt_server = "47.242.179.46"; // MQTT 服务器（运行后端的服务器IP公网）
 const int mqtt_port = 1883;
-const char *device_id = "001"; // 与数据库设备名称一致
+const char *device_id = "002"; // 与数据库设备名称一致
 // =============================================================
 
 WiFiClient esp_client;
@@ -48,7 +54,6 @@ const unsigned long HEARTBEAT_INTERVAL = 30000; // 30 秒
 // ==================== WiFi ====================
 void setup_wifi()
 {
-  // 先扫描附近 WiFi 网络
   Serial.println("Scanning WiFi networks...");
   int n = WiFi.scanNetworks();
   if (n == 0)
@@ -86,7 +91,11 @@ void setup_wifi()
     if (retry > 40)
     {
       Serial.println("\nWiFi Failed! Restarting...");
+#ifdef BOARD_ESP01S
+      ESP.reset();
+#else
       ESP.restart();
+#endif
     }
   }
   Serial.println();
@@ -97,11 +106,34 @@ void setup_wifi()
 // ==================== MQTT 回调 ====================
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
 {
-  // 检查命令是否为 "OPEN_DOOR"
   if (length == 9 && memcmp(payload, "OPEN_DOOR", 9) == 0)
   {
-    // 通过 UART 转发给 STM32，手动 \n 避免 \r 干扰协议
+#ifdef BOARD_ESP01S
+    Serial.print("OPEN_DOOR\n");
+#else
     Serial1.print("OPEN_DOOR\n");
+#endif
+    Serial.println("Command: OPEN_DOOR -> STM32");
+  }
+  // 密码锁定命令
+  else if (length == 4 && memcmp(payload, "LOCK", 4) == 0)
+  {
+#ifdef BOARD_ESP01S
+    Serial.print("LOCK\n");
+#else
+    Serial1.print("LOCK\n");
+#endif
+    Serial.println("Command: LOCK -> STM32");
+  }
+  // 解除锁定命令
+  else if (length == 6 && memcmp(payload, "UNLOCK", 6) == 0)
+  {
+#ifdef BOARD_ESP01S
+    Serial.print("UNLOCK\n");
+#else
+    Serial1.print("UNLOCK\n");
+#endif
+    Serial.println("Command: UNLOCK -> STM32");
   }
 }
 
@@ -116,7 +148,6 @@ void reconnect()
     {
       Serial.println("OK");
 
-      // 订阅本设备的命令主题: door/{device_id}/command
       String command_topic = "door/";
       command_topic += device_id;
       command_topic += "/command";
@@ -124,7 +155,6 @@ void reconnect()
       Serial.print("Subscribed: ");
       Serial.println(command_topic);
 
-      // 发布上线状态
       String status_topic = "door/";
       status_topic += device_id;
       status_topic += "/status";
@@ -143,16 +173,22 @@ void reconnect()
 // ==================== 初始化 ====================
 void setup()
 {
-  // USB 调试串口
+#ifdef BOARD_ESP01S
+  // ESP-01S: 硬件串口同时用于调试和接 STM32
+  Serial.begin(9600);
+#else
+  // ESP32-S3: USB 调试串口 + Serial1 接 STM32
   Serial.begin(115200);
-
-  // UART 接 STM32（9600 波特率，与 STM32 的 USART1 一致）
-  // 使用 GPIO17(RX) GPIO18(TX)，避免与 USB 调试串口冲突
   Serial1.begin(9600, SERIAL_8N1, 17, 18);
+#endif
 
   Serial.println();
   Serial.println("=================================");
+#ifdef BOARD_ESP01S
+  Serial.println("ESP-01S Door Controller (MQTT)");
+#else
   Serial.println("ESP32-S3 Door Controller (MQTT)");
+#endif
   Serial.println("=================================");
 
   setup_wifi();
@@ -172,22 +208,39 @@ void loop()
   mqtt_client.loop();
 
   // 读 STM32 UART 回复
+#ifdef BOARD_ESP01S
+  while (Serial.available())
+#else
   while (Serial1.available())
+#endif
   {
+#ifdef BOARD_ESP01S
+    char c = Serial.read();
+#else
     char c = Serial1.read();
+#endif
 
     if (c == '\n')
     {
       uart_buf[uart_idx] = '\0';
 
-      if (strcmp(uart_buf, "OK") == 0 || strcmp(uart_buf, "PWD_OK") == 0 ||
-          strcmp(uart_buf, "FP_OK") == 0 || strcmp(uart_buf, "CARD_OK") == 0)
+      // 转发所有有效消息到后端（成功和失败事件）
+      if (strcmp(uart_buf, "OK") == 0 ||
+          strcmp(uart_buf, "PWD_OK") == 0 ||
+          strcmp(uart_buf, "FP_OK") == 0 ||
+          strcmp(uart_buf, "CARD_OK") == 0 ||
+          strcmp(uart_buf, "PWD_ERR") == 0 ||
+          strcmp(uart_buf, "FP_ERR") == 0 ||
+          strcmp(uart_buf, "CARD_ERR") == 0)
       {
-        // notify backend of door open (remote/pwd/fp/card)
         String status_topic = "door/";
         status_topic += device_id;
         status_topic += "/status";
         mqtt_client.publish(status_topic.c_str(), uart_buf);
+
+        // 调试输出
+        Serial.print("UART -> MQTT: ");
+        Serial.println(uart_buf);
       }
 
       uart_idx = 0;
@@ -199,18 +252,16 @@ void loop()
     }
   }
 
-  // 心跳（附带信号强度）
+  // 心跳
   if (millis() - last_heartbeat > HEARTBEAT_INTERVAL)
   {
     last_heartbeat = millis();
 
-    // 发送在线状态
     String status_topic = "door/";
     status_topic += device_id;
     status_topic += "/status";
     mqtt_client.publish(status_topic.c_str(), "ONLINE");
 
-    // 发送信号强度
     int rssi = WiFi.RSSI();
     String rssi_topic = "door/";
     rssi_topic += device_id;

@@ -1,11 +1,32 @@
 import logging
 import os
+import sys
 from logging.handlers import TimedRotatingFileHandler
+from pythonjsonlogger import jsonlogger
 
 
 class AppLogger:
     """
-    全局日志类（按天轮转 + 控制台输出）
+    全局日志类（支持结构化 JSON 日志）
+
+    环境变量：
+        LOG_FORMAT: 日志格式
+            - "json" - JSON 格式（生产环境推荐）
+            - "text" - 纯文本格式（开发环境默认）
+
+    使用方法：
+        from utils.logger import AppLogger
+        logger = AppLogger.get_logger()
+
+        # 基础日志
+        logger.info("用户登录成功")
+
+        # 带上下文的日志（会自动添加到 JSON 字段）
+        logger.info("开门成功", extra={
+            "user_id": 1,
+            "device_id": "001",
+            "action": "door_open"
+        })
     """
     _logger = None
 
@@ -20,11 +41,14 @@ class AppLogger:
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        # 日志格式
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(filename)s:%(lineno)d | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
+        # 从环境变量读取日志格式配置
+        log_format = os.getenv("LOG_FORMAT", "text").lower()
+
+        # 根据格式选择 formatter
+        if log_format == "json":
+            formatter = cls._create_json_formatter()
+        else:
+            formatter = cls._create_text_formatter()
 
         # 1. 按天轮转文件日志
         file_handler = TimedRotatingFileHandler(
@@ -39,7 +63,7 @@ class AppLogger:
         file_handler.setLevel(log_level)
 
         # 2. 控制台输出
-        console_handler = logging.StreamHandler()
+        console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         console_handler.setLevel(log_level)
 
@@ -53,3 +77,44 @@ class AppLogger:
 
         cls._logger = logger
         return logger
+
+    @staticmethod
+    def _create_json_formatter():
+        """创建 JSON 格式的 formatter"""
+        class CustomJsonFormatter(jsonlogger.JsonFormatter):
+            def add_fields(self, log_record, record, message_dict):
+                super().add_fields(log_record, record, message_dict)
+
+                # 添加标准字段
+                log_record['timestamp'] = self.formatTime(record)
+                log_record['level'] = record.levelname
+                log_record['logger'] = record.name
+                log_record['module'] = record.module
+                log_record['function'] = record.funcName
+                log_record['line'] = record.lineno
+
+                # 添加进程信息
+                log_record['pid'] = os.getpid()
+
+                # 移除重复字段
+                if 'name' in log_record:
+                    del log_record['name']
+
+        return CustomJsonFormatter(
+            fmt='%(timestamp)s %(level)s %(name)s %(message)s',
+            json_ensure_ascii=False
+        )
+
+    @staticmethod
+    def _create_text_formatter():
+        """创建纯文本格式的 formatter"""
+        return logging.Formatter(
+            "%(asctime)s | %(levelname)-8s | %(filename)s:%(lineno)d | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+
+
+# 便捷函数
+def get_logger(log_name="app", log_level=logging.INFO):
+    """获取 logger 的便捷函数"""
+    return AppLogger.get_logger(log_name, log_level)

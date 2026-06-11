@@ -139,6 +139,113 @@ Authorization: Bearer <token>
 | `start_time` | str | 起始时间（YYYY-MM-DD HH:MM:SS） |
 | `end_time` | str | 结束时间（YYYY-MM-DD HH:MM:SS） |
 
+## 异常事件
+
+| 方法 | 路径 | 描述 | 权限 |
+|------|------|------|------|
+| GET | `/alerts` | 获取异常事件列表（分页+筛选） | `alert.view` |
+| GET | `/alerts/stats` | 获取异常事件统计 | `alert.view` |
+| POST | `/alerts/unlock/{device_name}` | 解除设备锁定 | `alert.unlock` |
+
+### 异常事件列表参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `page` | int | 页码（默认 1） |
+| `size` | int | 每页条数（默认 10） |
+| `device_name` | str | 按设备编号模糊搜索 |
+| `alert_type` | str | 事件类型：`lock`（锁定）、`offline`（离线）、`error`（失败） |
+| `start_time` | str | 起始时间（YYYY-MM-DD HH:MM:SS） |
+| `end_time` | str | 结束时间（YYYY-MM-DD HH:MM:SS） |
+
+### 异常事件列表响应示例
+
+```json
+GET /api/alerts?page=1&size=10&alert_type=lock
+Authorization: Bearer <token>
+
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "total": 3,
+    "list": [
+      {
+        "id": 42,
+        "user_id": null,
+        "username": "本地",
+        "device_id": 1,
+        "device_name": "001",
+        "device_location": "大门入口",
+        "action": "密码开锁",
+        "status": "密码错误5次，设备锁定5分钟",
+        "event_type": "lock",
+        "event_level": "danger",
+        "ip": "",
+        "time": "2026-06-07 14:30:00"
+      }
+    ]
+  }
+}
+```
+
+### 异常事件统计响应示例
+
+```json
+GET /api/alerts/stats?hours=24
+Authorization: Bearer <token>
+
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "total_alerts": 15,
+    "lock_count": 3,
+    "error_count": 12,
+    "device_stats": [
+      {"name": "001", "count": 8},
+      {"name": "002", "count": 7}
+    ],
+    "locked_devices": [
+      {
+        "device_id": 1,
+        "device_name": "001",
+        "device_location": "大门入口",
+        "lock_ttl": 285
+      }
+    ],
+    "time_range_hours": 24
+  }
+}
+```
+
+### 设备自动锁定规则
+
+| 验证方式 | 错误消息 | 锁定条件 | 锁定时长 |
+|----------|----------|----------|----------|
+| 密码 | `PWD_ERR` | 连续 5 次错误 | 5 分钟 |
+| 指纹 | `FP_ERR` | 连续 5 次错误 | 5 分钟 |
+| 刷卡 | `CARD_ERR` | 连续 5 次错误 | 5 分钟 |
+
+- 锁定计数 Redis 键：`door:err:fail:{device_name}`（TTL 300 秒）
+- 锁定状态 Redis 键：`door:err:lock:{device_name}`（TTL 300 秒）
+- 验证成功自动重置计数：`PWD_OK` / `FP_OK` / `CARD_OK`
+- 解除锁定：清除 Redis 键 + 发送 `UNLOCK` MQTT 命令
+
+### 解除设备锁定请求示例
+
+```json
+POST /api/alerts/unlock/001
+Authorization: Bearer <token>
+
+// 响应
+{
+  "code": 200,
+  "msg": "设备 001 锁定已解除",
+  "data": null
+}
+```
+
 ## 权限管理（需 `user.manage` 权限）
 
 | 方法 | 路径 | 描述 |
@@ -177,6 +284,13 @@ Authorization: Bearer <token>
       "permissions": [
         {"id": 3, "code": "door.open", "name": "远程开门"},
         {"id": 4, "code": "door.log", "name": "开门日志"}
+      ]
+    },
+    {
+      "module": "异常事件",
+      "permissions": [
+        {"id": 9, "code": "alert.view", "name": "查看异常事件"},
+        {"id": 10, "code": "alert.unlock", "name": "解除设备锁定"}
       ]
     }
   ]
@@ -284,9 +398,22 @@ Authorization: Bearer <token>
 {"type": "pong"}
 ```
 
+#### 设备锁定通知
+```json
+{
+  "type": "device_locked",
+  "device_name": "001",
+  "device_location": "大门入口",
+  "lock_ttl": 300,
+  "reason": "密码错误5次，设备锁定5分钟",
+  "timestamp": "2026-06-07 14:30:00"
+}
+```
+
 ### 权限说明
 - 拥有 `door.open` 权限的管理员：接收开门事件通知
 - 拥有 `device.manage` 权限的管理员：接收设备状态变更通知
+- 拥有 `alert.view` 权限的管理员：接收设备锁定通知
 - 普通用户：不接收推送通知
 
 ## 健康检查

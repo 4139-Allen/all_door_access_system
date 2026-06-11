@@ -15,9 +15,12 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
-docker-compose --version >nul 2>&1
+
+REM 检查 Docker Compose V2（docker compose）
+docker compose version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo 错误: 未安装 docker-compose
+    echo 错误: 未安装 Docker Compose V2
+    echo 请安装 Docker Compose V2: https://docs.docker.com/compose/install/
     pause
     exit /b 1
 )
@@ -47,12 +50,12 @@ echo logs 目录和 mosquitto.conf 已就绪
 REM 4. 停止旧容器
 echo.
 echo [4/5] 停止旧容器...
-docker-compose down 2>nul
+docker compose down 2>nul
 
 REM 5. 启动服务
 echo.
 echo [5/5] 启动服务...
-docker-compose up -d --build
+docker compose up -d --build
 
 echo.
 echo 等待服务启动...
@@ -63,7 +66,7 @@ echo.
 echo ==========================================
 echo   服务状态
 echo ==========================================
-docker-compose ps
+docker compose ps
 
 echo.
 echo ==========================================
@@ -83,8 +86,8 @@ echo 提示: 如需公网访问，请配置路由器端口转发或云服务器�
 echo 默认账号: admin / 123456
 echo.
 echo 常用命令:
-echo   查看日志: docker-compose logs -f
-echo   重启服务: docker-compose restart
-echo   停止服务: docker-compose down
+echo   查看日志: docker compose logs -f
+echo   重启服务: docker compose restart
+echo   停止服务: docker compose down
 echo ==========================================
 pause

@@ -30,18 +30,30 @@ logger = AppLogger.get_logger()
 # 本地开门日志（密码/指纹/刷卡）
 # ==========================================
 @service_exception_handler
-def _save_local_door_log(db: Session, device_id: str, action: str):
+def _save_local_door_log(db: Session, device_id: str, action: str, status: str = "成功"):
     """记录本地开门日志并推送 WebSocket 通知（由 @service_exception_handler 统一处理异常）"""
     device = db.query(Device).filter(Device.name == device_id).first()
     if not device:
         return
     db.add(DoorLog(
         user_id=None, device_id=device.id,
-        action=action, status="成功", time=datetime.now()
+        action=action, status=status, time=datetime.now()
     ))
     db.commit()
-    logger.info(f"本地开门记录 [{device_id}]: {action}")
-    mqtt_manager._schedule_send_door_event(device.id, "本地", device.name, device.location or "", action)
+
+    # 清除日志缓存和异常事件缓存
+    from services.door_service import invalidate_log_cache
+    from services.alert_service import invalidate_alert_cache
+    invalidate_log_cache()
+    invalidate_alert_cache()
+
+    # 成功和失败都推送 WebSocket 通知
+    if status == "成功":
+        logger.info(f"本地开门记录 [{device_id}]: {action}")
+    else:
+        logger.warning(f"开门失败 [{device_id}]: {action} - {status}")
+
+    mqtt_manager._schedule_send_door_event(device.id, "本地", device.name, device.location or "", action, status)
 
 
 class MQTTManager:
@@ -142,6 +154,12 @@ class MQTTManager:
                     device.last_online_at = datetime.now()
                     db.commit()
                     mark_device_online(device.id, device_id)
+
+                    # 设备上线时检查锁定状态，如果 Redis 中无锁定键则发送 UNLOCK
+                    lock_key = f"door:err:lock:{device_id}"
+                    if not redis_client.exists(lock_key):
+                        self.publish_command(device_id, "UNLOCK")
+
                     # 只有首次上线才推送 WebSocket 通知
                     if is_first_online:
                         self._schedule_send_device_status(
@@ -153,12 +171,67 @@ class MQTTManager:
             finally:
                 db.close()
 
-        # 记录本地开门日志
-        action_map = {"PWD_OK": "密码开门", "FP_OK": "指纹开门", "CARD_OK": "刷卡开门"}
+        # 记录本地开门日志（成功 + 失败）
+        action_map = {
+            # 成功事件
+            "PWD_OK": ("密码开门", "成功"),
+            "FP_OK": ("指纹开门", "成功"),
+            "CARD_OK": ("刷卡开门", "成功"),
+            # 失败事件
+            "PWD_ERR": ("密码开门", "失败：密码错误"),
+            "FP_ERR": ("指纹开门", "失败：指纹不匹配"),
+            "CARD_ERR": ("刷卡开门", "失败：未授权卡片"),
+        }
         if payload in action_map:
+            action, status = action_map[payload]
+
+            # 验证错误次数限制检查（密码/指纹/刷卡共用）
+            if payload in ("PWD_ERR", "FP_ERR", "CARD_ERR") and redis_client:
+                lock_key = f"door:err:lock:{device_id}"
+                fail_key = f"door:err:fail:{device_id}"
+
+                # 检查设备是否已被锁定
+                if redis_client.exists(lock_key):
+                    lock_ttl = redis_client.ttl(lock_key)
+                    status = f"失败：设备已锁定（剩余{lock_ttl}秒）"
+                    logger.warning(f"设备锁定中 [{device_id}]: 剩余{lock_ttl}秒")
+                else:
+                    # 增加失败计数
+                    fail_count = redis_client.incr(fail_key)
+                    # 首次失败设置过期时间（5分钟内统计）
+                    if fail_count == 1:
+                        redis_client.expire(fail_key, 300)
+
+                    # 检查是否达到锁定阈值（5次）
+                    if fail_count >= 5:
+                        # 锁定设备5分钟
+                        redis_client.setex(lock_key, 300, "locked")
+                        # 删除失败计数
+                        redis_client.delete(fail_key)
+                        # 发送锁定命令给STM32
+                        self.publish_command(device_id, "LOCK")
+                        status = "失败：验证错误次数过多，设备锁定5分钟"
+                        logger.warning(f"设备锁定 [{device_id}]: 5次错误，锁定5分钟")
+
+            # 验证成功时重置失败计数
+            if payload in ("PWD_OK", "FP_OK", "CARD_OK") and redis_client:
+                fail_key = f"door:err:fail:{device_id}"
+                redis_client.delete(fail_key)
+
             db = SessionLocal()
             try:
-                _save_local_door_log(db, device_id, action_map[payload])
+                _save_local_door_log(db, device_id, action, status)
+
+                # 设备锁定时推送异常告警
+                if "锁定" in status:
+                    device = db.query(Device).filter(Device.name == device_id).first()
+                    if device:
+                        self._schedule_send_alert_event(
+                            device_id=device.id,
+                            device_name=device.name,
+                            alert_type="lock",
+                            message="验证错误次数过多，设备已锁定5分钟"
+                        )
             finally:
                 db.close()
 
@@ -196,8 +269,11 @@ class MQTTManager:
     def _schedule_send_device_status(self, **kwargs):
         self._schedule_coroutine(ws_manager.send_device_status(**kwargs), "发送设备状态消息")
 
-    def _schedule_send_door_event(self, device_id: int, username: str, device_name: str, location: str, action: str):
-        self._schedule_coroutine(ws_manager.send_door_event(device_id, username, device_name, location, action), "发送开门事件")
+    def _schedule_send_door_event(self, device_id: int, username: str, device_name: str, location: str, action: str, status: str = "成功"):
+        self._schedule_coroutine(ws_manager.send_door_event(device_id, username, device_name, location, action, status), "发送开门事件")
+
+    def _schedule_send_alert_event(self, device_id: int, device_name: str, alert_type: str, message: str):
+        self._schedule_coroutine(ws_manager.send_alert_event(device_id, device_name, alert_type, message), "发送异常告警")
 
     def stop(self):
         """断开 MQTT 连接"""

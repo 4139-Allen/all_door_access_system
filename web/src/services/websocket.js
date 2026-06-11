@@ -41,11 +41,14 @@ function createWebSocket() {
         return
       }
 
+      // 开门事件
       if (data.type === 'door_open') {
         const { addDoorEvent } = useDoorEventStream()
         addDoorEvent(data)
+        return
       }
 
+      // 设备状态变化
       if (data.type === 'device_status') {
         const { updateDeviceStatus } = useDeviceStatus()
         updateDeviceStatus(data.device_id, data.status)
@@ -55,6 +58,20 @@ function createWebSocket() {
           ElMessage.success(`设备 [${data.device_name}] 已上线`)
         } else if (data.status === 'offline') {
           ElMessage.warning(`设备 [${data.device_name}] 已离线`)
+        }
+        return
+      }
+
+      // 异常告警
+      if (data.type === 'alert') {
+        const { addAlertEvent } = useDoorEventStream()
+        addAlertEvent(data)
+
+        // 显示告警通知
+        if (data.alert_type === 'lock') {
+          ElMessage.error(`设备 [${data.device_name}] ${data.message}`)
+        } else {
+          ElMessage.warning(`设备 [${data.device_name}] ${data.message}`)
         }
         return
       }

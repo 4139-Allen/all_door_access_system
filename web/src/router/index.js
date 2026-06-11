@@ -18,6 +18,7 @@ const routes = [
       { path: 'user', component: () => import('../views/admin/Users.vue'), meta: { permission: 'user.view' } },
       { path: 'device', component: () => import('../views/admin/Device.vue'), meta: { permission: 'device.view' } },
       { path: 'log', component: () => import('../views/admin/Log.vue'), meta: { permission: ['door.view_own_log', 'log.view'] } },
+      { path: 'alert', component: () => import('../views/admin/Alert.vue'), meta: { permission: 'alert.view' } },
       { path: 'roles', component: () => import('../views/admin/RoleManage.vue'), meta: { permission: 'user.manage' } }
     ]
   },

@@ -12,8 +12,16 @@ from utils.service_exception_handler import service_exception_handler
 from schemas.door_schema import LogQuery
 from utils.logger import AppLogger
 from core.exceptions import NotFoundError
+from database.redis import redis_client, cache_get_json, cache_set_json
 
 logger = AppLogger.get_logger()
+
+# 远程开门冷却时间（秒）
+DOOR_OPEN_COOLDOWN = 3
+
+# 日志缓存配置
+LOG_CACHE_TTL = 30  # 缓存30秒
+LOG_CACHE_PREFIX = "cache:logs:"
 
 
 def _add_door_log(db: Session, user_id: int, device_id: int, status: str, ip: str = None):
@@ -21,12 +29,17 @@ def _add_door_log(db: Session, user_id: int, device_id: int, status: str, ip: st
     db.add(DoorLog(
         user_id=user_id,
         device_id=device_id,
-        action="开门",
+        action="远程开门",
         status=status,
         ip=ip,
         time=datetime.now()
     ))
     db.commit()
+
+    # 清除日志缓存和异常事件缓存
+    invalidate_log_cache()
+    from services.alert_service import invalidate_alert_cache
+    invalidate_alert_cache()
 
 
 # ==========================================
@@ -67,13 +80,23 @@ def open_door_service(db: Session, user_id: int, device_id: int, ip: str = None)
             logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 无权限")
             raise PermissionError("无权限操作：你未绑定该设备，无法开门")
 
-    # 5. 开门成功
+    # 5. 冷却时间检查（防止频繁开门）
+    cooldown_key = f"door:cooldown:{user_id}:{device_id}"
+    if redis_client:
+        if redis_client.exists(cooldown_key):
+            _add_door_log(db, user_id, device_id, "失败：操作过于频繁", ip)
+            logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 操作过于频繁")
+            raise PermissionError(f"操作过于频繁，请 {DOOR_OPEN_COOLDOWN} 秒后再试")
+        # 设置冷却时间
+        redis_client.setex(cooldown_key, DOOR_OPEN_COOLDOWN, "1")
+
+    # 6. 开门成功
     _add_door_log(db, user_id, device_id, "成功", ip)
 
-    # 6. 清除统计数据缓存
+    # 7. 清除统计数据缓存
     invalidate_stat_cache(user_id)
 
-    # 7. 发送 MQTT 开门命令给硬件设备
+    # 8. 发送 MQTT 开门命令给硬件设备
     mqtt_manager.publish_command(device.name, "OPEN_DOOR")
 
     logger.info(f"开门成功 | 设备: {device_name} | 用户: {username} | 用户ID: {user_id}")
@@ -90,6 +113,28 @@ def open_door_service(db: Session, user_id: int, device_id: int, ip: str = None)
 
 
 # =================== 3. 日志查询功能======================
+def _build_log_cache_key(user_id: int, params: LogQuery) -> str:
+    """生成日志缓存键"""
+    # 构造参数字符串用于生成唯一键
+    parts = [
+        f"u:{user_id}",
+        f"p:{params.page}",
+        f"s:{params.size}",
+    ]
+    if params.user_id:
+        parts.append(f"uid:{params.user_id}")
+    if params.device_name:
+        parts.append(f"dev:{params.device_name}")
+    if params.status:
+        parts.append(f"st:{params.status}")
+    if params.start_time:
+        parts.append(f"from:{params.start_time}")
+    if params.end_time:
+        parts.append(f"to:{params.end_time}")
+
+    return LOG_CACHE_PREFIX + ":".join(parts)
+
+
 @service_exception_handler
 def query_logs(
         db: Session,
@@ -103,11 +148,18 @@ def query_logs(
         db: 数据库会话
         params: LogQuery schema 对象
         current_user_id: 当前用户ID
-        role: 用户角色
 
     返回:
         (total, result): 总数和日志列表
     """
+    # 尝试从缓存获取
+    cache_key = _build_log_cache_key(current_user_id, params)
+    cached = cache_get_json(cache_key)
+    if cached is not None:
+        logger.debug(f"日志缓存命中: {cache_key}")
+        return cached["total"], cached["list"]
+
+    # 缓存未命中，查询数据库
     # 基础查询 - 关联设备表获取设备信息
     query = db.query(
         DoorLog,
@@ -175,4 +227,34 @@ def query_logs(
             "time": str(log.time) if log.time else None
         })
 
+    # 写入缓存
+    cache_set_json(cache_key, {"total": total, "list": result}, LOG_CACHE_TTL)
+    logger.debug(f"日志缓存写入: {cache_key}")
+
     return total, result
+
+
+def invalidate_log_cache():
+    """
+    清除所有日志缓存
+    在新增日志时调用
+    """
+    if not redis_client:
+        return
+
+    try:
+        # 扫描并删除所有日志缓存键
+        cursor = 0
+        deleted = 0
+        while True:
+            cursor, keys = redis_client.scan(cursor, match=f"{LOG_CACHE_PREFIX}*", count=100)
+            if keys:
+                redis_client.delete(*keys)
+                deleted += len(keys)
+            if cursor == 0:
+                break
+
+        if deleted > 0:
+            logger.info(f"已清除 {deleted} 个日志缓存")
+    except Exception as e:
+        logger.warning(f"清除日志缓存失败: {e}")
