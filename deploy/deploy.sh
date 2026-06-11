@@ -15,8 +15,11 @@ if ! command -v docker &> /dev/null; then
     echo "错误: 未安装 Docker"
     exit 1
 fi
-if ! command -v docker-compose &> /dev/null; then
-    echo "错误: 未安装 docker-compose"
+
+# 检查 Docker Compose V2（docker compose）
+if ! docker compose version &> /dev/null; then
+    echo "错误: 未安装 Docker Compose V2"
+    echo "请安装 Docker Compose V2: https://docs.docker.com/compose/install/"
     exit 1
 fi
 echo "Docker 环境正常"
@@ -47,12 +50,12 @@ echo "logs 目录和 mosquitto.conf 已就绪"
 # 4. 停止旧容器
 echo ""
 echo "[4/5] 停止旧容器..."
-docker-compose down 2>/dev/null || true
+docker compose down 2>/dev/null || true
 
 # 5. 启动服务
 echo ""
 echo "[5/5] 启动服务..."
-docker-compose up -d --build
+docker compose up -d --build
 
 # 等待服务启动
 echo ""
@@ -64,7 +67,7 @@ echo ""
 echo "=========================================="
 echo "  服务状态"
 echo "=========================================="
-docker-compose ps
+docker compose ps
 
 # 获取访问地址
 LOCAL_IP=$(hostname -I | awk '{print $1}')
@@ -84,7 +87,7 @@ fi
 echo "默认账号: admin / 123456"
 echo ""
 echo "常用命令:"
-echo "  查看日志: docker-compose logs -f"
-echo "  重启服务: docker-compose restart"
-echo "  停止服务: docker-compose down"
+echo "  查看日志: docker compose logs -f"
+echo "  重启服务: docker compose restart"
+echo "  停止服务: docker compose down"
 echo "=========================================="

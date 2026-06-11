@@ -26,16 +26,16 @@
         </el-select>
       </div>
       <el-tooltip
-        :content="buttonDisabled ? (selectedId ? '设备离线，无法开门' : '请先选择设备') : ''"
+        :content="buttonTooltip"
         placement="top"
-        :disabled="!buttonDisabled"
+        :disabled="!buttonDisabled && cooldown <= 0"
       >
         <el-button
           type="primary"
           size="large"
           class="open-btn"
-          :class="{ 'open-btn-success': justOpened }"
-          :disabled="buttonDisabled"
+          :class="{ 'open-btn-success': justOpened, 'open-btn-cooldown': cooldown > 0 }"
+          :disabled="buttonDisabled || cooldown > 0"
           :loading="opening"
           @click="handleOpen"
         >
@@ -43,7 +43,7 @@
             <Unlock v-if="justOpened" />
             <Lock v-else />
           </el-icon>
-          <span>{{ opening ? '开门中...' : (justOpened ? '已开锁' : (buttonDisabled ? '不可开门' : '开锁')) }}</span>
+          <span>{{ buttonText }}</span>
         </el-button>
       </el-tooltip>
     </div>
@@ -82,6 +82,7 @@ const props = defineProps({
   selectedId: [String, Number],
   loading: Boolean,
   opening: Boolean,
+  cooldown: { type: Number, default: 0 },
 })
 const emit = defineEmits(['open', 'update:selectedId'])
 
@@ -109,6 +110,22 @@ const selectedDevice = computed(() => {
 
 const buttonDisabled = computed(() => {
   return !props.selectedId || selectedDevice.value?.status !== 'online'
+})
+
+const buttonText = computed(() => {
+  if (props.opening) return '开门中...'
+  if (justOpened.value) return '已开锁'
+  if (props.cooldown > 0) return `${props.cooldown}秒后可重试`
+  if (buttonDisabled.value) return '不可开门'
+  return '开锁'
+})
+
+const buttonTooltip = computed(() => {
+  if (props.cooldown > 0) return `操作过于频繁，请等待 ${props.cooldown} 秒`
+  if (buttonDisabled.value) {
+    return props.selectedId ? '设备离线，无法开门' : '请先选择设备'
+  }
+  return ''
 })
 </script>
 
@@ -155,6 +172,11 @@ const buttonDisabled = computed(() => {
   background: #22c55e !important;
   border-color: #22c55e !important;
   animation: unlock-bounce 0.4s ease;
+}
+.open-btn-cooldown {
+  background: #909399 !important;
+  border-color: #909399 !important;
+  cursor: not-allowed;
 }
 @keyframes unlock-bounce {
   0% { transform: scale(1); }

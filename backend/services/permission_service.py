@@ -295,6 +295,8 @@ def init_permissions(db: Session):
         ("device.bind", "绑定/解绑用户", "设备管理", 5),
         ("log.view", "查看门禁日志", "日志管理", 1),
         ("log.export", "导出日志", "日志管理", 2),
+        ("alert.view", "查看异常事件", "异常事件", 1),
+        ("alert.unlock", "解除设备锁定", "异常事件", 2),
         ("user.view", "查看用户列表", "用户管理", 1),
         ("user.manage", "管理用户", "用户管理", 2),
     ]
@@ -311,6 +313,7 @@ def init_permissions(db: Session):
             "dashboard.view", "door.open", "door.view_own_log",
             "device.view", "device.create", "device.edit", "device.delete", "device.bind",
             "log.view", "log.export",
+            "alert.view", "alert.unlock",
         ],
         "user": ["dashboard.view", "door.open", "door.view_own_log"],
     }
@@ -320,14 +323,24 @@ def init_permissions(db: Session):
         if not role:
             continue
 
-        # 检查是否已有分配，有则跳过
-        existing_count = db.query(RolePermission).filter(RolePermission.role_id == role.id).count()
-        if existing_count > 0:
-            continue
+        # 获取角色当前已有的权限ID
+        existing_perm_ids = {
+            rp.permission_id for rp in
+            db.query(RolePermission.permission_id).filter(RolePermission.role_id == role.id).all()
+        }
 
+        # 获取需要分配的权限
         perms = db.query(Permission).filter(Permission.code.in_(perm_codes)).all()
+
+        # 只添加缺失的权限
+        added = 0
         for p in perms:
-            db.add(RolePermission(role_id=role.id, permission_id=p.id))
+            if p.id not in existing_perm_ids:
+                db.add(RolePermission(role_id=role.id, permission_id=p.id))
+                added += 1
+
+        if added > 0:
+            logger.info(f"为角色 [{role.name}] 新增 {added} 个权限")
 
     db.commit()
     logger.info("✅ 权限数据初始化完成")

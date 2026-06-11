@@ -36,19 +36,21 @@
         <span :class="{ 'ip-local': !row.ip }">{{ row.ip || '本地' }}</span>
       </template>
     </el-table-column>
-    <el-table-column label="操作" width="70" align="center">
+    <el-table-column label="操作" width="90" align="center">
       <template #default="{ row }">
-        <el-tag :type="row.action === '开门' ? 'primary' : 'warning'" size="small" effect="plain">
+        <el-tag :type="getActionTagType(row.action)" size="small" effect="plain">
           {{ row.action }}
         </el-tag>
       </template>
     </el-table-column>
-    <el-table-column label="状态" min-width="160" align="center">
+    <el-table-column label="状态" min-width="110" align="center">
       <template #default="{ row }">
-        <el-tag :type="row.status === '成功' ? 'success' : 'danger'" size="small" effect="light">
-          <span class="status-dot" :class="row.status === '成功' ? 'success' : 'fail'"></span>
-          {{ row.status }}
-        </el-tag>
+        <el-tooltip :content="row.status" placement="top" :show-after="300">
+          <el-tag :type="row.status === '成功' ? 'success' : 'danger'" size="small" effect="light">
+            <span class="status-dot" :class="row.status === '成功' ? 'success' : 'fail'"></span>
+            {{ getShortStatus(row.status) }}
+          </el-tag>
+        </el-tooltip>
       </template>
     </el-table-column>
   </BaseTable>
@@ -57,6 +59,7 @@
 <script setup>
 import BaseTable from '@/components/common/BaseTable.vue'
 import { useRelativeTime } from '@/utils/formatTime'
+import { getActionTagType, getShortStatus } from '@/utils/format'
 
 const relativeTime = (ts) => useRelativeTime(ts)
 

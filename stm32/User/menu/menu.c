@@ -11,7 +11,13 @@
 #include "stdio.h"
 #include "AS608.h"
 
+// 中文字库编码（GB2312）
+// LCD12864 内置中文字库，每行8个中文字符位置（16像素/字符）
+
 extern GeneralModule Buzzer;
+
+// 声明外部锁定状态检查函数
+extern uint8_t is_device_locked(void);
 
 extern GeneralModule Relay;
 
@@ -54,7 +60,7 @@ void menu(void)
                 delay_ms(1500);
                 GeneralModule_Write(&Relay, 0);
             }
-            else
+            else 
             {
                 lcd_clear_flag = 1;
                 lcd_draw_str(2, 0, "蓝牙开锁失败");
@@ -66,81 +72,111 @@ void menu(void)
         }
     }
 
+    // 刷卡检测（锁定状态下仍可刷卡，但不开门）
     if (Read_UID(Card_ID) == 0)
     {
-        for (uint8_t i = 0; i <= 2; i++)
+        // 检查设备是否被锁定
+        if (is_device_locked())
         {
-            if (Unlock_Card[i].card_exist && memcmp(Unlock_Card[i].card_id, Card_ID, 4) == 0)
+            lcd_clear_flag = 1;
+            lcd_draw_str(2, 0, "设备已锁定！");
+            GeneralModule_Write(&Buzzer, 0);
+            delay_ms(500);
+            GeneralModule_Write(&Buzzer, 1);
+        }
+        else
+        {
+            for (uint8_t i = 0; i <= 2; i++)
             {
-                uint8_t buf[2];
-                lcd_clear_flag = 1;
-                lcd_draw_str(1, 0, "刷卡成功");
-                lcd_draw_str(2, 0, "ID:");
-                buf[0] = '0' + i;
-                buf[1] = '\0';
-                lcd_draw_str(2, 2, (const char *)buf);
-                GeneralModule_Write(&Relay, 1);
-                USART1_SendChar_NoEcho('C'); USART1_SendChar_NoEcho('A'); USART1_SendChar_NoEcho('R');
-                USART1_SendChar_NoEcho('D'); USART1_SendChar_NoEcho('_'); USART1_SendChar_NoEcho('O');
-                USART1_SendChar_NoEcho('K'); USART1_SendChar_NoEcho('\n');
+                if (Unlock_Card[i].card_exist && memcmp(Unlock_Card[i].card_id, Card_ID, 4) == 0)
+                {
+                    uint8_t buf[2];
+                    lcd_clear_flag = 1;
+                    lcd_draw_str(1, 0, "刷卡成功");
+                    lcd_draw_str(2, 0, "ID:");
+                    buf[0] = '0' + i;
+                    buf[1] = '\0';
+                    lcd_draw_str(2, 2, (const char *)buf);
+                    GeneralModule_Write(&Relay, 1);
+                    USART1_SendStr("CARD_OK\n");
 
-                delay_ms(1500);
-                GeneralModule_Write(&Relay, 0);
-                break;
-            }
-            if (i == 2)
-            {
-                lcd_clear_flag = 1;
-                lcd_draw_str(2, 0, "刷卡错误");
-                GeneralModule_Write(&Buzzer, 0);
-                delay_ms(1500);
-                GeneralModule_Write(&Buzzer, 1);
+                    delay_ms(1500);
+                    GeneralModule_Write(&Relay, 0);
+                    break;
+                }
+                if (i == 2)
+                {
+                    lcd_clear_flag = 1;
+                    lcd_draw_str(2, 0, "刷卡失败");
+                    GeneralModule_Write(&Buzzer, 0);
+
+                    //上报刷卡错误
+                    USART1_SendStr("CARD_ERR\n");
+
+                    delay_ms(1500);
+                    GeneralModule_Write(&Buzzer, 1);
+                }
             }
         }
         memset(Card_ID, 0, sizeof(Card_ID));
     }
 
+    // 指纹检测（锁定状态下仍可检测，但不开门）
     if (PAin(0) == 1)
     {
-        SearchResult seach;
-
-        ensure = PS_GetImage();
-
-        if (ensure == 0x00)
+        // 检查设备是否被锁定
+        if (is_device_locked())
         {
-            ensure = PS_GenChar(CharBuffer1);
+            lcd_clear_flag = 1;
+            lcd_draw_str(2, 0, "设备已锁定！");
+            GeneralModule_Write(&Buzzer, 0);
+            delay_ms(500);
+            GeneralModule_Write(&Buzzer, 1);
+        }
+        else
+        {
+            SearchResult seach;
+
+            ensure = PS_GetImage();
 
             if (ensure == 0x00)
             {
-                ensure = PS_HighSpeedSearch(CharBuffer1, 0, 20, &seach);
+                ensure = PS_GenChar(CharBuffer1);
 
-                if (ensure == 0x00 && seach.mathscore > 50)
+                if (ensure == 0x00)
                 {
-                    uint8_t buf[2];
-                    buf[0] = '0' + seach.pageID;
-                    buf[1] = '\0';
-                    lcd_clear_flag = 1;
-                    lcd_draw_str(1, 0, "指纹解锁成功");
-                    lcd_draw_str(2, 0, "ID:");
-                    buf[0] = '0' + seach.pageID;
-                    lcd_draw_str(2, 2, (const char *)buf);
-                    lcd_clear_flag = 1;
-                    GeneralModule_Write(&Relay, 1);
-                    USART1_SendChar_NoEcho('F'); USART1_SendChar_NoEcho('P');
-                    USART1_SendChar_NoEcho('_'); USART1_SendChar_NoEcho('O'); USART1_SendChar_NoEcho('K');
-                    USART1_SendChar_NoEcho('\n');
+                    ensure = PS_HighSpeedSearch(CharBuffer1, 0, 20, &seach);
 
-                    delay_ms(1500);
-                    GeneralModule_Write(&Relay, 0);
-                }
-                else
-                {
-                    lcd_clear_flag = 1;
-                    lcd_draw_str(1, 0, "指纹错误");
+                    if (ensure == 0x00 && seach.mathscore > 50)
+                    {
+                        uint8_t buf[2];
+                        buf[0] = '0' + seach.pageID;
+                        buf[1] = '\0';
+                        lcd_clear_flag = 1;
+                        lcd_draw_str(1, 0, "指纹开锁成功");
+                        lcd_draw_str(2, 0, "ID:");
+                        buf[0] = '0' + seach.pageID;
+                        lcd_draw_str(2, 2, (const char *)buf);
+                        lcd_clear_flag = 1;
+                        GeneralModule_Write(&Relay, 1);
+                        USART1_SendStr("FP_OK\n");
 
-                    GeneralModule_Write(&Buzzer, 0);
-                    delay_ms(1000);
-                    GeneralModule_Write(&Buzzer, 1);
+                        delay_ms(1500);
+                        GeneralModule_Write(&Relay, 0);
+                    }
+                    else
+                    {
+                        lcd_clear_flag = 1;
+                        lcd_draw_str(1, 0, "指纹不匹配");
+
+                        GeneralModule_Write(&Buzzer, 0);
+
+                        //上报指纹错误
+                        USART1_SendStr("FP_ERR\n");
+
+                        delay_ms(1000);
+                        GeneralModule_Write(&Buzzer, 1);
+                    }
                 }
             }
         }
@@ -157,7 +193,20 @@ void menu(void)
         if (sub_disp == 0)
         {
             lcd_draw_str(0, 0, "智能门禁管理系统");
-            lcd_draw_str(3, 5, "Enter");
+
+            // 检查设备是否被锁定
+            if (is_device_locked())
+            {
+                lcd_draw_str(3, 5, "已锁定");
+                pwd_num = 0;
+                memset(pwd, 0, password_length);
+                return;  // 锁定状态下不处理密码输入
+            }
+            else
+            {
+                lcd_draw_str(3, 5, "输入");
+            }
+
             if (pwd_num > 0)
             {
                 for (uint8_t i = 1; i <= pwd_num; i++)
@@ -170,7 +219,7 @@ void menu(void)
                     {
                         memset(pwd, 0, password_length);
                         lcd_clear_flag = 1;
-                        lcd_draw_str(2, 0, "已开锁");
+                        lcd_draw_str(2, 0, "开锁成功");
                         GeneralModule_Write(&Relay, 1);
                         USART1_SendChar_NoEcho('P'); USART1_SendChar_NoEcho('W'); USART1_SendChar_NoEcho('D');
                         USART1_SendChar_NoEcho('_'); USART1_SendChar_NoEcho('O'); USART1_SendChar_NoEcho('K');
@@ -184,8 +233,12 @@ void menu(void)
                     {
                         memset(pwd, 0, password_length);
                         lcd_clear_flag = 1;
-                        lcd_draw_str(2, 0, "密码不正确");
+                        lcd_draw_str(2, 0, "密码错误");
                         GeneralModule_Write(&Buzzer, 0);
+
+                        //上报密码错误
+                        USART1_SendStr("PWD_ERR\n");
+
                         delay_ms(1500);
                         key_handle();
                         pwd_num = 0;
@@ -197,7 +250,7 @@ void menu(void)
         if (sub_disp == 1)
         {
             lcd_draw_str(0, 0, "请输入管理员密码");
-            lcd_draw_str(3, 0, "Back");
+            lcd_draw_str(3, 0, "返回");
             if (pwd_num > 0)
             {
                 for (uint8_t i = 1; i <= pwd_num; i++)
@@ -219,7 +272,7 @@ void menu(void)
 
                         lcd_clear_flag = 1;
                         memset(pwd, 0, password_length);
-                        lcd_draw_str(2, 0, "密码不正确");
+                        lcd_draw_str(2, 0, "密码错误");
                         GeneralModule_Write(&Buzzer, 0);
                         delay_ms(1500);
                         key_handle();
@@ -235,7 +288,7 @@ void menu(void)
         lcd_draw_str(select, 0, "*");
         lcd_draw_str(0, 2, "指纹管理");
         lcd_draw_str(1, 2, "密码管理");
-        lcd_draw_str(2, 2, "ID卡管理");
+        lcd_draw_str(2, 2, "卡片管理");
         lcd_draw_str(3, 0, "Back");
         lcd_draw_str(3, 5, "Enter");
     }
@@ -246,16 +299,16 @@ void menu(void)
             lcd_draw_str(select, 0, "*");
             lcd_draw_str(0, 1, "添加指纹");
             lcd_draw_str(1, 1, "删除指纹");
-            lcd_draw_str(3, 0, "Back");
-            lcd_draw_str(3, 5, "Enter");
+            lcd_draw_str(3, 0, "返回");
+            lcd_draw_str(3, 5, "确认");
         }
         if (sub_disp == 1)
         {
             if (fp_manage_status == 0)
             {
-                lcd_draw_str(0, 0, "请输入需要添加的");
-                lcd_draw_str(1, 0, "指纹ID 0~4");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(0, 0, "请输入指纹ID");
+                lcd_draw_str(1, 0, "范围0~4");
+                lcd_draw_str(3, 0, "返回");
                 if (selected_fp_id != -1)
                 {
                     fp_manage_status = 1;
@@ -265,7 +318,7 @@ void menu(void)
             if (fp_manage_status == 1)
             {
                 lcd_draw_str(0, 0, "请按一次指纹");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(3, 0, "返回");
                 ensure = PS_GetImage();
                 if (ensure == 0x00)
                 {
@@ -279,8 +332,8 @@ void menu(void)
             }
             if (fp_manage_status == 2)
             {
-                lcd_draw_str(0, 0, "请按第二次指纹");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(0, 0, "请再按一次指纹");
+                lcd_draw_str(3, 0, "返回");
                 ensure = PS_GetImage();
                 if (ensure == 0x00)
                 {
@@ -326,7 +379,7 @@ void menu(void)
                         fp_manage_status = 0;
                         lcd_clear_flag = 1;
                         selected_fp_id = -1;
-                        lcd_draw_str(0, 0, "模型生成失败");
+                        lcd_draw_str(0, 0, "指纹生成失败");
                         delay_ms(1500);
                     }
                 }
@@ -335,22 +388,22 @@ void menu(void)
                     fp_manage_status = 0;
                     lcd_clear_flag = 1;
                     selected_fp_id = -1;
-                    lcd_draw_str(0, 0, "两次指纹不一致");
+                    lcd_draw_str(0, 0, "两次指纹不匹配");
                     delay_ms(1500);
                 }
             }
         }
         if (sub_disp == 2)
         {
-            lcd_draw_str(0, 0, "请输入需要删除的");
-            lcd_draw_str(1, 0, "指纹ID 0~4");
-            lcd_draw_str(3, 0, "Back");
+            lcd_draw_str(0, 0, "请输入删除ID");
+            lcd_draw_str(1, 0, "范围0~4");
+            lcd_draw_str(3, 0, "返回");
             if (selected_fp_id != -1)
             {
                 ensure = PS_DeletChar(selected_fp_id, 1);
                 if (ensure == 0x00)
                 {
-                    lcd_draw_str(2, 0, "删除成功!");
+                    lcd_draw_str(2, 0, "删除成功");
                     selected_fp_id = -1;
                     sub_disp = 0;
                     disp = 0;
@@ -359,7 +412,7 @@ void menu(void)
                 }
                 else
                 {
-                    lcd_draw_str(2, 0, "删除失败!");
+                    lcd_draw_str(2, 0, "删除失败");
                     selected_fp_id = -1;
                     sub_disp = 0;
                     disp = 0;
@@ -376,15 +429,15 @@ void menu(void)
             lcd_draw_str(select, 0, "*");
             lcd_draw_str(0, 1, "修改开锁密码");
             lcd_draw_str(1, 1, "修改管理员密码");
-            lcd_draw_str(3, 0, "Back");
-            lcd_draw_str(3, 5, "Enter");
+            lcd_draw_str(3, 0, "返回");
+            lcd_draw_str(3, 5, "确认");
         }
         if (sub_disp == 1)
         {
             if (change_pwd_status == 0)
             {
                 lcd_draw_str(0, 0, "请输入新密码");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(3, 0, "返回");
                 if (pwd_num > 0)
                 {
                     for (uint8_t i = 1; i <= pwd_num; i++)
@@ -402,7 +455,7 @@ void menu(void)
             if (change_pwd_status == 1)
             {
                 lcd_draw_str(0, 0, "确认新密码");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(3, 0, "返回");
                 if (pwd_num > 0)
                 {
                     for (uint8_t i = 1; i <= pwd_num; i++)
@@ -424,7 +477,7 @@ void menu(void)
                         }
                         else
                         {
-                            lcd_draw_str(2, 0, "两次密码不一致");
+                            lcd_draw_str(2, 0, "密码不一致");
                             delay_ms(1500);
                         }
                         memset(new_pwd, 0, password_length);
@@ -438,7 +491,7 @@ void menu(void)
             if (change_pwd_status == 0)
             {
                 lcd_draw_str(0, 0, "请输入新密码");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(3, 0, "返回");
                 if (pwd_num > 0)
                 {
                     for (uint8_t i = 1; i <= pwd_num; i++)
@@ -456,7 +509,7 @@ void menu(void)
             if (change_pwd_status == 1)
             {
                 lcd_draw_str(0, 0, "确认新密码");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(3, 0, "返回");
                 if (pwd_num > 0)
                 {
                     for (uint8_t i = 1; i <= pwd_num; i++)
@@ -478,7 +531,7 @@ void menu(void)
                         }
                         else
                         {
-                            lcd_draw_str(2, 0, "两次密码不一致");
+                            lcd_draw_str(2, 0, "密码不一致");
                             delay_ms(1500);
                         }
                         memset(new_pwd, 0, password_length);
@@ -494,23 +547,23 @@ void menu(void)
         if (sub_disp == 0)
         {
             lcd_draw_str(select, 0, "*");
-            lcd_draw_str(0, 1, "添加卡");
-            lcd_draw_str(1, 1, "删除卡");
-            lcd_draw_str(3, 0, "Back");
-            lcd_draw_str(3, 5, "Enter");
+            lcd_draw_str(0, 1, "添加卡片");
+            lcd_draw_str(1, 1, "删除卡片");
+            lcd_draw_str(3, 0, "返回");
+            lcd_draw_str(3, 5, "确认");
         }
         if (sub_disp == 1)
         {
             if (card_manage_status == 0)
             {
-                lcd_draw_str(0, 0, "请输入需要添加的");
-                lcd_draw_str(1, 0, "ID0~2");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(0, 0, "请输入卡片ID");
+                lcd_draw_str(1, 0, "范围0~2");
+                lcd_draw_str(3, 0, "返回");
             }
             if (card_manage_status == 1)
             {
                 lcd_draw_str(0, 1, "请刷卡");
-                lcd_draw_str(3, 0, "Back");
+                lcd_draw_str(3, 0, "返回");
                 if (Read_UID(Card_ID) == 0)
                 {
                     AddCard(selected_card_id, Card_ID);
@@ -527,9 +580,9 @@ void menu(void)
         }
         if (sub_disp == 2)
         {
-            lcd_draw_str(0, 0, "请输入需要删除的");
-            lcd_draw_str(1, 0, "ID0~2");
-            lcd_draw_str(3, 0, "Back");
+            lcd_draw_str(0, 0, "请输入删除ID");
+            lcd_draw_str(1, 0, "范围0~2");
+            lcd_draw_str(3, 0, "返回");
             if (selected_card_id != -1)
             {
                 DelCard(selected_card_id);

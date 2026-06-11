@@ -29,7 +29,7 @@
 
 ### 用户与权限
 - **用户管理**：注册、登录、密码修改、用户增删改查
-- **RBAC 权限系统**：角色管理、权限分配、细粒度权限控制（如 `user.manage`、`device.manage`、`door.open`）
+- **RBAC 权限系统**：角色管理、权限分配、细粒度权限控制（如 `user.manage`、`device.manage`、`door.open`、`alert.view`）
 - **多角色支持**：管理员（admin）、普通用户（user）及自定义角色
 - **JWT 认证**：Redis 支撑的 Token 验证 + 黑名单注销机制
 
@@ -39,6 +39,17 @@
 - **门禁控制**：远程开门、权限校验、实时状态反馈
 - **MQTT 通信**：支持密码/指纹/刷卡/远程四种开门方式，QoS 1 保证消息可靠送达
 - **开门记录**：分页查询、多维度筛选（时间、用户、设备、状态）
+- **设备自动锁定**：密码/指纹/刷卡连续错误 5 次自动锁定设备 5 分钟，防止暴力破解
+
+### 异常事件监控
+- **设备锁定检测**：密码/指纹/刷卡连续验证错误 5 次，设备自动锁定 5 分钟
+- **异常事件列表**：分页查询所有异常事件（设备锁定、开门失败），支持设备名称、事件类型、时间范围筛选
+- **异常事件统计**：按时间范围统计异常总数、锁定次数、失败次数、各设备异常分布
+- **设备锁定列表**：实时展示当前处于锁定状态的设备及剩余锁定时间（TTL 倒计时）
+- **解除设备锁定**：管理员可手动解除设备锁定（清除 Redis 锁定键 + 发送 UNLOCK 命令）
+- **权限控制**：`alert.view` 查看异常事件，`alert.unlock` 解除设备锁定
+- **Redis 缓存**：异常事件列表 30 秒缓存，新增异常时自动清除缓存
+- **实时推送**：设备锁定/解锁事件通过 WebSocket 实时通知管理员
 
 ### 通信与通知
 - **WebSocket 实时通知**：管理员实时接收开门事件推送和设备状态变更
@@ -89,6 +100,19 @@
                                 └─────────────┘
 ```
 
+### 异常事件 API 接口
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| `GET` | `/alerts?page=&size=&device_name=&alert_type=&start_time=&end_time=` | `alert.view` | 获取异常事件列表（分页、多维度筛选） |
+| `GET` | `/alerts/stats?hours=24` | `alert.view` | 获取异常事件统计（锁定次数、失败次数、设备分布） |
+| `POST` | `/alerts/unlock/{device_name}` | `alert.unlock` | 解除设备锁定（清除 Redis 锁定 + 发送 UNLOCK 命令） |
+
+**异常事件类型**：
+- `lock` — 设备锁定（密码/指纹/刷卡连续错误 5 次触发）
+- `offline` — 设备离线（心跳超时）
+- `error` — 开门失败（权限不足、验证错误等）
+
 ## 项目结构
 
 ```
@@ -107,6 +131,7 @@ all_door_access_system/
 │   │   ├── admin_user_api.py   # 用户管理（管理员）
 │   │   ├── device_api.py       # 设备管理
 │   │   ├── door_api.py         # 门禁控制 + 开门日志
+│   │   ├── alert_api.py        # 异常事件（设备锁定/开门失败）
 │   │   ├── permission_api.py   # 权限管理（角色/权限 CRUD）
 │   │   ├── stat_api.py         # 数据统计
 │   │   ├── ai_agent.py         # AI 助手接口
@@ -117,6 +142,7 @@ all_door_access_system/
 │   │   ├── device_monitor_service.py # 设备在线状态监控
 │   │   ├── door_service.py          # 门禁业务 + 日志查询
 │   │   ├── mqtt_service.py          # MQTT 通信管理
+│   │   ├── alert_service.py         # 异常事件业务（设备锁定/解锁/统计）
 │   │   ├── websocket_service.py     # WebSocket 连接管理 + 认证
 │   │   ├── permission_service.py    # RBAC 权限业务
 │   │   ├── stat_service.py          # 统计业务
@@ -163,6 +189,7 @@ all_door_access_system/
 │   │   │   │   ├── Device.vue  # 设备管理
 │   │   │   │   ├── Users.vue   # 用户管理
 │   │   │   │   ├── Log.vue     # 开门日志
+│   │   │   │   ├── Alert.vue   # 异常事件（设备锁定/开门失败）
 │   │   │   │   └── RoleManage.vue # 角色权限管理
 │   │   │   └── shared/         # 共享页面
 │   │   │       ├── Dashboard.vue    # 数据看板
@@ -172,7 +199,7 @@ all_door_access_system/
 │   │   ├── components/         # 组件（Dashboard/Device/Door/Layout/User/Log）
 │   │   ├── composables/        # 组合式函数（useDeviceStatus/useDoorEventStream/useListFetch）
 │   │   ├── services/           # WebSocket 服务
-│   │   ├── utils/              # 工具（request/permission/formatTime）
+│   │   ├── utils/              # 工具（request/permission/formatTime/format）
 │   │   ├── router/             # 路由配置
 │   │   └── styles/             # 全局样式
 │   └── nginx.conf              # Nginx 配置（反向代理 + SSL）
@@ -260,10 +287,10 @@ cp .env.example .env
 #   MYSQL_DB=door_access_system
 
 # 4. 启动所有服务（首次会自动构建镜像）
-docker-compose up -d
+docker compose up -d
 
 # 5. 等待服务就绪（约 30 秒），检查状态
-docker-compose ps
+docker compose ps
 
 # 6. 访问系统
 #    Web 管理后台：http://localhost
@@ -362,6 +389,7 @@ pytest tests/ --cov=. --cov-report=html
 | 用户管理 | `/users` | `user.manage` | 用户增删改查 + 设备绑定 |
 | 设备管理 | `/device` | `device.manage` | 设备增删改查 |
 | 开门日志 | `/log` | `door.log` | 全局日志 + 高级筛选 |
+| 异常事件 | `/alert` | `alert.view` | 设备锁定列表 + 异常统计 + 解除锁定 |
 | 角色管理 | `/roles` | `user.manage` | 角色 CRUD + 权限分配 |
 
 ## 技术栈
@@ -444,6 +472,59 @@ def create_device_service(db: Session, body: DeviceCreate):
 5. 更新前端页面（Web/小程序/APP）
 6. 编写测试用例
 
+### 数据库迁移（Alembic）
+
+项目使用 Alembic 管理数据库表结构变更，支持版本化迁移和安全回滚。
+
+**常用命令：**
+
+```bash
+cd backend
+
+# 查看当前数据库版本
+python manage_db.py current
+
+# 查看迁移历史
+python manage_db.py history
+
+# 创建新迁移脚本（修改模型后执行）
+python manage_db.py create -m "add_user_phone_field"
+
+# 升级到最新版本
+python manage_db.py upgrade
+
+# 回滚一个版本
+python manage_db.py downgrade -1
+```
+
+**典型工作流程：**
+
+```bash
+# 1. 修改 SQLAlchemy 模型（如 database/models/user.py 添加 phone 字段）
+
+# 2. 生成迁移脚本
+python manage_db.py create -m "add_user_phone_field"
+
+# 3. 检查生成的脚本（在 alembic/versions/ 目录下）
+
+# 4. 执行迁移
+python manage_db.py upgrade
+
+# 5. 如果需要回滚
+python manage_db.py downgrade -1
+```
+
+**直接使用 Alembic 命令：**
+
+```bash
+# 也可以直接使用 alembic 命令
+alembic current                    # 查看当前版本
+alembic history                    # 查看迁移历史
+alembic revision --autogenerate -m "描述"  # 创建迁移
+alembic upgrade head               # 升级到最新
+alembic downgrade -1               # 回滚一个版本
+```
+
 ### 环境变量速查
 
 | 分类 | 必填变量 | 可选变量 |
@@ -456,23 +537,90 @@ def create_device_service(db: Session, body: DeviceCreate):
 | 短信 | - | `ALIYUN_ACCESS_KEY_ID`, `ALIYUN_ACCESS_KEY_SECRET`, `ALIYUN_SMS_SIGN`, `ALIYUN_SMS_TEMPLATE` |
 | 邮件 | - | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` |
 | 管理员 | - | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `AUTO_CREATE_ADMIN` |
+| 日志 | - | `LOG_FORMAT` |
 
 > 完整模板见 [`deploy/.env.example`](deploy/.env.example)
+
+### 结构化日志
+
+项目支持结构化 JSON 日志，便于生产环境日志收集和分析。
+
+**配置方式：**
+
+在 `.env` 中设置 `LOG_FORMAT`：
+```bash
+# 开发环境（默认）- 纯文本格式
+LOG_FORMAT=text
+
+# 生产环境推荐 - JSON 格式
+LOG_FORMAT=json
+```
+
+**日志格式对比：**
+
+```bash
+# 纯文本格式（开发环境）
+2026-06-11 18:30:15 | INFO     | door_service.py:42 | 用户 admin 开门成功
+
+# JSON 格式（生产环境）
+{
+  "timestamp": "2026-06-11 18:30:15,123",
+  "level": "INFO",
+  "message": "用户 admin 开门成功",
+  "user_id": 1,
+  "device_id": "001",
+  "logger": "app",
+  "module": "door_service",
+  "function": "open_door",
+  "line": 42,
+  "pid": 1234
+}
+```
+
+**在代码中添加上下文信息：**
+
+```python
+from utils.logger import AppLogger
+logger = AppLogger.get_logger()
+
+# 基础日志
+logger.info("用户登录成功")
+
+# 带上下文的日志（会自动添加到 JSON 字段）
+logger.info("开门成功", extra={
+    "user_id": 1,
+    "device_id": "001",
+    "action": "door_open",
+    "status": "success"
+})
+```
+
+**生产环境日志收集：**
+
+JSON 格式日志可以轻松集成到：
+- **ELK Stack**（Elasticsearch + Logstash + Kibana）
+- **Loki + Grafana**
+- **阿里云 SLS**（日志服务）
+- **AWS CloudWatch**
+
+只需配置日志收集器按行读取 `logs/app.log` 文件即可。
 
 ## 常见问题
 
 | 问题 | 原因 | 解决方案 |
 |------|------|----------|
-| Redis 连接失败 | Redis 未启动 | 启动 Redis：`redis-server`；Docker 环境检查 `docker-compose ps redis` |
+| Redis 连接失败 | Redis 未启动 | 启动 Redis：`redis-server`；Docker 环境检查 `docker compose ps redis` |
 | 数据库连接失败 | `.env` 配置错误 | Docker 环境用 `MYSQL_HOST=mysql`，本地用 `MYSQL_HOST=localhost` |
-| 前端页面空白 | 前端未构建 | 执行 `cd web && npm run build`，然后 `docker-compose up -d --build frontend` |
+| 前端页面空白 | 前端未构建 | 执行 `cd web && npm run build`，然后 `docker compose up -d --build frontend` |
 | AI 功能不可用 | 未配置 API Key | 在 `.env` 中配置 `DEEPSEEK_API_KEY` |
-| MQTT 连接失败 | Broker 未启动 | Docker：`docker-compose ps mosquitto`；本地：`mosquitto -v` |
+| MQTT 连接失败 | Broker 未启动 | Docker：`docker compose ps mosquitto`；本地：`mosquitto -v` |
 | 设备离线 | 心跳超时 | 设备在线状态 Redis 缓存 70 秒过期，等待自动恢复或检查设备固件 |
 | 用户/设备删除失败 | 存在关联数据 | 先解绑所有关联：删除用户前解绑设备，删除设备前解绑用户 |
 | Token 过期 | 默认 3600 分钟 | 调整 `ACCESS_TOKEN_EXPIRE_MINUTES` 或重新登录 |
 | 密码过长报错 | bcrypt 72 字节限制 | 密码不超过 72 字节（约 24 个中文字符或 72 个英文字符） |
 | WebSocket 断连 | 网络不稳定 | 前端自动重连机制，检查浏览器控制台日志 |
+| 设备锁定无法开门 | 密码/指纹/刷卡连续错误 5 次 | 等待 5 分钟自动解锁，或管理员在异常事件页面手动解除锁定 |
+| 异常事件页面无数据 | 未发生异常或权限不足 | 确认拥有 `alert.view` 权限，检查是否有开门失败记录 |
 
 ## License
 

@@ -87,14 +87,32 @@ cd app && npm run dev:h5
 cd app && npm run build:h5
 
 # Docker - full deployment (from deploy/ directory)
-cd deploy && docker-compose up -d
+cd deploy && docker compose up -d
 
 # Docker - rebuild single service after code changes
-cd deploy && docker-compose up -d --build fastapi
-cd deploy && docker-compose up -d --build frontend
+cd deploy && docker compose up -d --build fastapi
+cd deploy && docker compose up -d --build frontend
 
 # Docker - view logs
-cd deploy && docker-compose logs -f fastapi
+cd deploy && docker compose logs -f fastapi
+
+# Database Migration (Alembic) - manage database schema changes
+cd backend
+
+# Check current database version
+python manage_db.py current
+
+# View migration history
+python manage_db.py history
+
+# Create new migration after model changes
+python manage_db.py create -m "add_user_phone_field"
+
+# Upgrade database to latest version
+python manage_db.py upgrade
+
+# Rollback one version
+python manage_db.py downgrade -1
 ```
 
 ## Important Notes
@@ -105,6 +123,66 @@ cd deploy && docker-compose logs -f fastapi
 - AI features are optional; missing `DEEPSEEK_API_KEY` logs a warning but doesn't block startup
 - Cache invalidation: device list cache keyed by `cache:device:list:user:{user_id}`, invalidate on device CRUD
 - Logs go to `backend/logs/app.log.YYYY-MM-DD` with 30-day rotation
+- Structured logging: Set `LOG_FORMAT=json` in `.env` for JSON logs (recommended for production)
+
+## Structured Logging
+
+The application supports structured JSON logging for better observability in production.
+
+### Configuration
+
+Set `LOG_FORMAT` environment variable in `.env`:
+```bash
+# Development (default) - plain text format
+LOG_FORMAT=text
+
+# Production - JSON format (recommended)
+LOG_FORMAT=json
+```
+
+### Usage in Code
+
+```python
+from utils.logger import AppLogger
+logger = AppLogger.get_logger()
+
+# Basic log
+logger.info("User login successful")
+
+# Log with context (automatically added to JSON fields)
+logger.info("Door opened", extra={
+    "user_id": 1,
+    "device_id": "001",
+    "action": "door_open"
+})
+```
+
+### JSON Output Example
+
+```json
+{
+  "timestamp": "2026-06-11 18:30:15,123",
+  "level": "INFO",
+  "message": "Door opened",
+  "user_id": 1,
+  "device_id": "001",
+  "logger": "app",
+  "module": "door_service",
+  "function": "open_door",
+  "line": 42,
+  "pid": 1234
+}
+```
+
+### Production Integration
+
+JSON logs can be easily integrated with:
+- **ELK Stack** (Elasticsearch + Logstash + Kibana)
+- **Loki + Grafana**
+- **Alibaba Cloud SLS** (Log Service)
+- **AWS CloudWatch**
+
+Just configure your log collector to read `logs/app.log` line by line.
 
 ## Database Models
 
@@ -289,7 +367,7 @@ cd deploy && docker-compose logs -f fastapi
 - Access Swagger UI: http://localhost:8000/docs
 - Alternative docs: http://localhost:8000/redoc
 - Health check: GET http://localhost:8000/health
-- Check logs: `docker-compose logs -f fastapi` or view `logs/app.log.YYYY-MM-DD`
+- Check logs: `docker compose logs -f fastapi` or view `logs/app.log.YYYY-MM-DD`
 - Test API with curl: `curl -X POST http://localhost:8000/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"123456"}'`
 
 ### Frontend Testing
@@ -310,13 +388,56 @@ cd deploy && docker-compose logs -f fastapi
 
 ### Docker Troubleshooting
 - All docker commands should be run from `deploy/` directory
-- Rebuild after code changes: `cd deploy && docker-compose up -d --build <service_name>`
-- View all logs: `cd deploy && docker-compose logs -f`
-- Restart single service: `cd deploy && docker-compose restart <service_name>`
-- Check container status: `cd deploy && docker-compose ps`
+- Rebuild after code changes: `cd deploy && docker compose up -d --build <service_name>`
+- View all logs: `cd deploy && docker compose logs -f`
+- Restart single service: `cd deploy && docker compose restart <service_name>`
+- Check container status: `cd deploy && docker compose ps`
 - Reset database: Stop containers, remove mysql-data volume, restart
 
 ## Development Workflow
+
+### Database Migration (Alembic)
+
+The project uses Alembic for database schema versioning and migration management.
+
+**Key Files:**
+- `backend/alembic.ini` - Alembic configuration
+- `backend/alembic/env.py` - Environment setup (imports project models and config)
+- `backend/alembic/versions/` - Migration scripts directory
+- `backend/manage_db.py` - Management script for common operations
+
+**Typical Workflow:**
+1. Modify SQLAlchemy model (e.g., add field to `database/models/user.py`)
+2. Generate migration: `python manage_db.py create -m "add_user_phone_field"`
+3. Review generated script in `alembic/versions/`
+4. Apply migration: `python manage_db.py upgrade`
+5. Rollback if needed: `python manage_db.py downgrade -1`
+
+**Available Commands:**
+```bash
+cd backend
+
+python manage_db.py current          # Show current database version
+python manage_db.py history          # Show migration history
+python manage_db.py create -m "msg"  # Create new migration (autogenerate)
+python manage_db.py upgrade          # Upgrade to latest version
+python manage_db.py downgrade -1     # Rollback one version
+```
+
+**Direct Alembic Commands:**
+```bash
+alembic current                      # Show current version
+alembic history                      # Show migration history
+alembic revision --autogenerate -m "msg"  # Create migration
+alembic upgrade head                 # Upgrade to latest
+alembic downgrade -1                 # Rollback one version
+```
+
+**Important Notes:**
+- Always review autogenerated migrations before applying
+- Migrations are stored in `backend/alembic/versions/`
+- The `init_database()` in `db.py` still uses `create_all()` as fallback
+- For production, prefer Alembic migrations over `create_all()`
 
 ### Adding New Feature
 1. Define Pydantic schema in `backend/schemas/`

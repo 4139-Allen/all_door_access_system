@@ -118,7 +118,7 @@ ALLOWED_ORIGINS=http://localhost:5173
 | `.env.docker` | `deploy/` 和 `backend/` | Docker 环境专用模板 |
 | `.env` | `deploy/` 和 `backend/` | 实际配置文件（**不要提交到 Git**） |
 
-> `deploy/.env` 会被 Docker Compose 的 `env_file` 加载，同时 `docker-compose.yml` 中的 `environment` 会覆盖主机名相关的变量（`MYSQL_HOST=mysql` 等）。
+> `deploy/.env` 会被 Docker Compose 的 `env_file` 加载，同时 `docker compose.yml` 中的 `environment` 会覆盖主机名相关的变量（`MYSQL_HOST=mysql` 等）。
 
 ## Docker 部署
 
@@ -165,7 +165,7 @@ cd deploy && deploy.bat
 ```
 
 脚本自动完成：
-1. 检查 Docker 和 docker-compose 是否安装
+1. 检查 Docker 和 docker compose 是否安装
 2. 从 `.env.docker` 创建 `.env`（如不存在）
 3. 创建 `logs/` 目录和 `mosquitto.conf`
 4. 停止旧容器
@@ -179,37 +179,37 @@ cd deploy && deploy.bat
 cd deploy
 
 # 启动全部服务
-docker-compose up -d
+docker compose up -d
 
 # 首次部署（构建镜像）
-docker-compose up -d --build
+docker compose up -d --build
 
 # 重建后端（代码修改后）
-docker-compose up -d --build fastapi
+docker compose up -d --build fastapi
 
 # 重建前端（代码修改后）
 cd ../web && npm run build && cd ../deploy
-docker-compose up -d --build frontend
+docker compose up -d --build frontend
 
 # 查看所有服务状态
-docker-compose ps
+docker compose ps
 
 # 查看日志（全部）
-docker-compose logs -f
+docker compose logs -f
 
 # 查看指定服务日志
-docker-compose logs -f fastapi
-docker-compose logs -f mysql
+docker compose logs -f fastapi
+docker compose logs -f mysql
 
 # 重启单个服务
-docker-compose restart fastapi
+docker compose restart fastapi
 
 # 停止全部服务
-docker-compose down
+docker compose down
 
 # 完全重置（清空数据库数据）
-docker-compose down -v
-docker-compose up -d --build
+docker compose down -v
+docker compose up -d --build
 ```
 
 ## 前端构建
@@ -272,17 +272,17 @@ FastAPI 启动时自动执行以下初始化（`main.py` lifespan）：
 **解决**：
 ```bash
 cd web && npm run build
-cd ../deploy && docker-compose up -d --build frontend
-docker-compose logs frontend
+cd ../deploy && docker compose up -d --build frontend
+docker compose logs frontend
 ```
 
 ### 3. 后端 502 Bad Gateway
 **原因**：FastAPI 服务未启动或崩溃
 **解决**：
 ```bash
-docker-compose ps fastapi        # 检查状态
-docker-compose logs fastapi      # 查看错误日志
-docker-compose restart fastapi   # 重启服务
+docker compose ps fastapi        # 检查状态
+docker compose logs fastapi      # 查看错误日志
+docker compose restart fastapi   # 重启服务
 ```
 
 ### 4. AI 功能不工作
@@ -295,7 +295,7 @@ docker-compose restart fastapi   # 重启服务
 ### 5. MQTT 连接失败
 **原因**：Mosquitto Broker 未启动或配置错误
 **解决**：
-- Docker：`docker-compose ps mosquitto`，检查 `mosquitto.conf` 是否正确挂载
+- Docker：`docker compose ps mosquitto`，检查 `mosquitto.conf` 是否正确挂载
 - 本地：确保 Mosquitto 已启动（`mosquitto -v`）
 - 检查 `MQTT_BROKER_HOST` 配置
 
@@ -330,7 +330,7 @@ docker-compose restart fastapi   # 重启服务
 **原因**：Redis 未启动或配置错误
 **解决**：
 - 系统会在无 Redis 时降级运行（缓存和 Token 管理不可用）
-- Docker：`docker-compose ps redis`
+- Docker：`docker compose ps redis`
 - 本地：启动 `redis-server`
 - 如需密码认证：配置 `REDIS_PASSWORD`
 

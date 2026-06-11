@@ -38,7 +38,7 @@
         <span>数据统计</span>
       </el-menu-item>
 
-      <template v-if="hasPermission('device.view') || hasPermission('log.view')">
+      <template v-if="hasPermission('device.view') || hasPermission('log.view') || hasPermission('alert.view')">
         <div class="menu-label">管理</div>
 
         <el-menu-item v-if="hasPermission('device.view')" :index="routePrefix + '/device'">
@@ -49,6 +49,11 @@
         <el-menu-item v-if="hasPermission('log.view')" :index="routePrefix + '/log'">
           <el-icon><List /></el-icon>
           <span>门禁日志</span>
+        </el-menu-item>
+
+        <el-menu-item v-if="hasPermission('alert.view')" :index="routePrefix + '/alert'">
+          <el-icon><Warning /></el-icon>
+          <span>异常事件</span>
         </el-menu-item>
       </template>
 
@@ -87,7 +92,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowRight, Lock, HomeFilled, Key, DataLine, UserFilled, List, Setting } from '@element-plus/icons-vue'
+import { ArrowRight, Lock, HomeFilled, Key, DataLine, UserFilled, List, Setting, Warning } from '@element-plus/icons-vue'
 import { hasPermission, isAdminArea } from '@/utils/permission'
 
 defineProps({ role: String })

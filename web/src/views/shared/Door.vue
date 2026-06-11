@@ -19,6 +19,7 @@
         :loading="deviceLoading"
         v-model:selected-id="selectedDeviceId"
         :opening="doorLoading"
+        :cooldown="cooldown"
         @open="openDoor"
       />
     </el-card>
@@ -108,9 +109,29 @@ const getMyDevices = async () => {
   }
 }
 
+// 冷却时间控制
+const cooldown = ref(0)
+let cooldownTimer = null
+
+const startCooldown = (seconds = 3) => {
+  cooldown.value = seconds
+  if (cooldownTimer) clearInterval(cooldownTimer)
+  cooldownTimer = setInterval(() => {
+    cooldown.value--
+    if (cooldown.value <= 0) {
+      clearInterval(cooldownTimer)
+      cooldownTimer = null
+    }
+  }, 1000)
+}
+
 const openDoor = async () => {
   if (!selectedDeviceId.value) {
     ElMessage.warning('请选择设备')
+    return
+  }
+  if (cooldown.value > 0) {
+    ElMessage.warning(`请等待 ${cooldown.value} 秒后再试`)
     return
   }
   doorLoading.value = true
@@ -118,6 +139,7 @@ const openDoor = async () => {
     const res = await request.post(`/doors/${selectedDeviceId.value}/open`)
     if (res.code === 200) {
       ElMessage.success(res.msg || '开门成功')
+      startCooldown(3)
       getMyLogs()
     } else {
       ElMessage.error(res.msg || '开门失败')
@@ -127,6 +149,10 @@ const openDoor = async () => {
       ElMessage.error('请求超时，设备可能未响应')
     } else if (e?.response?.status === 403) {
       ElMessage.error(e.response.data?.msg || '无权限操作该设备')
+      // 如果是冷却错误，启动前端冷却计时
+      if (e.response.data?.msg?.includes('频繁')) {
+        startCooldown(3)
+      }
     } else if (e?.response?.status === 404) {
       ElMessage.error('设备不存在')
     } else if (!e?.response) {

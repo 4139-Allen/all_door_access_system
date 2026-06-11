@@ -155,7 +155,7 @@ def get_action_distribution(db: Session, user: User) -> list:
     rows = query.group_by(DoorLog.action).all()
 
     name_map = {
-        '开门': '远程开门',
+        '远程开门': '远程',
         '密码开门': '密码',
         '指纹开门': '指纹',
         '刷卡开门': 'RFID',

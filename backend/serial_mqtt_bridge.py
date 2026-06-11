@@ -206,7 +206,7 @@ def main():
         print(f"[MQTT] 正在连接 {MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}...")
     except Exception as e:
         print(f"[错误] MQTT 连接失败: {e}")
-        print("[提示] 请确保 MQTT Broker 已启动 (docker-compose up -d mosquitto)")
+        print("[提示] 请确保 MQTT Broker 已启动 (docker compose up -d mosquitto)")
         ser.close()
         sys.exit(1)
 

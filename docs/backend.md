@@ -17,6 +17,7 @@ backend/
 │   ├── admin_user_api.py         # 用户管理（管理员）
 │   ├── device_api.py             # 设备管理
 │   ├── door_api.py               # 门禁控制 + 开门日志
+│   ├── alert_api.py              # 异常事件（设备锁定/开门失败）
 │   ├── permission_api.py         # 权限管理（角色/权限 CRUD）
 │   ├── stat_api.py               # 数据统计
 │   ├── ai_agent.py               # AI 助手接口
@@ -27,6 +28,7 @@ backend/
 │   ├── device_monitor_service.py # 设备在线状态监控（后台定时巡检）
 │   ├── door_service.py           # 门禁业务 + 日志查询
 │   ├── mqtt_service.py           # MQTT 通信管理
+│   ├── alert_service.py          # 异常事件业务（设备锁定/解锁/统计）
 │   ├── websocket_service.py      # WebSocket 连接管理 + 认证
 │   ├── permission_service.py     # RBAC 权限业务
 │   ├── stat_service.py           # 统计业务
@@ -180,6 +182,9 @@ API 层 (api/)            接收请求、参数校验、调用服务层、返回
 | `stat:user:{id}` | 180s | 统计数据 |
 | `ai:context:user:{id}` | 900s (15min) | AI 对话上下文 |
 | `device:online:{mqtt_name}` | 70s | 设备在线状态（MQTT 心跳） |
+| `door:err:fail:{device_name}` | 300s (5min) | 验证错误计数（密码/指纹/刷卡） |
+| `door:err:lock:{device_name}` | 300s (5min) | 设备锁定状态 |
+| `cache:alerts:*` | 30s | 异常事件列表缓存 |
 | `verify_code:{target}` | 300s (5min) | 短信/邮箱验证码 |
 | `verify_rate:{target}` | 60s | 验证码发送频率限制 |
 
@@ -206,6 +211,10 @@ API 层 (api/)            接收请求、参数校验、调用服务层、返回
 | `PWD_OK` | 密码开门成功 |
 | `FP_OK` | 指纹开门成功 |
 | `CARD_OK` | 刷卡开门成功 |
+| `PWD_ERR` | 密码验证错误 |
+| `FP_ERR` | 指纹验证错误 |
+| `CARD_ERR` | 刷卡验证错误 |
+| `LOCK` | 设备锁定触发 |
 
 ### 后端处理流程
 1. 接收 `ONLINE` → 更新 Redis `device:online:{name}`（70s TTL）+ 同步数据库状态为 online + WebSocket 通知管理员设备上线
@@ -231,6 +240,33 @@ API 层 (api/)            接收请求、参数校验、调用服务层、返回
 - **频率限制**：Redis 控制，60 秒内同一目标只能发送一次
 - **有效期**：5 分钟（Redis TTL）
 - **自动识别**：根据目标格式自动判断手机号或邮箱
+
+## 异常事件服务
+
+`alert_service.py` 处理设备锁定和安全告警相关业务：
+
+### 设备自动锁定机制
+
+当 STM32 设备连续验证错误 5 次（密码/指纹/刷卡），后端自动锁定设备：
+
+1. **错误计数**：MQTT 收到 `PWD_ERR`/`FP_ERR`/`CARD_ERR` → Redis `door:err:fail:{device_name}` 计数 +1（TTL 300s）
+2. **触发锁定**：计数达到 5 → 设置 `door:err:lock:{device_name}`（TTL 300s）→ 发送 `LOCK` 命令给 STM32
+3. **成功重置**：收到 `PWD_OK`/`FP_OK`/`CARD_OK` → 删除错误计数键
+4. **自动解锁**：锁定键 TTL 过期（5 分钟）后自动解锁
+
+### 异常事件查询
+
+- **列表查询**：从 DoorLog 表筛选 `status` 包含"失败"或"锁定"的记录
+- **统计查询**：按时间范围统计异常总数、锁定次数、失败次数、各设备分布
+- **锁定列表**：扫描 Redis `door:err:lock:*` 键获取当前锁定设备及剩余 TTL
+- **缓存策略**：查询结果缓存 30 秒，新增异常事件时自动清除所有缓存
+
+### 手动解除锁定
+
+管理员可通过 API 手动解除设备锁定：
+1. 删除 Redis `door:err:lock:{device_name}` 和 `door:err:fail:{device_name}`
+2. 通过 MQTT 发送 `UNLOCK` 命令给 STM32
+3. 记录操作日志
 
 ## 异常处理
 

@@ -33,7 +33,7 @@ def door_open(
         username=result["username"],
         device_name=result["device_name"],
         location=result["location"],
-        action="开门"
+        action="远程开门"
     )
 
     return success(msg=result["message"])

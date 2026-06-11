@@ -92,14 +92,19 @@
             <div class="event-body">
               <div class="event-main">
                 <span class="event-user">{{ event.username }}</span>
-                <span class="event-sep">打开了</span>
+                <span class="event-sep">{{ getActionVerb(event.action) }}</span>
                 <span class="event-device">{{ event.device_name }}</span>
                 <span v-if="event.location" class="event-location">({{ event.location }})</span>
               </div>
               <div class="event-meta">
-                <el-tag size="small" :type="actionTagType(event.action)" effect="plain">
+                <el-tag size="small" :type="getActionTagType(event.action)" effect="plain">
                   {{ event.action }}
                 </el-tag>
+                <el-tooltip :content="event.status" placement="top" :show-after="300">
+                  <el-tag size="small" :type="event.status === '成功' ? 'success' : 'danger'" effect="light">
+                    {{ getShortStatus(event.status) }}
+                  </el-tag>
+                </el-tooltip>
                 <el-tooltip :content="event.timestamp" placement="top" :show-after="300">
                   <span class="event-time">{{ getRelativeTime(event.timestamp) }}</span>
                 </el-tooltip>
@@ -133,6 +138,7 @@ import { ElMessage } from 'element-plus'
 import { UserFilled, Monitor, WarningFilled, Key, DataLine, List } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { hasPermission, isAdminArea } from '@/utils/permission'
+import { getActionTagType, getShortStatus } from '@/utils/format'
 import StatCard from '@/components/Dashboard/StatCard.vue'
 import StatSkeleton from '@/components/common/StatSkeleton.vue'
 import AiChatBox from '@/components/Dashboard/AiChatBox.vue'
@@ -156,11 +162,14 @@ const recentLogs = ref([])
 const { eventList, addDoorEvent, getRelativeTime } = useDoorEventStream()
 const displayedEvents = computed(() => eventList.slice(0, 20))
 
-const actionTagType = (action) => {
-  if (action.includes('密码')) return 'warning'
-  if (action.includes('指纹')) return 'success'
-  if (action.includes('刷卡')) return 'primary'
-  return 'info'
+
+// 根据操作类型获取动作描述
+const getActionVerb = (action) => {
+  if (action.includes('远程')) return '尝试远程开启'
+  if (action.includes('密码')) return '尝试通过密码开启'
+  if (action.includes('指纹')) return '尝试通过指纹开启'
+  if (action.includes('刷卡')) return '尝试通过刷卡开启'
+  return '尝试开启'
 }
 
 watch(
@@ -282,6 +291,7 @@ onMounted(() => {
           device_name: log.device_name || '未知设备',
           location: log.device_location || '',
           action: log.action || '开门',
+          status: log.status || '成功',
           timestamp: log.time
         })
       })
