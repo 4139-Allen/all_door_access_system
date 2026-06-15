@@ -1,4 +1,4 @@
-# 智能门禁管理系统 (Smart Door Access System)
+# 智能门禁IoT管理平台(IoT Management Platform for Intelligent Access Control)
 
 一个基于 FastAPI + Vue 3 + STM32 的全栈智能化门禁管理系统，支持 Web 管理后台、微信小程序、uni-app 手机应用三端共用同一后端。系统具备 RBAC 权限管理、设备在线监控、MQTT 硬件通信（密码/指纹/刷卡/远程四种开门方式）、AI 智能开门、短信/邮箱验证码等功能。
 
