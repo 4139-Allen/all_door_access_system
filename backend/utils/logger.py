@@ -13,6 +13,10 @@ class AppLogger:
         LOG_FORMAT: 日志格式
             - "json" - JSON 格式（生产环境推荐）
             - "text" - 纯文本格式（开发环境默认）
+        LOG_LEVEL: 日志级别（默认 INFO）
+            - "DEBUG" - 含请求追踪日志
+            - "INFO" - 仅业务事件
+            - "WARNING" - 仅警告和错误
 
     使用方法：
         from utils.logger import AppLogger
@@ -31,10 +35,15 @@ class AppLogger:
     _logger = None
 
     @classmethod
-    def get_logger(cls, log_name="app", log_level=logging.INFO):
+    def get_logger(cls, log_name="app", log_level=None):
         """单例模式获取 logger"""
         if cls._logger is not None:
             return cls._logger
+
+        # 从环境变量读取日志级别（默认 INFO）
+        if log_level is None:
+            level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+            log_level = getattr(logging, level_name, logging.INFO)
 
         # 创建 logs 文件夹
         log_dir = "logs"
@@ -115,6 +124,6 @@ class AppLogger:
 
 
 # 便捷函数
-def get_logger(log_name="app", log_level=logging.INFO):
+def get_logger(log_name="app", log_level=None):
     """获取 logger 的便捷函数"""
     return AppLogger.get_logger(log_name, log_level)

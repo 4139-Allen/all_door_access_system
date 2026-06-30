@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Path, Body, Query
 from sqlalchemy.orm import Session
 from database.db import get_db
-from utils.auth import get_current_user_obj, require_permission
+from utils.auth import require_permission
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import ApiResponse, success
 from schemas.device_schema import DeviceCreate, DeviceUpdate, BindUserDevice
@@ -39,7 +39,7 @@ def get_device_list_endpoint(
     size: int = Query(10, description="每页条数"),
     name: Optional[str] = Query(None, description="设备名称模糊搜索"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_obj)
+    current_user: User = Depends(require_permission("device.view", "door.open"))
 ):
     device_data = get_device_list(
         db=db,
