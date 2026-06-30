@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database.db import get_db
-from utils.auth import get_current_user_obj
+from utils.auth import require_permission
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import ApiResponse, success
 from database.models.user import User
@@ -14,7 +14,7 @@ router = APIRouter(tags=["统计数据"])
 @handle_api_exception
 def get_stat(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_obj)
+    current_user: User = Depends(require_permission("dashboard.view"))
 ):
     data = get_statistics(db, current_user)
     return success(data=data)
@@ -24,7 +24,7 @@ def get_stat(
 @handle_api_exception
 def get_trend(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_obj)
+    current_user: User = Depends(require_permission("dashboard.view"))
 ):
     data = get_weekly_trend(db, current_user)
     return success(data=data)
@@ -34,7 +34,7 @@ def get_trend(
 @handle_api_exception
 def get_actions(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_obj)
+    current_user: User = Depends(require_permission("dashboard.view"))
 ):
     data = get_action_distribution(db, current_user)
     return success(data=data)

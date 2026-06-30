@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +17,10 @@ import time
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # ===== 启动时执行 =====
+
+    # 抑制 uvicorn 自带 access log（我们的 log_requests 中间件已接管请求日志）
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
     app_logger = AppLogger.get_logger()
     app_logger.info("=" * 50)
     app_logger.info("🚀 门禁管理系统正在启动...")
@@ -132,9 +137,10 @@ async def log_requests(request: Request, call_next):
     client_host = request.client.host if request.client else "unknown"
     
     # 记录日志（跳过健康检查和静态文件）
+    # 使用 DEBUG 级别避免 INFO 刷屏；需要追踪请求时设 LOG_LEVEL=DEBUG
     if not request.url.path.startswith("/health"):
         logger = AppLogger.get_logger()
-        logger.info(
+        logger.debug(
             f"📊 {request.method} {request.url.path} | "
             f"状态: {response.status_code} | "
             f"耗时: {duration:.3f}s | "
@@ -164,10 +170,44 @@ async def global_exception_handler(request: Request, exc: Exception):
     return error(msg="服务器内部错误", code=500)
 
 
-# 健康检查端点
+# 健康检查端点（检测 MySQL 和 Redis 连通性，Docker 据此判定服务是否真正常）
 @app.get("/health", summary="健康检查")
 def health_check():
-    return {"status": "healthy", "service": "door_access_system"}
+    from database.db import SessionLocal
+    from database.redis import redis_client
+    from sqlalchemy import text
+
+    checks = {"database": "unknown", "redis": "unknown"}
+    http_status = 200
+
+    # 检查 MySQL
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+        http_status = 503
+
+    # 检查 Redis
+    try:
+        client = redis_client.get_client()
+        if client and client.ping():
+            checks["redis"] = "ok"
+        else:
+            checks["redis"] = "error: no connection"
+            http_status = 503
+    except Exception as e:
+        checks["redis"] = f"error: {e}"
+        http_status = 503
+
+    overall = "healthy" if http_status == 200 else "degraded"
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=http_status,
+        content={"status": overall, "service": "door_access_system", "checks": checks}
+    )
 
 
 if __name__ == "__main__":
