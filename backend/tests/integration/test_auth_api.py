@@ -167,7 +167,8 @@ class TestTokenValidationAPI:
         })
         assert response.status_code == 401
         data = response.json()
-        assert "无效" in data.get("msg", "") or "过期" in data.get("msg", "")
+        # 注意：HTTPException 返回 detail 字段，而非 msg
+        assert "无效" in data.get("detail", "") or "过期" in data.get("detail", "")
 
     def test_access_without_auth_header(self, client):
         """测试缺少 Authorization 头"""

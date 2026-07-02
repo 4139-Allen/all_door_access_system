@@ -82,7 +82,7 @@ def wx_login_service(db: Session, code: str) -> dict:
 
     logger.info(f"微信小程序登录成功 | 用户ID: {user.id} | 用户名: {user.username}")
 
-    return build_login_response(user, has_password=user.password is not None and len(user.password) > 0)
+    return build_login_response(user, db=db, has_password=user.password is not None and len(user.password) > 0)
 
 
 @service_exception_handler
@@ -116,4 +116,4 @@ def wx_bind_service(db: Session, current_user_id: int, username: str, password: 
 
     logger.info(f"微信绑定账号成功 | 微信用户ID: {current_user_id} -> 账号: {target_user.username}")
 
-    return build_login_response(target_user)
+    return build_login_response(target_user, db=db)
