@@ -42,7 +42,7 @@ def login_user(db: Session, username: str, password: str) -> dict:
         raise ValueError("密码错误")
 
     logger.info(f"用户登录成功 | 用户名: {username} | 用户ID: {user.id}")
-    return build_login_response(user)
+    return build_login_response(user, db=db)
 
 
 @service_exception_handler
@@ -506,7 +506,7 @@ def login_by_phone_service(db: Session, phone: str, code: str) -> dict:
         user = db_create_user(db, username=phone, password=None, role="user", phone=phone)
         logger.info(f"手机号自动注册: {phone}, 用户ID: {user.id}")
 
-    return build_login_response(user)
+    return build_login_response(user, db=db)
 
 
 @service_exception_handler
@@ -530,7 +530,7 @@ def login_by_email_service(db: Session, email: str, code: str) -> dict:
         user = db_create_user(db, username=email, password=None, role="user", email=email)
         logger.info(f"邮箱自动注册: {email}, 用户ID: {user.id}")
 
-    return build_login_response(user)
+    return build_login_response(user, db=db)
 
 
 @service_exception_handler

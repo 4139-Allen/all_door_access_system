@@ -50,12 +50,14 @@ def create_access_token(data: dict, expires_minutes: int = None) -> str:
     return token
 
 
-def build_login_response(user, **extra) -> dict:
+def build_login_response(user, db: Session = None, **extra) -> dict:
     """
     构建登录响应（token + 用户信息 + 权限列表）
 
     参数:
         user: User 对象
+        db: 数据库会话（可选）。传入时可复用已有会话，避免绕过测试数据库。
+            为 None 时内部创建新会话（兼容旧调用方）。
         **extra: 额外字段（如 has_password=True）
 
     返回:
@@ -66,14 +68,22 @@ def build_login_response(user, **extra) -> dict:
     # 查询用户权限列表和角色名称
     from services.permission_service import get_user_permission_codes
     from database.models.role import Role
-    from database.db import SessionLocal
-    db = SessionLocal()
-    try:
+
+    if db is not None:
+        # 复用外部传入的会话（测试时使用测试数据库）
         permissions = get_user_permission_codes(db, user.id, user.role)
         role_obj = db.query(Role.name).filter(Role.code == user.role).first()
         role_name = role_obj.name if role_obj else user.role
-    finally:
-        db.close()
+    else:
+        # 兼容旧调用方：内部创建临时会话
+        from database.db import SessionLocal
+        _db = SessionLocal()
+        try:
+            permissions = get_user_permission_codes(_db, user.id, user.role)
+            role_obj = _db.query(Role.name).filter(Role.code == user.role).first()
+            role_name = role_obj.name if role_obj else user.role
+        finally:
+            _db.close()
 
     data = {
         "token": token,
