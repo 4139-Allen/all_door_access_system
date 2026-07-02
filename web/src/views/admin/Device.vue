@@ -69,7 +69,7 @@
     </div>
 
     <!-- 编辑弹窗 -->
-    <el-dialog v-model="editDialogVisible" title="编辑设备" width="min(450px, 90vw)" top="30vh">
+    <el-dialog v-model="editDialogVisible" title="编辑设备" width="min(450px, 90vw)" top="30vh" @close="() => editFormRef.value?.clearValidate()">
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
         <el-form-item label="设备编号" prop="name">
           <el-input v-model="editForm.name" placeholder="输入设备编号" />

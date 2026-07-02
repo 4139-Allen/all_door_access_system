@@ -1,16 +1,17 @@
 """
-开门服务单元测试
-测试开门逻辑、权限验证、日志记录等功能
+门禁控制测试（服务层 + API 层）
 """
 import pytest
 from datetime import datetime
 from services.door_service import open_door_service, _add_door_log
-from database.models.user import User
-from database.models.device import Device
 from database.models.user_device import UserDevice
 from database.models.door_log import DoorLog
-from utils.auth import hash_password
+from core.exceptions import NotFoundError
 
+
+# ============================================================
+# 服务层测试
+# ============================================================
 
 class TestOpenDoorService:
     """开门服务测试"""
@@ -69,7 +70,6 @@ class TestOpenDoorService:
 
     def test_open_nonexistent_device(self, db_session, test_user):
         """测试打开不存在的设备"""
-        from core.exceptions import NotFoundError
         with pytest.raises(NotFoundError, match="设备不存在"):
             open_door_service(
                 db_session,
@@ -78,7 +78,7 @@ class TestOpenDoorService:
             )
 
 
-class TestCreateLog:
+class TestCreateLogService:
     """创建日志测试"""
 
     def test_create_log_success(self, db_session, test_user, test_device):
@@ -103,3 +103,50 @@ class TestCreateLog:
         log = db_session.query(DoorLog).order_by(DoorLog.id.desc()).first()
         assert log.action == "强制开门"
         assert log.status == "警告"
+
+
+# ============================================================
+# API 层测试
+# ============================================================
+
+class TestDoorAPI:
+    """门禁 API 测试"""
+
+    def test_open_door_without_auth(self, client, test_device):
+        """测试未认证时开门被拒绝"""
+        response = client.post(f"/api/doors/{test_device.id}/open")
+        assert response.status_code == 401
+
+    def test_open_door_with_permission(self, client, auth_headers, test_user, test_device, db_session):
+        """测试有权限时开门成功"""
+        from database.models.user_device import UserDevice
+
+        # 绑定用户和设备
+        binding = UserDevice(user_id=test_user.id, device_id=test_device.id)
+        db_session.add(binding)
+        db_session.commit()
+
+        response = client.post(
+            f"/api/doors/{test_device.id}/open",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 200
+
+    def test_open_door_without_permission(self, client, auth_headers, test_device):
+        """测试无权限时开门失败"""
+        response = client.post(
+            f"/api/doors/{test_device.id}/open",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 403
+
+    def test_open_nonexistent_door(self, client, auth_headers):
+        """测试打开不存在的门"""
+        response = client.post("/api/doors/99999/open", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 404

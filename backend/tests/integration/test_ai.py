@@ -1,19 +1,19 @@
 """
-AI Agent 服务测试
-测试 AI 命令解析、上下文管理、设备匹配等功能
+AI 功能测试（服务层 + API 层）
 """
 import pytest
-from unittest.mock import patch, MagicMock
 from services.ai_agent_service import (
-    normalize_device_number,
-    extract_context_from_message,
-    parse_ai_command,
-    find_device_by_number_and_location,
+    normalize_device_number, extract_context_from_message,
+    parse_ai_command, find_device_by_number_and_location,
     process_ai_chat_command
 )
 from database.models.device import Device
 from core.config import AI_ENABLED
 
+
+# ============================================================
+# 服务层测试（纯逻辑，无外部依赖）
+# ============================================================
 
 class TestNormalizeDeviceNumber:
     """设备编号标准化测试"""
@@ -80,8 +80,12 @@ class TestExtractContext:
         assert updated.get('intent') == 'open_door'
 
 
-class TestFindDevice:
-    """设备查找测试"""
+# ============================================================
+# 服务层测试（依赖数据库）
+# ============================================================
+
+class TestFindDeviceService:
+    """设备查找 - 服务层"""
 
     def test_find_by_exact_number(self, db_session):
         """测试通过精确设备编号查找"""
@@ -128,7 +132,6 @@ class TestAICommandParsing:
     @pytest.mark.skipif(not AI_ENABLED, reason="AI 功能未启用")
     def test_parse_ai_command_with_valid_key(self):
         """测试 API Key 有效时的命令解析"""
-        # 这个测试需要真实的 API Key，仅在配置了 API 时运行
         pass
 
     def test_parse_ai_command_without_api_key(self):
@@ -142,8 +145,8 @@ class TestAICommandParsing:
         assert "未启用" in result["msg"] or "配置" in result["msg"]
 
 
-class TestProcessAIChat:
-    """AI 聊天处理测试"""
+class TestProcessAIChatService:
+    """AI 聊天处理 - 服务层"""
 
     def test_non_admin_cannot_use_ai(self, db_session, test_user):
         """测试无权限用户不能使用 AI 功能"""
@@ -152,7 +155,62 @@ class TestProcessAIChat:
 
     def test_admin_can_use_ai(self, db_session, test_admin):
         """测试管理员可以使用 AI 功能"""
-        # 即使 AI 未启用，也应该有相应的提示
         result = process_ai_chat_command(db_session, test_admin, "打开001号门")
 
         assert "reply" in result
+
+
+# ============================================================
+# API 层测试
+# ============================================================
+
+class TestAIAPI:
+    """AI API 测试"""
+
+    def test_ai_chat_requires_auth(self, client):
+        """测试 AI 聊天需要认证"""
+        response = client.post("/api/ai/chat", json={
+            "message": "打开大门"
+        })
+        assert response.status_code == 401
+
+    def test_ai_chat_as_user_forbidden(self, client, auth_headers):
+        """测试普通用户不能使用 AI 功能"""
+        response = client.post("/api/ai/chat", json={
+            "message": "打开大门"
+        }, headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 403
+        assert "仅超级管理员" in data["msg"] or "权限" in data["msg"]
+
+    def test_ai_chat_as_admin(self, client, admin_headers):
+        """测试管理员可以使用 AI 功能"""
+        response = client.post("/api/ai/chat", json={
+            "message": "打开大门"
+        }, headers=admin_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 200
+        assert "reply" in data["data"]
+
+    def test_ai_chat_empty_message(self, client, admin_headers):
+        """测试 AI 聊天空消息"""
+        response = client.post("/api/ai/chat", json={
+            "message": ""
+        }, headers=admin_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] in [200, 400, 404]
+
+    def test_ai_chat_missing_message_field(self, client, admin_headers):
+        """测试 AI 聊天缺少 message 字段"""
+        response = client.post("/api/ai/chat", json={}, headers=admin_headers)
+        assert response.status_code in [200, 422]
+
+    def test_ai_chat_special_characters(self, client, admin_headers):
+        """测试AI聊天包含特殊字符"""
+        response = client.post("/api/ai/chat", json={
+            "message": "打开门！@#$%^&*()"
+        }, headers=admin_headers)
+        assert response.status_code == 200
