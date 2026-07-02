@@ -1,14 +1,17 @@
 """
-统计服务单元测试
-测试统计数据获取功能
+统计数据测试（服务层 + API 层）
 """
 import pytest
+from datetime import datetime, date, timedelta
 from services.stat_service import get_statistics, get_today_start
 from database.models.device import Device
 from database.models.door_log import DoorLog
 from database.models.user_device import UserDevice
-from datetime import datetime, date
 
+
+# ============================================================
+# 服务层测试
+# ============================================================
 
 class TestGetTodayStart:
     """获取今天开始时间测试"""
@@ -30,8 +33,8 @@ class TestGetTodayStart:
         assert today_start == expected
 
 
-class TestGetStatistics:
-    """获取统计数据测试"""
+class TestGetStatisticsService:
+    """获取统计数据 - 服务层"""
 
     def test_admin_statistics(self, db_session, test_admin, test_user, test_device):
         """测试管理员获取全局统计数据"""
@@ -90,8 +93,6 @@ class TestGetStatistics:
 
     def test_statistics_with_old_logs(self, db_session, test_user, test_device):
         """测试统计不包含昨天的日志"""
-        from datetime import timedelta
-
         # 创建昨天的日志
         yesterday = datetime.now() - timedelta(days=1)
         old_log = DoorLog(
@@ -118,3 +119,51 @@ class TestGetStatistics:
 
         # 只应该统计今天的日志
         assert stats["today_log"] == 1
+
+
+# ============================================================
+# API 层测试
+# ============================================================
+
+class TestStatAPI:
+    """统计 API 测试"""
+
+    def test_get_statistics_requires_auth(self, client):
+        """测试获取统计数据需要认证"""
+        response = client.get("/api/statistics")
+        assert response.status_code == 401
+
+    def test_get_statistics_as_user(self, client, auth_headers):
+        """测试普通用户获取统计数据"""
+        response = client.get("/api/statistics", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 200
+        assert "user_total" in data["data"]
+        assert "device_total" in data["data"]
+        assert "today_log" in data["data"]
+
+    def test_get_statistics_as_admin(self, client, admin_headers):
+        """测试管理员获取统计数据"""
+        response = client.get("/api/statistics", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["code"] == 200
+        assert data["data"]["user_total"] >= 1
+        assert data["data"]["device_total"] >= 0
+        assert data["data"]["today_log"] >= 0
+
+    def test_statistics_caching(self, client, auth_headers):
+        """测试统计数据缓存机制"""
+        # 第一次请求
+        response1 = client.get("/api/statistics", headers=auth_headers)
+        assert response1.status_code == 200
+
+        # 第二次请求（应该使用缓存）
+        response2 = client.get("/api/statistics", headers=auth_headers)
+        assert response2.status_code == 200
+
+        # 两次数据应该一致
+        assert response1.json()["data"] == response2.json()["data"]

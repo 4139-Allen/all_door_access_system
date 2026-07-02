@@ -312,6 +312,7 @@ const savePassword = async () => {
       pwdForm.old_password = ''
       pwdForm.new_password = ''
       pwdForm.confirm_password = ''
+      pwdFormRef.value?.clearValidate()
       setTimeout(() => {
         closeWebSocket()
         localStorage.clear()

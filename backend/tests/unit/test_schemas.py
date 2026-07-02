@@ -1,6 +1,6 @@
 """
-Schema 验证测试
-测试 Pydantic 模型的数据验证
+Schema 验证测试（纯 Pydantic，无外部依赖）
+测试请求/响应模型的字段校验逻辑
 """
 import pytest
 from pydantic import ValidationError

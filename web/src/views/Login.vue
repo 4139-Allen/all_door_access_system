@@ -172,6 +172,17 @@ const router = useRouter()
 const activeTab = ref('login')
 const focusedField = ref('')
 
+// 切换 tab 时清除对应表单的校验状态和数据
+watch(activeTab, (tab) => {
+  if (tab === 'login') {
+    loginFormRef.value?.clearValidate()
+    loginForm.value = { account: '', password: '', code: '', captcha: '' }
+    refreshCaptcha()
+  } else {
+    registerFormRef.value?.clearValidate()
+  }
+})
+
 // ======== 登录 ========
 const loginLoading = ref(false)
 const loginPwdVisible = ref(false)
@@ -434,6 +445,7 @@ const handleResetPassword = async () => {
 
 const resetForgotForm = () => {
   forgotForm.value = { phone: '', code: '', new_password: '', confirm_password: '' }
+  forgotFormRef.value?.clearValidate()
   clearInterval(forgotTimer)
   forgotCooldown.value = 0
 }
