@@ -13,7 +13,7 @@ from services.websocket_service import manager
 router = APIRouter(tags=["门禁管理"])
 
 
-@router.post("/doors/{device_id}/open", summary="开启门禁", response_model=ApiResponse)
+@router.post("/doors/{device_id}/open", summary="开启门禁")
 @handle_api_exception
 def door_open(
     device_id: int,
@@ -39,7 +39,7 @@ def door_open(
     return success(msg=result["message"])
 
 
-@router.get("/door-logs", summary="获取开门日志", response_model=ApiResponse)
+@router.get("/door-logs", summary="获取开门日志")
 @handle_api_exception
 def get_logs(
     params: LogQuery = Depends(),

@@ -20,7 +20,7 @@ router = APIRouter(tags=["【超级管理员】设备管理"])
 
 
 # 创建设备
-@router.post("/devices", summary="新增设备", description="添加一个新的门禁设备", response_model=ApiResponse, status_code=201)
+@router.post("/devices", summary="新增设备", description="添加一个新的门禁设备", status_code=201)
 @handle_api_exception
 def create(
         data: DeviceCreate,
@@ -32,7 +32,7 @@ def create(
 
 
 # 获取设备列表（所有登录用户可用，service 层根据权限过滤：有 device.view 看全部，否则只看绑定的）
-@router.get("/devices", summary="获取设备列表", response_model=ApiResponse)
+@router.get("/devices", summary="获取设备列表")
 @handle_api_exception
 def get_device_list_endpoint(
     page: int = Query(1, description="页码"),
@@ -54,7 +54,7 @@ def get_device_list_endpoint(
 
 
 # 更新设备
-@router.put("/devices/{device_id}", summary="更新设备", description="修改设备名称/状态等信息", response_model=ApiResponse)
+@router.put("/devices/{device_id}", summary="更新设备", description="修改设备名称/状态等信息")
 @handle_api_exception
 def update(
         device_id: int = Path(...),
@@ -79,7 +79,7 @@ def delete_device_endpoint(
 
 
 # 绑定设备
-@router.post("/devices/{device_id}/bind", summary="绑定用户到设备", response_model=ApiResponse)
+@router.post("/devices/{device_id}/bind", summary="绑定用户到设备")
 @handle_api_exception
 def admin_bind_device(
         device_id: int = Path(..., description="设备ID"),

@@ -10,7 +10,7 @@ from services.stat_service import get_statistics, get_weekly_trend, get_action_d
 router = APIRouter(tags=["统计数据"])
 
 
-@router.get("/statistics", summary="获取统计数据", response_model=ApiResponse)
+@router.get("/statistics", summary="获取统计数据")
 @handle_api_exception
 def get_stat(
     db: Session = Depends(get_db),
@@ -20,7 +20,7 @@ def get_stat(
     return success(data=data)
 
 
-@router.get("/statistics/trend", summary="本周开锁趋势", response_model=ApiResponse)
+@router.get("/statistics/trend", summary="本周开锁趋势")
 @handle_api_exception
 def get_trend(
     db: Session = Depends(get_db),
@@ -30,7 +30,7 @@ def get_trend(
     return success(data=data)
 
 
-@router.get("/statistics/actions", summary="开锁方式占比", response_model=ApiResponse)
+@router.get("/statistics/actions", summary="开锁方式占比")
 @handle_api_exception
 def get_actions(
     db: Session = Depends(get_db),

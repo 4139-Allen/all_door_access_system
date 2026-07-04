@@ -15,7 +15,7 @@ class ChatRequest(BaseModel):
     message: str
 
 
-@router.post("/ai/chat", summary="AI 智能开门", description="通过自然语言指令控制门禁设备", response_model=ApiResponse)
+@router.post("/ai/chat", summary="AI 智能开门", description="通过自然语言指令控制门禁设备")
 @handle_api_exception
 def ai_chat(
         req: ChatRequest,

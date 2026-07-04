@@ -20,14 +20,14 @@ class WxBindRequest(BaseModel):
     password: str = Field(..., min_length=6, description="密码")
 
 
-@router.post("/auth/wx-login", summary="微信小程序登录", response_model=ApiResponse)
+@router.post("/auth/wx-login", summary="微信小程序登录")
 @handle_api_exception
 def wx_login(data: WxLoginRequest, db: Session = Depends(get_db)):
     result = wx_login_service(db, data.code)
     return success(result)
 
 
-@router.put("/auth/wx-bind", summary="绑定已有账号到微信", response_model=ApiResponse)
+@router.put("/auth/wx-bind", summary="绑定已有账号到微信")
 @handle_api_exception
 def wx_bind(
     data: WxBindRequest,

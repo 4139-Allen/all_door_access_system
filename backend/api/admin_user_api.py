@@ -15,7 +15,7 @@ from typing import Optional
 router = APIRouter(tags=["【超级管理员】用户管理"])
 
 
-@router.get("/users", summary="获取用户列表", response_model=ApiResponse)
+@router.get("/users", summary="获取用户列表")
 @handle_api_exception
 def list_users(
         page: int = Query(1, ge=1),
@@ -29,18 +29,18 @@ def list_users(
     return success(data)
 
 
-@router.post("/users", summary="创建用户", response_model=ApiResponse, status_code=201)
+@router.post("/users", summary="创建用户", status_code=201)
 @handle_api_exception
 def create_new_user(
         data: UserCreate,
         db: Session = Depends(get_db),
         current_user: User = Depends(require_permission("user.manage"))
 ):
-    db_create_user(db, data.username, data.password, role=data.role)
-    return success(msg="创建成功")
+    user = db_create_user(db, data.username, data.password, role=data.role)
+    return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="创建成功")
 
 
-@router.put("/users/{user_id}/role", summary="修改用户角色", response_model=ApiResponse)
+@router.put("/users/{user_id}/role", summary="修改用户角色")
 @handle_api_exception
 def change_user_role(
         user_id: int,
@@ -53,7 +53,7 @@ def change_user_role(
 
 
 # 必须在 /users/{user_id} 之前定义，否则会被路径参数匹配
-@router.post("/users/import", summary="批量导入用户", response_model=ApiResponse, status_code=201)
+@router.post("/users/import", summary="批量导入用户", status_code=201)
 @handle_api_exception
 async def import_users(
         file: UploadFile = File(...),
@@ -76,7 +76,7 @@ def delete_user(
     delete_user_by_id(db, user_id, current_user)
 
 
-@router.get("/users/{user_id}/devices", summary="查询用户绑定的设备", response_model=ApiResponse)
+@router.get("/users/{user_id}/devices", summary="查询用户绑定的设备")
 @handle_api_exception
 def get_user_devices_endpoint(
     user_id: int,

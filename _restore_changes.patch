@@ -1,0 +1,646 @@
+diff --git a/backend/api/admin_user_api.py b/backend/api/admin_user_api.py
+index e1fcc98..0897359 100644
+--- a/backend/api/admin_user_api.py
++++ b/backend/api/admin_user_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends, Query, UploadFile, File
++﻿from fastapi import APIRouter, Depends, Query, UploadFile, File
+ from sqlalchemy.orm import Session
+ from database.db import get_db
+ from database.models.user import User
+@@ -12,16 +12,16 @@ from core.response_schema import ApiResponse, success
+ from utils.auth import require_permission
+ from typing import Optional
+ 
+-router = APIRouter(tags=["【超级管理员】用户管理"])
++router = APIRouter(tags=["銆愯秴绾х鐞嗗憳銆戠敤鎴风鐞?])
+ 
+ 
+-@router.get("/users", summary="获取用户列表", response_model=ApiResponse)
++@router.get("/users", summary="鑾峰彇鐢ㄦ埛鍒楄〃")
+ @handle_api_exception
+ def list_users(
+         page: int = Query(1, ge=1),
+         size: int = Query(10, ge=1),
+-        username: Optional[str] = Query(None, description="用户名模糊搜索"),
+-        role: Optional[str] = Query(None, description="角色筛选: admin/operator/user"),
++        username: Optional[str] = Query(None, description="鐢ㄦ埛鍚嶆ā绯婃悳绱?),
++        role: Optional[str] = Query(None, description="瑙掕壊绛涢€? admin/operator/user"),
+         db: Session = Depends(get_db),
+         current_user: User = Depends(require_permission("user.view"))
+ ):
+@@ -29,18 +29,18 @@ def list_users(
+     return success(data)
+ 
+ 
+-@router.post("/users", summary="创建用户", response_model=ApiResponse, status_code=201)
++@router.post("/users", summary="鍒涘缓鐢ㄦ埛", status_code=201)
+ @handle_api_exception
+ def create_new_user(
+         data: UserCreate,
+         db: Session = Depends(get_db),
+         current_user: User = Depends(require_permission("user.manage"))
+ ):
+-    db_create_user(db, data.username, data.password, role=data.role)
+-    return success(msg="创建成功")
++    user = db_create_user(db, data.username, data.password, role=data.role)
++    return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="鍒涘缓鎴愬姛")
+ 
+ 
+-@router.put("/users/{user_id}/role", summary="修改用户角色", response_model=ApiResponse)
++@router.put("/users/{user_id}/role", summary="淇敼鐢ㄦ埛瑙掕壊")
+ @handle_api_exception
+ def change_user_role(
+         user_id: int,
+@@ -49,11 +49,10 @@ def change_user_role(
+         current_user: User = Depends(require_permission("user.manage"))
+ ):
+     result = update_user_role(db, user_id, data.role, current_user)
+-    return success(result, msg="角色修改成功")
++    return success(result, msg="瑙掕壊淇敼鎴愬姛")
+ 
+ 
+-# 必须在 /users/{user_id} 之前定义，否则会被路径参数匹配
+-@router.post("/users/import", summary="批量导入用户", response_model=ApiResponse, status_code=201)
++# 蹇呴』鍦?/users/{user_id} 涔嬪墠瀹氫箟锛屽惁鍒欎細琚矾寰勫弬鏁板尮閰?@router.post("/users/import", summary="鎵归噺瀵煎叆鐢ㄦ埛", status_code=201)
+ @handle_api_exception
+ async def import_users(
+         file: UploadFile = File(...),
+@@ -65,18 +64,18 @@ async def import_users(
+     return success(result, msg=result["msg"])
+ 
+ 
+-@router.delete("/users/{user_id}", summary="删除用户", status_code=204)
++@router.delete("/users/{user_id}", summary="鍒犻櫎鐢ㄦ埛", status_code=204)
+ @handle_api_exception
+ def delete_user(
+         user_id: int,
+         db: Session = Depends(get_db),
+         current_user: User = Depends(require_permission("user.manage"))
+ ):
+-    """删除用户，成功返回 204 No Content"""
++    """鍒犻櫎鐢ㄦ埛锛屾垚鍔熻繑鍥?204 No Content"""
+     delete_user_by_id(db, user_id, current_user)
+ 
+ 
+-@router.get("/users/{user_id}/devices", summary="查询用户绑定的设备", response_model=ApiResponse)
++@router.get("/users/{user_id}/devices", summary="鏌ヨ鐢ㄦ埛缁戝畾鐨勮澶?)
+ @handle_api_exception
+ def get_user_devices_endpoint(
+     user_id: int,
+@@ -85,3 +84,4 @@ def get_user_devices_endpoint(
+ ):
+     device_list = get_user_devices(db, user_id)
+     return success(data=device_list)
++
+diff --git a/backend/api/ai_agent.py b/backend/api/ai_agent.py
+index 3f14825..9090052 100644
+--- a/backend/api/ai_agent.py
++++ b/backend/api/ai_agent.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends
++﻿from fastapi import APIRouter, Depends
+ from pydantic import BaseModel
+ from sqlalchemy.orm import Session
+ from database.db import get_db
+@@ -8,14 +8,14 @@ from services.ai_agent_service import process_ai_chat_command
+ from utils.api_exception_handler import handle_api_exception
+ from core.response_schema import ApiResponse, success
+ 
+-router = APIRouter(tags=["🤖 AI指令开门"])
++router = APIRouter(tags=["馃 AI鎸囦护寮€闂?])
+ 
+ 
+ class ChatRequest(BaseModel):
+     message: str
+ 
+ 
+-@router.post("/ai/chat", summary="AI 智能开门", description="通过自然语言指令控制门禁设备", response_model=ApiResponse)
++@router.post("/ai/chat", summary="AI 鏅鸿兘寮€闂?, description="閫氳繃鑷劧璇█鎸囦护鎺у埗闂ㄧ璁惧")
+ @handle_api_exception
+ def ai_chat(
+         req: ChatRequest,
+@@ -23,14 +23,13 @@ def ai_chat(
+         current_user: User = Depends(require_permission("door.open", "device.view"))
+ ):
+     """
+-    AI 智能开门接口
++    AI 鏅鸿兘寮€闂ㄦ帴鍙?
++    鐢ㄦ埛鍙互鐢ㄨ嚜鐒惰瑷€鍙戦€佹寚浠わ紝濡傦細
++    - "鎵撳紑澶ч棬"
++    - "甯垜寮€涓€涓嬩細璁鐨勯棬"
++    - "寮€鍚墠闂?
+ 
+-    用户可以用自然语言发送指令，如：
+-    - "打开大门"
+-    - "帮我开一下会议室的门"
+-    - "开启前门"
+-
+-    AI 会自动识别设备名称并执行开门操作。
+-    """
++    AI 浼氳嚜鍔ㄨ瘑鍒澶囧悕绉板苟鎵ц寮€闂ㄦ搷浣溿€?    """
+     result = process_ai_chat_command(db, current_user, req.message)
+     return success(data=result)
++
+diff --git a/backend/api/auth_api.py b/backend/api/auth_api.py
+index 334b093..f53114a 100644
+--- a/backend/api/auth_api.py
++++ b/backend/api/auth_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends, Request, UploadFile, File
++﻿from fastapi import APIRouter, Depends, Request, UploadFile, File
+ from fastapi.security import HTTPAuthorizationCredentials
+ from pydantic import BaseModel, Field
+ from sqlalchemy.orm import Session
+@@ -16,24 +16,24 @@ from utils.auth import logout_token, get_current_user_obj, security
+ from utils.rate_limiter import login_limiter
+ from database.models.user import User
+ 
+-router = APIRouter(tags=["认证管理"])
++router = APIRouter(tags=["璁よ瘉绠＄悊"])
+ 
+ 
+ class PhoneLoginRequest(BaseModel):
+-    phone: str = Field(..., min_length=11, max_length=11, description="手机号")
+-    code: str = Field(..., min_length=4, max_length=8, description="验证码")
++    phone: str = Field(..., min_length=11, max_length=11, description="鎵嬫満鍙?)
++    code: str = Field(..., min_length=4, max_length=8, description="楠岃瘉鐮?)
+ 
+ 
+ class EmailLoginRequest(BaseModel):
+-    email: str = Field(..., description="邮箱地址")
+-    code: str = Field(..., min_length=4, max_length=8, description="验证码")
++    email: str = Field(..., description="閭鍦板潃")
++    code: str = Field(..., min_length=4, max_length=8, description="楠岃瘉鐮?)
+ 
+ 
+ class SendCodeRequest(BaseModel):
+-    target: str = Field(..., description="手机号或邮箱")
++    target: str = Field(..., description="鎵嬫満鍙锋垨閭")
+ 
+ 
+-@router.post("/auth/login", summary="用户登录", response_model=ApiResponse)
++@router.post("/auth/login", summary="鐢ㄦ埛鐧诲綍")
+ @handle_api_exception
+ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+     client_ip = request.client.host if request.client else "unknown"
+@@ -43,7 +43,7 @@ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+     return success(result)
+ 
+ 
+-@router.post("/auth/send-code", summary="发送验证码", response_model=ApiResponse)
++@router.post("/auth/send-code", summary="鍙戦€侀獙璇佺爜")
+ @handle_api_exception
+ def send_verify_code(data: SendCodeRequest, request: Request):
+     client_ip = request.client.host if request.client else "unknown"
+@@ -55,7 +55,7 @@ def send_verify_code(data: SendCodeRequest, request: Request):
+     return success(msg=msg)
+ 
+ 
+-@router.post("/auth/login-phone", summary="手机号登录", response_model=ApiResponse)
++@router.post("/auth/login-phone", summary="鎵嬫満鍙风櫥褰?)
+ @handle_api_exception
+ def login_by_phone(data: PhoneLoginRequest, request: Request, db: Session = Depends(get_db)):
+     client_ip = request.client.host if request.client else "unknown"
+@@ -65,7 +65,7 @@ def login_by_phone(data: PhoneLoginRequest, request: Request, db: Session = Depe
+     return success(result)
+ 
+ 
+-@router.post("/auth/login-email", summary="邮箱登录", response_model=ApiResponse)
++@router.post("/auth/login-email", summary="閭鐧诲綍")
+ @handle_api_exception
+ def login_by_email(data: EmailLoginRequest, request: Request, db: Session = Depends(get_db)):
+     client_ip = request.client.host if request.client else "unknown"
+@@ -75,14 +75,14 @@ def login_by_email(data: EmailLoginRequest, request: Request, db: Session = Depe
+     return success(result)
+ 
+ 
+-@router.post("/auth/register", summary="用户注册", response_model=ApiResponse, status_code=201)
++@router.post("/auth/register", summary="鐢ㄦ埛娉ㄥ唽", status_code=201)
+ @handle_api_exception
+ def register_new_user(data: UserCreate, db: Session = Depends(get_db)):
+     db_create_user(db, data.username, data.password, role="user")
+-    return success(msg="注册成功")
++    return success(msg="娉ㄥ唽鎴愬姛")
+ 
+ 
+-@router.post("/auth/logout", summary="退出登录", response_model=ApiResponse)
++@router.post("/auth/logout", summary="閫€鍑虹櫥褰?)
+ @handle_api_exception
+ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+     token = None
+@@ -92,13 +92,13 @@ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends
+         token = request.headers.get("X-Token")
+ 
+     if not token:
+-        return error("未提供认证凭证")
++        return error("鏈彁渚涜璇佸嚟璇?)
+ 
+     logout_token(token)
+-    return success(msg="退出成功，Token 已失效")
++    return success(msg="閫€鍑烘垚鍔燂紝Token 宸插け鏁?)
+ 
+ 
+-@router.put("/auth/password", summary="修改密码", response_model=ApiResponse)
++@router.put("/auth/password", summary="淇敼瀵嗙爜")
+ @handle_api_exception
+ def change_password(
+         data: PasswordChange,
+@@ -106,20 +106,20 @@ def change_password(
+         current_user: User = Depends(get_current_user_obj)
+ ):
+     change_user_password(db, current_user, data.old_password, data.new_password)
+-    return success(msg="密码修改成功")
++    return success(msg="瀵嗙爜淇敼鎴愬姛")
+ 
+ 
+-@router.post("/auth/reset-password", summary="忘记密码", response_model=ApiResponse)
++@router.post("/auth/reset-password", summary="蹇樿瀵嗙爜")
+ @handle_api_exception
+ def forgot_password(data: ResetPassword, request: Request, db: Session = Depends(get_db)):
+     client_ip = request.client.host if request.client else "unknown"
+     login_limiter.check(client_ip)
+ 
+     reset_user_password_service(db, data.phone, data.code, data.new_password)
+-    return success(msg="密码重置成功")
++    return success(msg="瀵嗙爜閲嶇疆鎴愬姛")
+ 
+ 
+-@router.get("/auth/profile", summary="获取个人信息", response_model=ApiResponse)
++@router.get("/auth/profile", summary="鑾峰彇涓汉淇℃伅")
+ @handle_api_exception
+ def get_profile(
+     db: Session = Depends(get_db),
+@@ -128,7 +128,7 @@ def get_profile(
+     return success(get_user_profile(current_user, db))
+ 
+ 
+-@router.put("/auth/profile", summary="修改用户名", response_model=ApiResponse)
++@router.put("/auth/profile", summary="淇敼鐢ㄦ埛鍚?)
+ @handle_api_exception
+ def update_profile(
+         data: ProfileUpdate,
+@@ -136,10 +136,10 @@ def update_profile(
+         current_user: User = Depends(get_current_user_obj)
+ ):
+     update_username(db, current_user, data.username)
+-    return success(msg="用户名修改成功")
++    return success(msg="鐢ㄦ埛鍚嶄慨鏀规垚鍔?)
+ 
+ 
+-@router.put("/auth/avatar", summary="上传头像", response_model=ApiResponse)
++@router.put("/auth/avatar", summary="涓婁紶澶村儚")
+ @handle_api_exception
+ async def upload_avatar(
+         file: UploadFile = File(...),
+@@ -148,4 +148,5 @@ async def upload_avatar(
+ ):
+     contents = await file.read()
+     avatar_url = upload_avatar_service(db, current_user, contents, file.filename, file.content_type)
+-    return success({"avatar": avatar_url}, msg="头像上传成功")
++    return success({"avatar": avatar_url}, msg="澶村儚涓婁紶鎴愬姛")
++
+diff --git a/backend/api/device_api.py b/backend/api/device_api.py
+index e224720..f066f7a 100644
+--- a/backend/api/device_api.py
++++ b/backend/api/device_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends, Path, Body, Query
++﻿from fastapi import APIRouter, Depends, Path, Body, Query
+ from sqlalchemy.orm import Session
+ from database.db import get_db
+ from utils.auth import require_permission
+@@ -16,11 +16,11 @@ from services.device_service import (
+ from database.models.user import User
+ from typing import Optional
+ 
+-router = APIRouter(tags=["【超级管理员】设备管理"])
++router = APIRouter(tags=["銆愯秴绾х鐞嗗憳銆戣澶囩鐞?])
+ 
+ 
+-# 创建设备
+-@router.post("/devices", summary="新增设备", description="添加一个新的门禁设备", response_model=ApiResponse, status_code=201)
++# 鍒涘缓璁惧
++@router.post("/devices", summary="鏂板璁惧", description="娣诲姞涓€涓柊鐨勯棬绂佽澶?, status_code=201)
+ @handle_api_exception
+ def create(
+         data: DeviceCreate,
+@@ -28,16 +28,16 @@ def create(
+         current_user: User = Depends(require_permission("device.create"))
+ ):
+     device = create_device(db, data)
+-    return success(data={"device_id": device.id}, msg="创建设备成功")
++    return success(data={"device_id": device.id}, msg="鍒涘缓璁惧鎴愬姛")
+ 
+ 
+-# 获取设备列表（所有登录用户可用，service 层根据权限过滤：有 device.view 看全部，否则只看绑定的）
+-@router.get("/devices", summary="获取设备列表", response_model=ApiResponse)
++# 鑾峰彇璁惧鍒楄〃锛堟墍鏈夌櫥褰曠敤鎴峰彲鐢紝service 灞傛牴鎹潈闄愯繃婊わ細鏈?device.view 鐪嬪叏閮紝鍚﹀垯鍙湅缁戝畾鐨勶級
++@router.get("/devices", summary="鑾峰彇璁惧鍒楄〃")
+ @handle_api_exception
+ def get_device_list_endpoint(
+-    page: int = Query(1, description="页码"),
+-    size: int = Query(10, description="每页条数"),
+-    name: Optional[str] = Query(None, description="设备名称模糊搜索"),
++    page: int = Query(1, description="椤电爜"),
++    size: int = Query(10, description="姣忛〉鏉℃暟"),
++    name: Optional[str] = Query(None, description="璁惧鍚嶇О妯＄硦鎼滅储"),
+     db: Session = Depends(get_db),
+     current_user: User = Depends(require_permission("device.view", "door.open"))
+ ):
+@@ -53,8 +53,8 @@ def get_device_list_endpoint(
+     return success(data=device_data)
+ 
+ 
+-# 更新设备
+-@router.put("/devices/{device_id}", summary="更新设备", description="修改设备名称/状态等信息", response_model=ApiResponse)
++# 鏇存柊璁惧
++@router.put("/devices/{device_id}", summary="鏇存柊璁惧", description="淇敼璁惧鍚嶇О/鐘舵€佺瓑淇℃伅")
+ @handle_api_exception
+ def update(
+         device_id: int = Path(...),
+@@ -63,42 +63,43 @@ def update(
+         current_user: User = Depends(require_permission("device.edit"))
+ ):
+     update_device(db, device_id, data)
+-    return success(msg="更新成功")
++    return success(msg="鏇存柊鎴愬姛")
+ 
+ 
+-# 删除设备
+-@router.delete("/devices/{device_id}", summary="删除设备", status_code=204)
++# 鍒犻櫎璁惧
++@router.delete("/devices/{device_id}", summary="鍒犻櫎璁惧", status_code=204)
+ @handle_api_exception
+ def delete_device_endpoint(
+         device_id: int,
+         db: Session = Depends(get_db),
+         current_user: User = Depends(require_permission("device.delete"))
+ ):
+-    """删除设备，成功返回 204 No Content"""
++    """鍒犻櫎璁惧锛屾垚鍔熻繑鍥?204 No Content"""
+     delete_device(db, device_id)
+ 
+ 
+-# 绑定设备
+-@router.post("/devices/{device_id}/bind", summary="绑定用户到设备", response_model=ApiResponse)
++# 缁戝畾璁惧
++@router.post("/devices/{device_id}/bind", summary="缁戝畾鐢ㄦ埛鍒拌澶?)
+ @handle_api_exception
+ def admin_bind_device(
+-        device_id: int = Path(..., description="设备ID"),
++        device_id: int = Path(..., description="璁惧ID"),
+         data: BindUserDevice = Body(...),
+         db: Session = Depends(get_db),
+         current_user: User = Depends(require_permission("device.bind"))
+ ):
+     bind_user_device(db, data.user_id, device_id, operator_id=current_user.id)
+-    return success(msg="绑定成功")
++    return success(msg="缁戝畾鎴愬姛")
+ 
+ 
+-# 解绑设备
+-@router.delete("/devices/{device_id}/unbind", summary="解除用户与设备的绑定", status_code=204)
++# 瑙ｇ粦璁惧
++@router.delete("/devices/{device_id}/unbind", summary="瑙ｉ櫎鐢ㄦ埛涓庤澶囩殑缁戝畾", status_code=204)
+ @handle_api_exception
+ def unbind_user_device_endpoint(
+-        device_id: int = Path(..., description="设备ID"),
+-        user_id: int = Query(..., description="用户ID"),
++        device_id: int = Path(..., description="璁惧ID"),
++        user_id: int = Query(..., description="鐢ㄦ埛ID"),
+         db: Session = Depends(get_db),
+         current_user: User = Depends(require_permission("device.bind"))
+ ):
+-    """解除用户与设备的绑定，成功返回 204 No Content"""
++    """瑙ｉ櫎鐢ㄦ埛涓庤澶囩殑缁戝畾锛屾垚鍔熻繑鍥?204 No Content"""
+     unbind_user_device(db, user_id, device_id, operator_id=current_user.id)
++
+diff --git a/backend/api/door_api.py b/backend/api/door_api.py
+index a1e25bd..857cdd2 100644
+--- a/backend/api/door_api.py
++++ b/backend/api/door_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends, BackgroundTasks, Request
++﻿from fastapi import APIRouter, Depends, BackgroundTasks, Request
+ from sqlalchemy.orm import Session
+ 
+ from utils.auth import get_current_user_obj, require_permission
+@@ -10,10 +10,10 @@ from database.models.user import User
+ from schemas.door_schema import LogQuery
+ from services.websocket_service import manager
+ 
+-router = APIRouter(tags=["门禁管理"])
++router = APIRouter(tags=["闂ㄧ绠＄悊"])
+ 
+ 
+-@router.post("/doors/{device_id}/open", summary="开启门禁", response_model=ApiResponse)
++@router.post("/doors/{device_id}/open", summary="寮€鍚棬绂?)
+ @handle_api_exception
+ def door_open(
+     device_id: int,
+@@ -33,13 +33,13 @@ def door_open(
+         username=result["username"],
+         device_name=result["device_name"],
+         location=result["location"],
+-        action="远程开门"
++        action="杩滅▼寮€闂?
+     )
+ 
+     return success(msg=result["message"])
+ 
+ 
+-@router.get("/door-logs", summary="获取开门日志", response_model=ApiResponse)
++@router.get("/door-logs", summary="鑾峰彇寮€闂ㄦ棩蹇?)
+ @handle_api_exception
+ def get_logs(
+     params: LogQuery = Depends(),
+@@ -54,5 +54,6 @@ def get_logs(
+ 
+     return success(
+         data={"list": log_list, "total": total},
+-        msg="获取日志成功"
++        msg="鑾峰彇鏃ュ織鎴愬姛"
+     )
++
+diff --git a/backend/api/permission_api.py b/backend/api/permission_api.py
+index 42d6f03..006c5cd 100644
+--- a/backend/api/permission_api.py
++++ b/backend/api/permission_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends
++﻿from fastapi import APIRouter, Depends
+ from sqlalchemy.orm import Session
+ from database.db import get_db
+ from database.models.user import User
+@@ -15,10 +15,10 @@ from utils.api_exception_handler import handle_api_exception
+ from core.response_schema import ApiResponse, success
+ from utils.auth import require_permission
+ 
+-router = APIRouter(tags=["权限管理"])
++router = APIRouter(tags=["鏉冮檺绠＄悊"])
+ 
+ 
+-@router.get("/permissions", summary="获取所有权限（按模块分组）", response_model=ApiResponse)
++@router.get("/permissions", summary="鑾峰彇鎵€鏈夋潈闄愶紙鎸夋ā鍧楀垎缁勶級")
+ @handle_api_exception
+ def list_permissions(
+     db: Session = Depends(get_db),
+@@ -28,7 +28,7 @@ def list_permissions(
+     return success(data)
+ 
+ 
+-@router.get("/roles", summary="获取所有角色及权限", response_model=ApiResponse)
++@router.get("/roles", summary="鑾峰彇鎵€鏈夎鑹插強鏉冮檺")
+ @handle_api_exception
+ def list_roles(
+     db: Session = Depends(get_db),
+@@ -38,7 +38,7 @@ def list_roles(
+     return success(data)
+ 
+ 
+-@router.post("/roles", summary="创建自定义角色", response_model=ApiResponse, status_code=201)
++@router.post("/roles", summary="鍒涘缓鑷畾涔夎鑹?, status_code=201)
+ @handle_api_exception
+ def add_role(
+     body: RoleCreate,
+@@ -46,10 +46,10 @@ def add_role(
+     current_user: User = Depends(require_permission("user.manage")),
+ ):
+     role = create_role(db, body.name, body.code)
+-    return success({"id": role.id, "name": role.name, "code": role.code}, msg="创建成功")
++    return success({"id": role.id, "name": role.name, "code": role.code}, msg="鍒涘缓鎴愬姛")
+ 
+ 
+-@router.put("/roles/{role_id}", summary="修改角色名称", response_model=ApiResponse)
++@router.put("/roles/{role_id}", summary="淇敼瑙掕壊鍚嶇О")
+ @handle_api_exception
+ def edit_role(
+     role_id: int,
+@@ -58,21 +58,21 @@ def edit_role(
+     current_user: User = Depends(require_permission("user.manage")),
+ ):
+     update_role(db, role_id, body.name)
+-    return success(msg="修改成功")
++    return success(msg="淇敼鎴愬姛")
+ 
+ 
+-@router.delete("/roles/{role_id}", summary="删除自定义角色", status_code=204)
++@router.delete("/roles/{role_id}", summary="鍒犻櫎鑷畾涔夎鑹?, status_code=204)
+ @handle_api_exception
+ def remove_role(
+     role_id: int,
+     db: Session = Depends(get_db),
+     current_user: User = Depends(require_permission("user.manage")),
+ ):
+-    """删除自定义角色，成功返回 204 No Content"""
++    """鍒犻櫎鑷畾涔夎鑹诧紝鎴愬姛杩斿洖 204 No Content"""
+     delete_role(db, role_id)
+ 
+ 
+-@router.put("/roles/{role_id}/permissions", summary="设置角色权限", response_model=ApiResponse)
++@router.put("/roles/{role_id}/permissions", summary="璁剧疆瑙掕壊鏉冮檺")
+ @handle_api_exception
+ def update_role_permissions(
+     role_id: int,
+@@ -81,4 +81,5 @@ def update_role_permissions(
+     current_user: User = Depends(require_permission("user.manage")),
+ ):
+     result = set_role_permissions(db, role_id, body.permission_ids)
+-    return success(result, msg="权限设置成功")
++    return success(result, msg="鏉冮檺璁剧疆鎴愬姛")
++
+diff --git a/backend/api/stat_api.py b/backend/api/stat_api.py
+index 5b0694a..b0fff0e 100644
+--- a/backend/api/stat_api.py
++++ b/backend/api/stat_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends
++﻿from fastapi import APIRouter, Depends
+ from sqlalchemy.orm import Session
+ from database.db import get_db
+ from utils.auth import require_permission
+@@ -7,10 +7,10 @@ from core.response_schema import ApiResponse, success
+ from database.models.user import User
+ from services.stat_service import get_statistics, get_weekly_trend, get_action_distribution
+ 
+-router = APIRouter(tags=["统计数据"])
++router = APIRouter(tags=["缁熻鏁版嵁"])
+ 
+ 
+-@router.get("/statistics", summary="获取统计数据", response_model=ApiResponse)
++@router.get("/statistics", summary="鑾峰彇缁熻鏁版嵁")
+ @handle_api_exception
+ def get_stat(
+     db: Session = Depends(get_db),
+@@ -20,7 +20,7 @@ def get_stat(
+     return success(data=data)
+ 
+ 
+-@router.get("/statistics/trend", summary="本周开锁趋势", response_model=ApiResponse)
++@router.get("/statistics/trend", summary="鏈懆寮€閿佽秼鍔?)
+ @handle_api_exception
+ def get_trend(
+     db: Session = Depends(get_db),
+@@ -30,7 +30,7 @@ def get_trend(
+     return success(data=data)
+ 
+ 
+-@router.get("/statistics/actions", summary="开锁方式占比", response_model=ApiResponse)
++@router.get("/statistics/actions", summary="寮€閿佹柟寮忓崰姣?)
+ @handle_api_exception
+ def get_actions(
+     db: Session = Depends(get_db),
+@@ -38,3 +38,4 @@ def get_actions(
+ ):
+     data = get_action_distribution(db, current_user)
+     return success(data=data)
++
+diff --git a/backend/api/wx_auth_api.py b/backend/api/wx_auth_api.py
+index 7bea4f3..8e57eae 100644
+--- a/backend/api/wx_auth_api.py
++++ b/backend/api/wx_auth_api.py
+@@ -1,4 +1,4 @@
+-from fastapi import APIRouter, Depends
++﻿from fastapi import APIRouter, Depends
+ from sqlalchemy.orm import Session
+ from pydantic import BaseModel, Field
+ 
+@@ -8,26 +8,26 @@ from core.response_schema import ApiResponse, success
+ from utils.auth import get_current_user
+ from services.wx_auth_service import wx_login_service, wx_bind_service
+ 
+-router = APIRouter(tags=["微信小程序认证"])
++router = APIRouter(tags=["寰俊灏忕▼搴忚璇?])
+ 
+ 
+ class WxLoginRequest(BaseModel):
+-    code: str = Field(..., description="wx.login() 获取的临时登录凭证")
++    code: str = Field(..., description="wx.login() 鑾峰彇鐨勪复鏃剁櫥褰曞嚟璇?)
+ 
+ 
+ class WxBindRequest(BaseModel):
+-    username: str = Field(..., min_length=1, max_length=50, description="用户名")
+-    password: str = Field(..., min_length=6, description="密码")
++    username: str = Field(..., min_length=1, max_length=50, description="鐢ㄦ埛鍚?)
++    password: str = Field(..., min_length=6, description="瀵嗙爜")
+ 
+ 
+-@router.post("/auth/wx-login", summary="微信小程序登录", response_model=ApiResponse)
++@router.post("/auth/wx-login", summary="寰俊灏忕▼搴忕櫥褰?)
+ @handle_api_exception
+ def wx_login(data: WxLoginRequest, db: Session = Depends(get_db)):
+     result = wx_login_service(db, data.code)
+     return success(result)
+ 
+ 
+-@router.put("/auth/wx-bind", summary="绑定已有账号到微信", response_model=ApiResponse)
++@router.put("/auth/wx-bind", summary="缁戝畾宸叉湁璐﹀彿鍒板井淇?)
+ @handle_api_exception
+ def wx_bind(
+     data: WxBindRequest,
+@@ -36,3 +36,4 @@ def wx_bind(
+ ):
+     result = wx_bind_service(db, current_user_id, data.username, data.password)
+     return success(result)
++

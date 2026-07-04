@@ -33,7 +33,7 @@ class SendCodeRequest(BaseModel):
     target: str = Field(..., description="手机号或邮箱")
 
 
-@router.post("/auth/login", summary="用户登录", response_model=ApiResponse)
+@router.post("/auth/login", summary="用户登录")
 @handle_api_exception
 def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
@@ -43,7 +43,7 @@ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
     return success(result)
 
 
-@router.post("/auth/send-code", summary="发送验证码", response_model=ApiResponse)
+@router.post("/auth/send-code", summary="发送验证码")
 @handle_api_exception
 def send_verify_code(data: SendCodeRequest, request: Request):
     client_ip = request.client.host if request.client else "unknown"
@@ -55,7 +55,7 @@ def send_verify_code(data: SendCodeRequest, request: Request):
     return success(msg=msg)
 
 
-@router.post("/auth/login-phone", summary="手机号登录", response_model=ApiResponse)
+@router.post("/auth/login-phone", summary="手机号登录")
 @handle_api_exception
 def login_by_phone(data: PhoneLoginRequest, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
@@ -65,7 +65,7 @@ def login_by_phone(data: PhoneLoginRequest, request: Request, db: Session = Depe
     return success(result)
 
 
-@router.post("/auth/login-email", summary="邮箱登录", response_model=ApiResponse)
+@router.post("/auth/login-email", summary="邮箱登录")
 @handle_api_exception
 def login_by_email(data: EmailLoginRequest, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
@@ -75,14 +75,14 @@ def login_by_email(data: EmailLoginRequest, request: Request, db: Session = Depe
     return success(result)
 
 
-@router.post("/auth/register", summary="用户注册", response_model=ApiResponse, status_code=201)
+@router.post("/auth/register", summary="用户注册", status_code=201)
 @handle_api_exception
 def register_new_user(data: UserCreate, db: Session = Depends(get_db)):
     db_create_user(db, data.username, data.password, role="user")
     return success(msg="注册成功")
 
 
-@router.post("/auth/logout", summary="退出登录", response_model=ApiResponse)
+@router.post("/auth/logout", summary="退出登录")
 @handle_api_exception
 def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = None
@@ -98,7 +98,7 @@ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends
     return success(msg="退出成功，Token 已失效")
 
 
-@router.put("/auth/password", summary="修改密码", response_model=ApiResponse)
+@router.put("/auth/password", summary="修改密码")
 @handle_api_exception
 def change_password(
         data: PasswordChange,
@@ -109,7 +109,7 @@ def change_password(
     return success(msg="密码修改成功")
 
 
-@router.post("/auth/reset-password", summary="忘记密码", response_model=ApiResponse)
+@router.post("/auth/reset-password", summary="忘记密码")
 @handle_api_exception
 def forgot_password(data: ResetPassword, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
@@ -119,7 +119,7 @@ def forgot_password(data: ResetPassword, request: Request, db: Session = Depends
     return success(msg="密码重置成功")
 
 
-@router.get("/auth/profile", summary="获取个人信息", response_model=ApiResponse)
+@router.get("/auth/profile", summary="获取个人信息")
 @handle_api_exception
 def get_profile(
     db: Session = Depends(get_db),
@@ -128,7 +128,7 @@ def get_profile(
     return success(get_user_profile(current_user, db))
 
 
-@router.put("/auth/profile", summary="修改用户名", response_model=ApiResponse)
+@router.put("/auth/profile", summary="修改用户名")
 @handle_api_exception
 def update_profile(
         data: ProfileUpdate,
@@ -139,7 +139,7 @@ def update_profile(
     return success(msg="用户名修改成功")
 
 
-@router.put("/auth/avatar", summary="上传头像", response_model=ApiResponse)
+@router.put("/auth/avatar", summary="上传头像")
 @handle_api_exception
 async def upload_avatar(
         file: UploadFile = File(...),
