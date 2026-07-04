@@ -200,7 +200,7 @@ const pwdRules = ref({
 const loadProfile = async () => {
   try {
     const res = await request.get('/auth/profile')
-    if (res.code === 200) {
+    if (res.success) {
       Object.assign(profile, res.data)
       profileForm.username = res.data.username
       originalUsername.value = res.data.username
@@ -244,7 +244,7 @@ const handleFileChange = async (e) => {
     const res = await request.put('/auth/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    if (res.code === 200) {
+    if (res.success) {
       avatarUrl.value = res.data.avatar
       localStorage.setItem('avatar', res.data.avatar)
       window.dispatchEvent(new Event('avatar-updated'))
@@ -273,7 +273,7 @@ const saveUsername = async () => {
   savingUsername.value = true
   try {
     const res = await request.put('/auth/profile', { username: profileForm.username.trim() })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('用户名修改成功')
       originalUsername.value = profileForm.username.trim()
       username.value = profileForm.username.trim()
@@ -306,7 +306,7 @@ const savePassword = async () => {
     const payload = { new_password: pwdForm.new_password }
     if (hasPassword.value) payload.old_password = pwdForm.old_password
     const res = await request.put('/auth/password', payload)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success(hasPassword.value ? '密码修改成功，请重新登录' : '密码设置成功，请重新登录')
       hasPassword.value = true
       pwdForm.old_password = ''

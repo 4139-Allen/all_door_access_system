@@ -4,6 +4,7 @@ import json
 from functools import wraps
 
 from fastapi import WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from jose import JWTError
 
 from utils.logger import AppLogger
@@ -32,25 +33,25 @@ def handle_api_exception(func):
     def _handle_exception(e, name):
         if isinstance(e, ValueError):
             logger.warning(f"业务逻辑错误 [{name}]: {str(e)}")
-            return error(str(e), code=400)
+            return JSONResponse(status_code=400, content=error(str(e)))
         elif isinstance(e, PermissionError):
             logger.warning(f"权限错误 [{name}]: {str(e)}")
-            return error(str(e), code=403)
+            return JSONResponse(status_code=403, content=error(str(e)))
         elif isinstance(e, NotFoundError):
             logger.warning(f"资源不存在 [{name}]: {str(e)}")
-            return error(str(e), code=404)
+            return JSONResponse(status_code=404, content=error(str(e)))
         elif isinstance(e, AuthError):
             logger.warning(f"认证失败 [{name}]: {str(e)}")
-            return error(str(e), code=401)
+            return JSONResponse(status_code=401, content=error(str(e)))
         elif isinstance(e, TooManyRequestsError):
             logger.warning(f"请求频率过高 [{name}]: {str(e)}")
-            return error(str(e), code=429)
+            return JSONResponse(status_code=429, content=error(str(e)))
         elif isinstance(e, TimeoutError):
             logger.error(f"请求超时 [{name}]: {str(e)}")
-            return error("请求超时，请稍后重试", code=504)
+            return JSONResponse(status_code=504, content=error("请求超时，请稍后重试"))
         else:
             logger.error(f"服务器内部错误 [{name}]: {str(e)}", exc_info=True)
-            return error("服务器内部错误，请联系超级管理员", code=500)
+            return JSONResponse(status_code=500, content=error("服务器内部错误，请联系超级管理员"))
 
     if _is_async:
         @wraps(func)

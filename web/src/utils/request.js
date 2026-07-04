@@ -22,7 +22,10 @@ service.interceptors.request.use(
 
 // 响应拦截
 service.interceptors.response.use(
-  (res) => res.data,
+  (res) => {
+    // 所有 2xx 响应统一带 success: true，组件通过 if (res.success) 判断
+    return { success: true, ...res.data }
+  },
   (error) => {
     // 被主动取消的请求（页面切换、组件卸载），不处理
     if (axios.isCancel(error)) {
@@ -31,7 +34,9 @@ service.interceptors.response.use(
 
     if (error.response) {
       const status = error.response.status
+      const data = error.response.data
 
+      // 401 登录过期：清除 token 并跳转
       if (status === 401) {
         ElMessage.error('登录已过期，请重新登录')
         localStorage.removeItem('token')
@@ -40,7 +45,17 @@ service.interceptors.response.use(
         localStorage.removeItem('role_name')
         localStorage.removeItem('permissions')
         router.push('/login')
-      } else if (status === 403) {
+        return Promise.reject(error)
+      }
+
+      // 有标准 {msg, data} 格式的业务响应 → 加 success: false 让组件自行处理
+      // 组件通过 if (res.success) 判断成功/失败
+      if (data && typeof data.msg === 'string') {
+        return { success: false, ...data }
+      }
+
+      // 非标准响应，按状态码提示
+      if (status === 403) {
         ElMessage.error('无权限访问')
       } else if (status === 404) {
         ElMessage.error('请求的资源不存在')

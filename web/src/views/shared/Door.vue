@@ -99,7 +99,7 @@ const getMyDevices = async () => {
   deviceLoading.value = true
   try {
     const res = await request.get('/devices')
-    if (res.code === 200) {
+    if (res.success) {
       deviceList.value = res.data.list || []
     }
   } catch (e) {
@@ -137,7 +137,7 @@ const openDoor = async () => {
   doorLoading.value = true
   try {
     const res = await request.post(`/doors/${selectedDeviceId.value}/open`)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success(res.msg || '开门成功')
       startCooldown(3)
       getMyLogs()

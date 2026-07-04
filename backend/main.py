@@ -7,7 +7,8 @@ from api.routers import routers
 from core.config import ALLOWED_ORIGINS
 from database.db import init_database, drop_all_tables
 from fastapi import Request
-from utils.api_exception_handler import error
+from fastapi.responses import JSONResponse
+from core.response_schema import error
 # 导入封装好的日志类
 from utils.logger import AppLogger
 from contextlib import asynccontextmanager
@@ -167,7 +168,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         exc_info=True  # 记录完整堆栈
     )
 
-    return error(msg="服务器内部错误", code=500)
+    return JSONResponse(status_code=500, content=error(msg="服务器内部错误"))
 
 
 # 健康检查端点（检测 MySQL 和 Redis 连通性，Docker 据此判定服务是否真正常）

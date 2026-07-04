@@ -199,7 +199,7 @@ const allDevices = ref([])
 const loadRoles = async () => {
   try {
     const res = await request.get('/roles')
-    if (res.code === 200) roleList.value = res.data || []
+    if (res.success) roleList.value = res.data || []
   } catch (e) {}
 }
 
@@ -207,14 +207,14 @@ const loadRoles = async () => {
 const loadAllUsers = async () => {
   try {
     const res = await request.get('/users', { params: { page: 1, size: 9999 } })
-    if (res.code === 200) allUsers.value = res.data.list || []
+    if (res.success) allUsers.value = res.data.list || []
   } catch (e) {}
 }
 
 const loadAllDevices = async () => {
   try {
     const res = await request.get('/devices', { params: { page: 1, size: 9999 } })
-    if (res.code === 200) allDevices.value = res.data.list || []
+    if (res.success) allDevices.value = res.data.list || []
   } catch (e) {}
 }
 
@@ -265,7 +265,7 @@ const handleFileChange = async (e) => {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 300000
     })
-    if (res.code === 200) {
+    if (res.success) {
       const { success_count, fail_count, fail_list } = res.data
       if (fail_count > 0) {
         ElMessageBox.alert(
@@ -297,7 +297,7 @@ const addUser = async () => {
   adding.value = true
   try {
     const res = await request.post('/users', addForm.value)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('新增成功')
       getUserList()
       addForm.value = { username: '', password: '', role: 'user' }
@@ -320,7 +320,7 @@ const deleteUser = async (id) => {
       confirmButtonClass: 'el-button--danger',
     })
     const res = await request.delete(`/users/${id}`)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('删除成功')
       getUserList()
     } else {
@@ -342,7 +342,7 @@ const handleChangeRole = async ({ userId, newRole }) => {
       cancelButtonText: '取消',
     })
     const res = await request.put(`/users/${userId}/role`, { role: newRole })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('角色修改成功')
       getUserList()
     } else {
@@ -358,7 +358,7 @@ const handleChangeRole = async ({ userId, newRole }) => {
 const showDevices = async (uid) => {
   try {
     const res = await request.get(`/users/${uid}/devices`)
-    if (res.code === 200) {
+    if (res.success) {
       deviceList.value = [...new Set(res.data || [])]
       deviceDialogVisible.value = true
     } else {
@@ -379,7 +379,7 @@ const bindDevice = async () => {
     const res = await request.post(`/devices/${bindForm.value.device_id}/bind`, {
       user_id: bindForm.value.user_id
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('绑定成功')
       bindForm.value = { user_id: '', device_id: '' }
     } else {
@@ -408,7 +408,7 @@ const unbindDevice = async () => {
     const res = await request.delete(`/devices/${bindForm.value.device_id}/unbind`, {
       params: { user_id: bindForm.value.user_id }
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('解绑成功')
       bindForm.value = { user_id: '', device_id: '' }
     } else {

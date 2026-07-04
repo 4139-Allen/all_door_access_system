@@ -98,7 +98,7 @@ const exportExcel = async () => {
     }
 
     const res = await request.get('/door-logs', { params })
-    if (res.code !== 200) {
+    if (!res.success) {
       ElMessage.error(res.msg || '导出失败')
       return
     }

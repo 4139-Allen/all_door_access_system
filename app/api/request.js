@@ -21,7 +21,7 @@ function request(method, url, data) {
           reject(new Error('未登录'))
           return
         }
-        if (res.data.code === 200) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else {
           uni.showToast({ title: res.data.msg || '请求失败', icon: 'none' })

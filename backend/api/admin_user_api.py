@@ -29,7 +29,7 @@ def list_users(
     return success(data)
 
 
-@router.post("/users", summary="创建用户", response_model=ApiResponse)
+@router.post("/users", summary="创建用户", response_model=ApiResponse, status_code=201)
 @handle_api_exception
 def create_new_user(
         data: UserCreate,
@@ -53,7 +53,7 @@ def change_user_role(
 
 
 # 必须在 /users/{user_id} 之前定义，否则会被路径参数匹配
-@router.post("/users/import", summary="批量导入用户", response_model=ApiResponse)
+@router.post("/users/import", summary="批量导入用户", response_model=ApiResponse, status_code=201)
 @handle_api_exception
 async def import_users(
         file: UploadFile = File(...),
@@ -65,15 +65,15 @@ async def import_users(
     return success(result, msg=result["msg"])
 
 
-@router.delete("/users/{user_id}", summary="删除用户", response_model=ApiResponse)
+@router.delete("/users/{user_id}", summary="删除用户", status_code=204)
 @handle_api_exception
 def delete_user(
         user_id: int,
         db: Session = Depends(get_db),
         current_user: User = Depends(require_permission("user.manage"))
 ):
+    """删除用户，成功返回 204 No Content"""
     delete_user_by_id(db, user_id, current_user)
-    return success(msg="删除成功")
 
 
 @router.get("/users/{user_id}/devices", summary="查询用户绑定的设备", response_model=ApiResponse)

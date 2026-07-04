@@ -33,7 +33,7 @@ function request(method, url, data) {
         }
 
         const body = res.data
-        if (body.code === 200) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(body)
         } else {
           wx.showToast({ title: body.msg || '请求失败', icon: 'none' })
