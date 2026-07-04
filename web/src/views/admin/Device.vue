@@ -145,7 +145,7 @@ const addDevice = async () => {
   adding.value = true
   try {
     const res = await request.post('/devices', addForm.value)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('新增成功')
       getDeviceList()
       addForm.value = { name: '', location: '' }
@@ -181,7 +181,7 @@ const saveEdit = async () => {
       location: editForm.value.location,
       status: editForm.value.status
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('更新成功')
       editDialogVisible.value = false
       getDeviceList()
@@ -204,7 +204,7 @@ const delDevice = async (id) => {
       confirmButtonClass: 'el-button--danger',
     })
     const res = await request.delete(`/devices/${id}`)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('删除成功')
       getDeviceList()
     } else {

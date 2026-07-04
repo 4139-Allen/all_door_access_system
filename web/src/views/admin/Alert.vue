@@ -242,7 +242,7 @@ const {
 const getAlertStats = async () => {
   try {
     const res = await request.get('/alerts/stats', { params: { hours: 24 } })
-    if (res.code === 200) {
+    if (res.success) {
       alertStats.value = res.data
       lockedDevices.value = res.data.locked_devices || []
       // 有锁定设备时启动倒计时
@@ -265,7 +265,7 @@ const handleUnlock = async (deviceName) => {
     )
     unlockingId.value = deviceName
     const res = await request.post(`/alerts/unlock/${deviceName}`)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success(res.msg || '解除成功')
       getAlertStats()
       getAlertList()

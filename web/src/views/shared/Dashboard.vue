@@ -247,7 +247,7 @@ const getStat = async () => {
   statLoading.value = true
   try {
     const res = await request.get('/statistics')
-    if (res.code === 200) {
+    if (res.success) {
       stat.value = res.data
     } else {
       ElMessage.error(res.msg || '获取统计数据失败')
@@ -269,7 +269,7 @@ const getRecentLogs = async () => {
     const res = await request.get('/door-logs', {
       params: { page: 1, size: 5 }
     })
-    if (res.code === 200) {
+    if (res.success) {
       recentLogs.value = res.data.list || []
     }
   } catch (e) {

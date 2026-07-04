@@ -134,7 +134,7 @@ const fetchRoles = async () => {
   loading.value = true
   try {
     const res = await request.get('/roles')
-    if (res.code === 200) roleList.value = res.data || []
+    if (res.success) roleList.value = res.data || []
   } catch (e) {
     ElMessage.error('获取角色列表失败')
   } finally {
@@ -152,7 +152,7 @@ const checkedIds = reactive(new Set())
 const fetchAllPermissions = async () => {
   try {
     const res = await request.get('/permissions')
-    if (res.code === 200) allPermissions.value = res.data || []
+    if (res.success) allPermissions.value = res.data || []
   } catch (e) {
     ElMessage.error('获取权限列表失败')
   }
@@ -204,7 +204,7 @@ const savePermissions = async () => {
     const res = await request.put(`/roles/${editingRole.value.id}/permissions`, {
       permission_ids: [...checkedIds]
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('权限设置成功')
       permDialogVisible.value = false
       fetchRoles()
@@ -240,7 +240,7 @@ const handleCreate = async () => {
       name: createForm.name.trim(),
       code: createForm.code.trim()
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('创建成功')
       createDialogVisible.value = false
       fetchRoles()
@@ -263,7 +263,7 @@ const handleDelete = async (role) => {
       { type: 'warning', confirmButtonText: '确定删除', cancelButtonText: '取消' }
     )
     const res = await request.delete(`/roles/${role.id}`)
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('删除成功')
       fetchRoles()
     } else {

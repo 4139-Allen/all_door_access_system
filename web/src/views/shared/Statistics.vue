@@ -69,7 +69,7 @@ const getTrend = async () => {
   trendLoading.value = true
   try {
     const res = await request.get('/statistics/trend')
-    if (res.code === 200) trendData.value = res.data
+    if (res.success) trendData.value = res.data
   } catch (e) {
     console.error('获取趋势数据失败', e)
   } finally {
@@ -81,7 +81,7 @@ const getActions = async () => {
   actionLoading.value = true
   try {
     const res = await request.get('/statistics/actions')
-    if (res.code === 200) actionData.value = res.data
+    if (res.success) actionData.value = res.data
   } catch (e) {
     console.error('获取开锁方式数据失败', e)
   } finally {

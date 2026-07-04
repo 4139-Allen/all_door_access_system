@@ -38,7 +38,7 @@ def list_roles(
     return success(data)
 
 
-@router.post("/roles", summary="创建自定义角色", response_model=ApiResponse)
+@router.post("/roles", summary="创建自定义角色", response_model=ApiResponse, status_code=201)
 @handle_api_exception
 def add_role(
     body: RoleCreate,
@@ -61,15 +61,15 @@ def edit_role(
     return success(msg="修改成功")
 
 
-@router.delete("/roles/{role_id}", summary="删除自定义角色", response_model=ApiResponse)
+@router.delete("/roles/{role_id}", summary="删除自定义角色", status_code=204)
 @handle_api_exception
 def remove_role(
     role_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("user.manage")),
 ):
+    """删除自定义角色，成功返回 204 No Content"""
     delete_role(db, role_id)
-    return success(msg="删除成功")
 
 
 @router.put("/roles/{role_id}/permissions", summary="设置角色权限", response_model=ApiResponse)

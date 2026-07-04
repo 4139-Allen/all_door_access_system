@@ -249,7 +249,7 @@ const sendCode = async () => {
   }
   try {
     const res = await request.post('/auth/send-code', { target: account })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success(res.msg || '验证码已发送')
       cooldown.value = 60
       cooldownTimer = setInterval(() => {
@@ -296,7 +296,7 @@ const handleLogin = async () => {
       res = await request.post('/auth/login', { username: account, password: loginForm.value.password })
     }
 
-    if (res.code === 200) {
+    if (res.success) {
       handleLoginSuccess(res.data)
     } else {
       ElMessage.error(res.msg || '登录失败')
@@ -351,7 +351,7 @@ const handleRegister = async () => {
       ...registerForm.value,
       username: registerForm.value.username.trim()
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('注册成功，请登录')
       registerForm.value = { username: '', password: '', confirmPassword: '' }
       activeTab.value = 'login'
@@ -403,7 +403,7 @@ const sendForgotCode = async () => {
   }
   try {
     const res = await request.post('/auth/send-code', { target: forgotForm.value.phone })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success(res.msg || '验证码已发送')
       forgotCooldown.value = 60
       forgotTimer = setInterval(() => {
@@ -430,7 +430,7 @@ const handleResetPassword = async () => {
       code: forgotForm.value.code,
       new_password: forgotForm.value.new_password
     })
-    if (res.code === 200) {
+    if (res.success) {
       ElMessage.success('密码重置成功，请登录')
       showForgotDialog.value = false
     } else {

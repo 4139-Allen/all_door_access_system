@@ -75,7 +75,7 @@ def login_by_email(data: EmailLoginRequest, request: Request, db: Session = Depe
     return success(result)
 
 
-@router.post("/auth/register", summary="用户注册", response_model=ApiResponse)
+@router.post("/auth/register", summary="用户注册", response_model=ApiResponse, status_code=201)
 @handle_api_exception
 def register_new_user(data: UserCreate, db: Session = Depends(get_db)):
     db_create_user(db, data.username, data.password, role="user")
@@ -92,7 +92,7 @@ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends
         token = request.headers.get("X-Token")
 
     if not token:
-        return error("未提供认证凭证", code=401)
+        return error("未提供认证凭证")
 
     logout_token(token)
     return success(msg="退出成功，Token 已失效")
