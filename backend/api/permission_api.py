@@ -18,7 +18,7 @@ from utils.auth import require_permission
 router = APIRouter(tags=["权限管理"])
 
 
-@router.get("/permissions", summary="获取所有权限（按模块分组）", response_model=ApiResponse)
+@router.get("/permissions", summary="获取所有权限（按模块分组）")
 @handle_api_exception
 def list_permissions(
     db: Session = Depends(get_db),
@@ -28,7 +28,7 @@ def list_permissions(
     return success(data)
 
 
-@router.get("/roles", summary="获取所有角色及权限", response_model=ApiResponse)
+@router.get("/roles", summary="获取所有角色及权限")
 @handle_api_exception
 def list_roles(
     db: Session = Depends(get_db),
@@ -38,7 +38,7 @@ def list_roles(
     return success(data)
 
 
-@router.post("/roles", summary="创建自定义角色", response_model=ApiResponse, status_code=201)
+@router.post("/roles", summary="创建自定义角色", status_code=201)
 @handle_api_exception
 def add_role(
     body: RoleCreate,
@@ -49,7 +49,7 @@ def add_role(
     return success({"id": role.id, "name": role.name, "code": role.code}, msg="创建成功")
 
 
-@router.put("/roles/{role_id}", summary="修改角色名称", response_model=ApiResponse)
+@router.put("/roles/{role_id}", summary="修改角色名称")
 @handle_api_exception
 def edit_role(
     role_id: int,
@@ -72,7 +72,7 @@ def remove_role(
     delete_role(db, role_id)
 
 
-@router.put("/roles/{role_id}/permissions", summary="设置角色权限", response_model=ApiResponse)
+@router.put("/roles/{role_id}/permissions", summary="设置角色权限")
 @handle_api_exception
 def update_role_permissions(
     role_id: int,
