@@ -179,7 +179,7 @@ def get_device_list(
     if use_cache:
         cache_key = DEVICE_CACHE_KEY_TEMPLATE.format(user_id=current_user_id)
         cached = cache_get_json(cache_key)
-        if cached:
+        if cached is not None:
             return cached
 
     query = db.query(Device)

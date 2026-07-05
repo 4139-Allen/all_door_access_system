@@ -63,7 +63,7 @@ def get_statistics(db: Session, user: User) -> StatisticsResult:
     """获取统计数据（带缓存，180秒过期）"""
     cache_key = STAT_CACHE_KEY_TEMPLATE.format(user_id=user.id)
     cached = cache_get_json(cache_key)
-    if cached:
+    if cached is not None:
         return cached
 
     today_start = get_today_start()
@@ -102,7 +102,7 @@ def get_weekly_trend(db: Session, user: User) -> list:
     """获取近7天每天的开锁次数（滚动窗口，带缓存）"""
     cache_key = TREND_CACHE_KEY_TEMPLATE.format(user_id=user.id)
     cached = cache_get_json(cache_key)
-    if cached:
+    if cached is not None:
         return cached
 
     from sqlalchemy import func
@@ -139,7 +139,7 @@ def get_action_distribution(db: Session, user: User) -> list:
     """获取开锁方式占比（带缓存）"""
     cache_key = ACTIONS_CACHE_KEY_TEMPLATE.format(user_id=user.id)
     cached = cache_get_json(cache_key)
-    if cached:
+    if cached is not None:
         return cached
 
     from sqlalchemy import func
