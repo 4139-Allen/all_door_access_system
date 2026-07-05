@@ -161,6 +161,8 @@ const devicePrevStatus = {}
 const recentLogs = ref([])
 const { eventList, addDoorEvent, getRelativeTime } = useDoorEventStream()
 const displayedEvents = computed(() => eventList.slice(0, 20))
+// 标记是否还在初始化阶段（初始加载的历史事件不计入 today_log）
+const isInitialLoading = ref(true)
 
 
 // 根据操作类型获取动作描述
@@ -175,6 +177,7 @@ const getActionVerb = (action) => {
 watch(
   () => eventList.length,
   (newLen, oldLen) => {
+    if (isInitialLoading.value) return  // 初始化阶段不计数
     if (newLen > oldLen) {
       stat.value.today_log += (newLen - oldLen)
     }
@@ -295,6 +298,8 @@ onMounted(() => {
           timestamp: log.time
         })
       })
+    }).finally(() => {
+      isInitialLoading.value = false  // 初始化完成，之后 WebSocket 事件才计入统计
     })
   }
   timer = setInterval(() => {
