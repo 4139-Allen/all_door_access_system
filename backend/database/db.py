@@ -85,19 +85,20 @@ def get_db():
 # ==================== Alembic 数据库迁移 ====================
 # 使用说明：
 # 1. 当需要修改表结构时（如增加字段），先修改 SQLAlchemy 模型
-# 2. 然后运行：alembic revision --autogenerate -m "描述变更"
-# 3. 检查生成的迁移脚本（在 alembic/versions/ 目录下）
+# 2. 然后运行（在 backend/database/migrations/ 目录下）：
+#    alembic revision --autogenerate -m "描述变更"
+# 3. 检查生成的迁移脚本（在 scripts/versions/ 目录下）
 # 4. 执行迁移：alembic upgrade head
 # 5. 回滚迁移：alembic downgrade -1
 #
-# 常用命令：
+# 常用命令（在 backend/database/migrations/ 目录下）：
 #   alembic current          - 查看当前版本
 #   alembic history          - 查看迁移历史
 #   alembic upgrade head     - 升级到最新版本
 #   alembic downgrade -1     - 回滚一个版本
 #   alembic upgrade +2       - 升级两个版本
 #
-# 或者使用管理脚本：
+# 或者使用管理脚本（在 backend/database/migrations/ 目录下）：
 #   python manage_db.py current
 #   python manage_db.py create -m "add_phone_field"
 #   python manage_db.py upgrade
@@ -109,8 +110,8 @@ def run_alembic_migrations():
         from alembic.config import Config
         from alembic import command
 
-        # 获取 alembic.ini 的路径
-        alembic_ini_path = os.path.join(os.path.dirname(__file__), '..', 'alembic.ini')
+        # 获取 alembic.ini 的路径（位于 database/migrations/ 下）
+        alembic_ini_path = os.path.join(os.path.dirname(__file__), 'migrations', 'alembic.ini')
 
         if not os.path.exists(alembic_ini_path):
             logger.warning("⚠️ alembic.ini 不存在，跳过 Alembic 迁移")

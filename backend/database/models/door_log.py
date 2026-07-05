@@ -1,18 +1,18 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, func
+
 from database.db import Base
-from datetime import datetime
 
 
 class DoorLog(Base):
     __tablename__ = "door_log"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("user.id", ondelete="SET NULL"))
     device_id = Column(Integer, ForeignKey("device.id", ondelete="SET NULL"))
     action = Column(String(50))
     status = Column(String(50))
     ip = Column(String(50), nullable=True)  # 操作者IP，本地开门为NULL
-    time = Column(DateTime, default=datetime.now)
+    time = Column(DateTime, server_default=func.now())
 
     # 复合索引：用户 + 时间（覆盖非管理员查自己日志 + 时间排序）
     # 单列 time 索引：管理员全局时间范围查询

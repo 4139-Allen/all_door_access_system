@@ -10,7 +10,8 @@ import sys
 import os
 
 # 将 backend 目录添加到 Python 路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 当前文件在 backend/database/migrations/alembic/env.py，向上4层到 backend/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from core.config import DATABASE_URL
 from database.db import Base

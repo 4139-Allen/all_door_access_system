@@ -1,0 +1,4 @@
+Generic single-database configuration.
+#铁律
+ 1. 不要手动拷贝文件 —— 通过 git commit → git pull 确保版本一致
+ 2. 不要在服务器上 create 迁移脚本 —— 脚本只在本地生成，服务器只执行 upgrade
