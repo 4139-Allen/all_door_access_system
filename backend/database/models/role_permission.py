@@ -5,7 +5,7 @@ from database.db import Base
 class RolePermission(Base):
     __tablename__ = "role_permission"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     role_id = Column(Integer, ForeignKey("role.id", ondelete="CASCADE"), nullable=False)
     permission_id = Column(Integer, ForeignKey("permission.id", ondelete="CASCADE"), nullable=False)
 

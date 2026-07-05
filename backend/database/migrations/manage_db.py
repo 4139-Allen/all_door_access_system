@@ -16,7 +16,7 @@
     python manage_db.py create -m "add_user_phone_field"
 
     # 2. 检查生成的迁移脚本
-    # 文件位于 alembic/versions/ 目录下
+    # 文件位于 database/migrations/alembic/versions/ 目录下
 
     # 3. 执行迁移
     python manage_db.py upgrade
@@ -29,8 +29,9 @@ import argparse
 import sys
 import os
 
-# 确保当前目录在 Python 路径中
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 将 backend 目录添加到 Python 路径
+# manage_db.py 在 backend/database/migrations/ 下，向上3层到 backend/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from alembic.config import Config
 from alembic import command
@@ -42,7 +43,7 @@ def get_alembic_config():
 
     if not os.path.exists(alembic_ini_path):
         print("❌ 错误：找不到 alembic.ini 文件")
-        print("请确保在 backend/ 目录下运行此脚本")
+        print("请确保在 backend/database/migrations/ 目录下运行此脚本")
         sys.exit(1)
 
     return Config(alembic_ini_path)
@@ -70,7 +71,7 @@ def cmd_create(args):
 
     print(f"📝 正在创建迁移脚本：{args.message}")
     command.revision(alembic_cfg, autogenerate=True, message=args.message)
-    print("✅ 迁移脚本已生成，请检查 alembic/versions/ 目录")
+    print("✅ 迁移脚本已生成，请检查 scripts/versions/ 目录")
     print("💡 提示：请在执行 upgrade 前检查生成的脚本是否正确")
 
 

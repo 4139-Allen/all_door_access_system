@@ -21,7 +21,7 @@ if %errorlevel% neq 0 (
 REM 检查 alembic.ini 是否存在
 if not exist "alembic.ini" (
     echo 错误: 未找到 alembic.ini 文件
-    echo 请确保在 backend/ 目录下运行此脚本
+    echo 请确保在 backend/database/migrations/ 目录下运行此脚本
     exit /b 1
 )
 
@@ -52,7 +52,7 @@ if "%1"=="create" (
         )
         echo 创建迁移脚本: %3
         alembic revision --autogenerate -m "%3"
-        echo ✅ 迁移脚本已生成，请检查 alembic\versions\ 目录
+        echo ✅ 迁移脚本已生成，请检查 scripts\versions\ 目录
     ) else (
         echo 错误: 必须使用 -m 参数
         echo 使用方法: manage_db.bat create -m "描述"

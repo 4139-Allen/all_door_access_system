@@ -44,7 +44,7 @@ check_alembic() {
 check_config() {
     if [ ! -f "alembic.ini" ]; then
         echo -e "${RED}错误: 未找到 alembic.ini 文件${NC}"
-        echo "请确保在 backend/ 目录下运行此脚本"
+        echo -e "请确保在 backend/database/migrations/ 目录下运行此脚本"
         exit 1
     fi
 }
@@ -73,7 +73,7 @@ case "$1" in
         fi
         echo -e "${GREEN}创建迁移脚本: $3${NC}"
         alembic revision --autogenerate -m "$3"
-        echo -e "${GREEN}✅ 迁移脚本已生成，请检查 alembic/versions/ 目录${NC}"
+        echo -e "${GREEN}✅ 迁移脚本已生成，请检查 scripts/versions/ 目录${NC}"
         ;;
     upgrade)
         check_alembic

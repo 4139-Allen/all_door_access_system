@@ -19,6 +19,6 @@ async def websocket_endpoint(websocket: WebSocket):
     user_id, permissions = result
 
     # 注册到连接管理器（连接断开由装饰器统一处理）
-    await manager.connect(websocket, user_id=user_id, permissions=permissions)
+    manager.connect(websocket, user_id=user_id, permissions=permissions)
     while True:
         await websocket.receive_text()

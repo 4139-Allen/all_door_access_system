@@ -1,13 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func
+
 from database.db import Base
-from datetime import datetime
 
 
 class Role(Base):
     __tablename__ = "role"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String(30), nullable=False, unique=True)
-    code = Column(String(30), nullable=False, unique=True, index=True)
+    code = Column(String(30), nullable=False, unique=True)
     is_system = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, server_default=func.now())
