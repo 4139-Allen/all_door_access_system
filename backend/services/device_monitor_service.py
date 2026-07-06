@@ -29,11 +29,11 @@ def is_device_known_online(mqtt_name: str) -> bool:
 async def _monitor_loop():
     """每 25 秒检查一次已知在线设备的 Redis key 是否过期"""
     while True:
-        await asyncio.sleep(25)
+        await asyncio.sleep(25)     # ← 每 25 秒循环一次
         expired = []
         for mqtt_name, db_id in list(_known_online.items()):
             if not redis_client or not redis_client.exists(f"device:online:{mqtt_name}"):
-                expired.append((mqtt_name, db_id))
+                expired.append((mqtt_name, db_id))      # ← Redis key 不在了 → 离线
 
         for mqtt_name, db_id in expired:
             _known_online.pop(mqtt_name, None)
@@ -41,14 +41,14 @@ async def _monitor_loop():
             try:
                 device = db.query(Device).filter(Device.id == db_id).first()
                 if device:
-                    device.status = "offline"
+                    device.status = "offline"           # ← MySQL 改离线
                     db.commit()
                     await ws_manager.send_device_status(
                         device_id=db_id,
                         device_name=device.name,
                         status="offline",
                         location=device.location or ""
-                    )
+                    )                                       # ← WebSocket 通知前端
                     logger.info(f"设备离线 [{device.name}]")
             except Exception as e:
                 logger.warning(f"设备离线处理失败 [{mqtt_name}]: {e}")

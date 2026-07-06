@@ -3,8 +3,9 @@ MQTT 服务层
 负责与 MQTT Broker 通信，向硬件设备发布开门命令，订阅设备状态
 """
 import asyncio
+from asyncio import Future
 import time
-from typing import Optional
+from typing import Optional, Dict
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -64,6 +65,8 @@ class MQTTManager:
         self.connected = False
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._last_disconnect_log: float = 0  # 上次断线日志时间
+        # 开门确认：device_name -> Future，等待设备回复 OPENED
+        self._pending_open: Dict[str, Future] = {}
 
     def start(self):
         """初始化并连接 MQTT Broker"""
@@ -81,7 +84,7 @@ class MQTTManager:
             self.client.on_message = self._on_message
             self.client.on_disconnect = self._on_disconnect
 
-            self.client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=60)
+            self.client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=60)#60 秒心跳
             self.client.loop_start()
             logger.info(f"MQTT 客户端已启动，正在连接 {MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}")
         except Exception as e:
@@ -141,6 +144,10 @@ class MQTTManager:
         # 更新在线状态到 Redis
         if redis_client and payload in ("ONLINE", "OK", "OPENED"):
             redis_client.setex(f"device:online:{device_id}", 70, "online")
+
+            # 设备回复 OPENED → 通知等待的开门请求
+            if payload == "OPENED":
+                self._signal_open_confirmation(device_id)
 
             # 检查是否首次上线（不在已知在线列表中），避免心跳重复推送
             is_first_online = not is_device_known_online(device_id)
@@ -255,6 +262,25 @@ class MQTTManager:
         else:
             logger.error(f"MQTT 命令发送失败 [{topic}], rc={result.rc}")
             return False
+
+    def register_open_confirmation(self, device_name: str) -> Future:
+        """注册一个 Future，等待设备回复 OPENED 确认开门"""
+        future = self._loop.create_future()
+        self._pending_open[device_name] = future
+        return future
+
+    def _signal_open_confirmation(self, device_name: str):
+        """设备回复了 OPENED，通知等待的开门请求"""
+        future = self._pending_open.pop(device_name, None)
+        if future and not future.done():
+            self._schedule_coroutine(
+                self._do_set_future(future, True),
+                f"发送开门确认通知 [{device_name}]"
+            )
+
+    async def _do_set_future(self, future: Future, value):
+        """在事件循环线程中设置 Future 结果（线程安全）"""
+        future.set_result(value)
 
     def _schedule_coroutine(self, coro, error_msg: str = "调度异步任务失败"):
         """统一调度异步协程（线程安全）"""

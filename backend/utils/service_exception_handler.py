@@ -4,6 +4,7 @@
 用于统一 Service 层的异常处理和日志记录
 """
 import functools
+import inspect
 from typing import Callable
 from sqlalchemy.orm import Session
 from utils.logger import AppLogger
@@ -24,30 +25,36 @@ def service_exception_handler(func: Callable) -> Callable:
             pass
     """
 
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # 从参数中提取 db session
-        db = None
+    def _extract_db(args, kwargs):
+        """从参数中提取 db session"""
         for arg in args:
             if isinstance(arg, Session):
-                db = arg
-                break
+                return arg
+        return kwargs.get('db')
 
-        if not db:
-            db = kwargs.get('db')
+    is_async = inspect.iscoroutinefunction(func)
 
-        try:
-            result = func(*args, **kwargs)
-            return result
-        except Exception as e:
-            # 如果有 db session，执行回滚
-            if db:
-                db.rollback()
-
-            # 记录错误日志
-            logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
-
-            # 抛出异常
-            raise
-
-    return wrapper
+    if is_async:
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            db = _extract_db(args, kwargs)
+            try:
+                return await func(*args, **kwargs)
+            except Exception as e:
+                if db:
+                    db.rollback()
+                logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
+                raise
+        return async_wrapper
+    else:
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            db = _extract_db(args, kwargs)
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if db:
+                    db.rollback()
+                logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
+                raise
+        return sync_wrapper

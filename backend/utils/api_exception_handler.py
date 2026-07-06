@@ -48,7 +48,7 @@ def handle_api_exception(func):
             return JSONResponse(status_code=429, content=error(str(e)))
         elif isinstance(e, TimeoutError):
             logger.error(f"请求超时 [{name}]: {str(e)}")
-            return JSONResponse(status_code=504, content=error("请求超时，请稍后重试"))
+            return JSONResponse(status_code=504, content=error(str(e)))
         else:
             logger.error(f"服务器内部错误 [{name}]: {str(e)}", exc_info=True)
             return JSONResponse(status_code=500, content=error("服务器内部错误，请联系超级管理员"))
