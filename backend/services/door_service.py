@@ -13,6 +13,8 @@ from schemas.door_schema import LogQuery
 from utils.logger import AppLogger
 from core.exceptions import NotFoundError
 from database.redis import redis_client, cache_get_json, cache_set_json
+import asyncio
+import uuid
 
 logger = AppLogger.get_logger()
 
@@ -46,7 +48,7 @@ def _add_door_log(db: Session, user_id: int, device_id: int, status: str, ip: st
 # 1. 开门核心逻辑
 # ==========================================
 @service_exception_handler
-def open_door_service(db: Session, user_id: int, device_id: int, ip: str = None) -> dict:
+async def open_door_service(db: Session, user_id: int, device_id: int, ip: str = None) -> dict:
     """
     开门核心逻辑（含缓存失效 + MQTT 命令发送）
 
@@ -73,6 +75,12 @@ def open_door_service(db: Session, user_id: int, device_id: int, ip: str = None)
         logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 设备不在线")
         raise PermissionError(f"设备「{device_name}」不在线，无法开门")
 
+    # 3.1 Redis 实时在线检查（弥补 MySQL 状态更新延迟）
+    if redis_client and not redis_client.exists(f"device:online:{device.name}"):
+        _add_door_log(db, user_id, device_id, "失败：设备已断线", ip)
+        logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: Redis 检测到设备离线")
+        raise PermissionError(f"设备「{device_name}」已断线，无法开门")
+
     # 4. 权限判断（有 device.view 权限可操作任意设备，否则需绑定）
     if not user_has_permission(db, user, "device.view"):
         if not check_user_permission(db, user_id, device_id):
@@ -80,35 +88,57 @@ def open_door_service(db: Session, user_id: int, device_id: int, ip: str = None)
             logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 无权限")
             raise PermissionError("无权限操作：你未绑定该设备，无法开门")
 
-    # 5. 冷却时间检查（防止频繁开门）
-    cooldown_key = f"door:cooldown:{user_id}:{device_id}"
+    # ===== 分布式锁（设备级互斥，防止多人同时操作同一门禁） =====
+    lock_key = f"door:lock:{device_id}"
+    lock_value = str(uuid.uuid4())
     if redis_client:
-        if redis_client.exists(cooldown_key):
-            _add_door_log(db, user_id, device_id, "失败：操作过于频繁", ip)
-            logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 操作过于频繁")
-            raise PermissionError(f"操作过于频繁，请 {DOOR_OPEN_COOLDOWN} 秒后再试")
-        # 设置冷却时间
-        redis_client.setex(cooldown_key, DOOR_OPEN_COOLDOWN, "1")
+        locked = redis_client.set(lock_key, lock_value, ex=5, nx=True)
+        if not locked:
+            _add_door_log(db, user_id, device_id, "失败：设备正在被操作", ip)
+            logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 设备忙")
+            raise PermissionError("该设备正在操作中，请稍后")
 
-    # 6. 开门成功
-    _add_door_log(db, user_id, device_id, "成功", ip)
+    try:
+        # 5. 冷却时间检查（防止频繁开门）
+        cooldown_key = f"door:cooldown:{user_id}:{device_id}"
+        if redis_client:
+            if redis_client.exists(cooldown_key):
+                _add_door_log(db, user_id, device_id, "失败：操作过于频繁", ip)
+                logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 操作过于频繁")
+                raise PermissionError(f"操作过于频繁，请 {DOOR_OPEN_COOLDOWN} 秒后再试")
+            # 设置冷却时间
+            redis_client.setex(cooldown_key, DOOR_OPEN_COOLDOWN, "1")
 
-    # 7. 清除统计数据缓存
-    invalidate_stat_cache(user_id)
+        # 6. 注册开门确认 + 发送 MQTT 开门命令
+        future = mqtt_manager.register_open_confirmation(device.name)
+        mqtt_manager.publish_command(device.name, "OPEN_DOOR")
 
-    # 8. 发送 MQTT 开门命令给硬件设备
-    mqtt_manager.publish_command(device.name, "OPEN_DOOR")
-
-    logger.info(f"开门成功 | 设备: {device_name} | 用户: {username} | 用户ID: {user_id}")
-
-    return {
-        "success": True,
-        "message": "开门成功",
-        "device_id": device.id,
-        "username": username,
-        "device_name": device_name,
-        "location": device.location or ""
-    }
+        # 7. 等设备回复 OPENED（最长 5 秒）
+        try:
+            await asyncio.wait_for(future, timeout=5)
+            # 设备确认开门成功
+            _add_door_log(db, user_id, device_id, "成功", ip)
+            invalidate_stat_cache(user_id)
+            logger.info(f"开门成功 | 设备: {device_name} | 用户: {username} | 用户ID: {user_id}")
+            return {
+                "success": True,
+                "message": "开门成功",
+                "device_id": device.id,
+                "username": username,
+                "device_name": device_name,
+                "location": device.location or ""
+            }
+        except asyncio.TimeoutError:
+            # 设备未回复
+            _add_door_log(db, user_id, device_id, "失败：设备无响应", ip)
+            logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 设备无响应（超时）")
+            raise TimeoutError(f"设备「{device_name}」未响应，开门失败")
+    finally:
+        # 释放分布式锁（仅释放自己加的锁，避免误删其他实例的锁）
+        if redis_client:
+            current_val = redis_client.get(lock_key)
+            if current_val and current_val == lock_value:
+                redis_client.delete(lock_key)
 
 
 

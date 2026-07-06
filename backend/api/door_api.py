@@ -15,7 +15,7 @@ router = APIRouter(tags=["门禁管理"])
 
 @router.post("/doors/{device_id}/open", summary="开启门禁")
 @handle_api_exception
-def door_open(
+async def door_open(
     device_id: int,
     request: Request,
     background_tasks: BackgroundTasks,
@@ -23,7 +23,7 @@ def door_open(
     current_user: User = Depends(require_permission("door.open"))
 ):
     client_ip = request.client.host if request.client else None
-    result = open_door_service(
+    result = await open_door_service(
         db, current_user.id, device_id, ip=client_ip
     )
 

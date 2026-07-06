@@ -39,6 +39,12 @@ class RedisCli:
                 socket_connect_timeout=2
             )
             client.ping()
+            # 设置内存上限和淘汰策略（确保不受外部配置影响）
+            try:
+                client.config_set("maxmemory", "100mb")
+                client.config_set("maxmemory-policy", "allkeys-lru")
+            except RedisError:
+                logger.warning("⚠️  无法设置 Redis maxmemory 配置，可能无权限")
             self._client = client
             logger.info("✅ Redis 连接成功")
         except RedisError as e:
