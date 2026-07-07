@@ -5,6 +5,18 @@ import re
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_一-龥]+$')
 
 
+def _validate_password(v: str) -> str:
+    """密码校验：去空格 + 长度检查"""
+    v = v.strip()
+    if not v:
+        raise ValueError('密码不能为空')
+    if len(v) < 6:
+        raise ValueError('密码长度不能少于6个字符')
+    if len(v) > 72:
+        raise ValueError('密码长度不能超过72个字符')
+    return v
+
+
 def _validate_username(v: str) -> str:
     """通用用户名校验：去空格 + 格式检查"""
     v = v.strip()
@@ -25,6 +37,11 @@ class UserLogin(BaseModel):
     def validate_username(cls, v):
         return _validate_username(v)
 
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        return _validate_password(v)
+
 
 # 前端注册时 → 必须按这个格式传参
 class UserCreate(BaseModel):
@@ -40,11 +57,7 @@ class UserCreate(BaseModel):
     @field_validator('password')
     @classmethod
     def validate_password(cls, v):
-        if len(v) < 6:
-            raise ValueError('密码长度不能少于6个字符')
-        if len(v) > 72:
-            raise ValueError('密码长度不能超过72个字符')
-        return v
+        return _validate_password(v)
 
 # 修改密码请求模型
 class PasswordChange(BaseModel):
@@ -54,11 +67,7 @@ class PasswordChange(BaseModel):
     @field_validator('new_password')
     @classmethod
     def validate_new_password(cls, v):
-        if len(v) < 6:
-            raise ValueError('新密码长度不能少于6个字符')
-        if len(v) > 72:
-            raise ValueError('新密码长度不能超过72个字符')
-        return v
+        return _validate_password(v)
 
 
 # 修改用户名请求模型
@@ -80,11 +89,7 @@ class ResetPassword(BaseModel):
     @field_validator('new_password')
     @classmethod
     def validate_new_password(cls, v):
-        if len(v) < 6:
-            raise ValueError('新密码长度不能少于6个字符')
-        if len(v) > 72:
-            raise ValueError('新密码长度不能超过72个字符')
-        return v
+        return _validate_password(v)
 
 
 # 修改用户角色请求模型

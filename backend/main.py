@@ -139,7 +139,7 @@ async def log_requests(request: Request, call_next):
     
     # 记录日志（跳过健康检查和静态文件）
     # 使用 DEBUG 级别避免 INFO 刷屏；需要追踪请求时设 LOG_LEVEL=DEBUG
-    if not request.url.path.startswith("/health"):
+    if not request.url.path.startswith("/api/health"):
         logger = AppLogger.get_logger()
         logger.debug(
             f"📊 {request.method} {request.url.path} | "
@@ -172,7 +172,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # 健康检查端点（检测 MySQL 和 Redis 连通性，Docker 据此判定服务是否真正常）
-@app.get("/health", summary="健康检查")
+@app.get("/api/health", summary="健康检查")
 def health_check():
     from database.db import SessionLocal
     from database.redis import redis_client
