@@ -289,11 +289,11 @@ const handleLogin = async () => {
     if (mode === 'phone' && loginSubMode.value === 'code') {
       res = await request.post('/auth/login-phone', { phone: account, code: loginForm.value.code })
     } else if (mode === 'phone' && loginSubMode.value === 'password') {
-      res = await request.post('/auth/login', { username: account, password: loginForm.value.password })
+      res = await request.post('/auth/login', { username: account, password: loginForm.value.password.trim() })
     } else if (mode === 'email') {
       res = await request.post('/auth/login-email', { email: account, code: loginForm.value.code })
     } else {
-      res = await request.post('/auth/login', { username: account, password: loginForm.value.password })
+      res = await request.post('/auth/login', { username: account, password: loginForm.value.password.trim() })
     }
 
     if (res.success) {
@@ -349,7 +349,8 @@ const handleRegister = async () => {
   try {
     const res = await request.post('/auth/register', {
       ...registerForm.value,
-      username: registerForm.value.username.trim()
+      username: registerForm.value.username.trim(),
+      password: registerForm.value.password.trim()
     })
     if (res.success) {
       ElMessage.success('注册成功，请登录')
@@ -428,7 +429,7 @@ const handleResetPassword = async () => {
     const res = await request.post('/auth/reset-password', {
       phone: forgotForm.value.phone,
       code: forgotForm.value.code,
-      new_password: forgotForm.value.new_password
+      new_password: forgotForm.value.new_password.trim()
     })
     if (res.success) {
       ElMessage.success('密码重置成功，请登录')
