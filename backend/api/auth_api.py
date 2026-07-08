@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, UploadFile, File
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -35,11 +35,13 @@ class SendCodeRequest(BaseModel):
 
 @router.post("/auth/login", summary="用户登录")
 @handle_api_exception
-def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+def login(data: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
     login_limiter.check(client_ip)
 
     result = login_user(db, data.username, data.password)
+    token = result.pop("token")
+    response.headers["Authorization"] = f"Bearer {token}"
     return success(result)
 
 
@@ -57,21 +59,25 @@ def send_verify_code(data: SendCodeRequest, request: Request):
 
 @router.post("/auth/login-phone", summary="手机号登录")
 @handle_api_exception
-def login_by_phone(data: PhoneLoginRequest, request: Request, db: Session = Depends(get_db)):
+def login_by_phone(data: PhoneLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
     login_limiter.check(client_ip)
 
     result = login_by_phone_service(db, data.phone, data.code)
+    token = result.pop("token")
+    response.headers["Authorization"] = f"Bearer {token}"
     return success(result)
 
 
 @router.post("/auth/login-email", summary="邮箱登录")
 @handle_api_exception
-def login_by_email(data: EmailLoginRequest, request: Request, db: Session = Depends(get_db)):
+def login_by_email(data: EmailLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
     login_limiter.check(client_ip)
 
     result = login_by_email_service(db, data.email, data.code)
+    token = result.pop("token")
+    response.headers["Authorization"] = f"Bearer {token}"
     return success(result)
 
 
