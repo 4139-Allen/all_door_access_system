@@ -22,7 +22,13 @@ function request(method, url, data) {
           return
         }
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(res.data)
+          // 从 Authorization 响应头提取 token（标准做法）
+          const auth = res.header && (res.header['authorization'] || res.header['Authorization'])
+          const body = res.data
+          if (auth && auth.startsWith('Bearer ') && body) {
+            body._token = auth.slice(7)
+          }
+          resolve(body)
         } else {
           uni.showToast({ title: res.data.msg || '请求失败', icon: 'none' })
           reject(res.data)

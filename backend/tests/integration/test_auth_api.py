@@ -86,7 +86,7 @@ class TestChangePasswordAPI:
             "password": "testpass123"
         })
         assert login_res.status_code == 200
-        old_token = login_res.json()["data"]["token"]
+        old_token = login_res.headers["authorization"].replace("Bearer ", "")
         headers = {"Authorization": f"Bearer {old_token}"}
 
         # 3. 发送修改密码请求
@@ -114,7 +114,8 @@ class TestChangePasswordAPI:
         })
         assert new_login_res.status_code == 200
         assert new_login_res.json()["code"] == 200
-        assert "token" in new_login_res.json()["data"]
+        assert "authorization" in new_login_res.headers
+        assert new_login_res.headers["authorization"].startswith("Bearer ")
 
     def test_change_password_wrong_old_password(self, client, auth_headers):
         """测试修改密码时原密码错误"""

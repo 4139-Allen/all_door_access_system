@@ -83,7 +83,7 @@ export default {
       this.loading = true
       try {
         var res = await login({ username: this.username.trim(), password: this.password })
-        saveLoginInfo(res.data.token, res.data.role, this.username.trim(), res.data.permissions, res.data.role_name, res.data.user_id)
+        saveLoginInfo(res._token, res.data.role, this.username.trim(), res.data.permissions, res.data.role_name, res.data.user_id)
         uni.switchTab({ url: '/pages/index/index' })
       } catch (e) {
         // request.js already shows toast

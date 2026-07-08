@@ -35,7 +35,7 @@ Page({
 
         api.post('/auth/wx-login', { code: loginRes.code })
           .then((res) => {
-            auth.saveLoginInfo(res.data.token, res.data.role, res.data.username, res.data.permissions, res.data.role_name, res.data.user_id)
+            auth.saveLoginInfo(res._token, res.data.role, res.data.username, res.data.permissions, res.data.role_name, res.data.user_id)
             wx.showToast({ title: '登录成功', icon: 'success' })
             setTimeout(() => {
               wx.switchTab({ url: '/pages/doors/doors' })
@@ -68,7 +68,7 @@ Page({
 
     api.post('/auth/login', { username: trimmedUsername, password })
       .then((res) => {
-        auth.saveLoginInfo(res.data.token, res.data.role, trimmedUsername, res.data.permissions, res.data.role_name, res.data.user_id)
+        auth.saveLoginInfo(res._token, res.data.role, trimmedUsername, res.data.permissions, res.data.role_name, res.data.user_id)
         wx.showToast({ title: '登录成功', icon: 'success' })
         setTimeout(() => {
           wx.switchTab({ url: '/pages/doors/doors' })

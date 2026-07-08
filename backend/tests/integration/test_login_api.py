@@ -18,7 +18,8 @@ class TestLoginAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["code"] == 200
-        assert "token" in data["data"]
+        assert "authorization" in response.headers
+        assert response.headers["authorization"].startswith("Bearer ")
 
     def test_login_failure_wrong_password(self, client, test_user):
         """测试登录失败：密码错误"""

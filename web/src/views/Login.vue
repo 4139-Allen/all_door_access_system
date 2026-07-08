@@ -297,7 +297,7 @@ const handleLogin = async () => {
     }
 
     if (res.success) {
-      handleLoginSuccess(res.data)
+      handleLoginSuccess(res.data, res.token)
     } else {
       ElMessage.error(res.msg || '登录失败')
     }
@@ -452,8 +452,8 @@ const resetForgotForm = () => {
 }
 
 // ======== 通用 ========
-const handleLoginSuccess = (data) => {
-  localStorage.setItem('token', data.token)
+const handleLoginSuccess = (data, token) => {
+  localStorage.setItem('token', token)
   localStorage.setItem('user_id', String(data.user_id || ''))
   localStorage.setItem('role', data.role)
   localStorage.setItem('role_name', data.role_name || data.role)

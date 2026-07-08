@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
@@ -22,8 +22,10 @@ class WxBindRequest(BaseModel):
 
 @router.post("/auth/wx-login", summary="微信小程序登录")
 @handle_api_exception
-def wx_login(data: WxLoginRequest, db: Session = Depends(get_db)):
+def wx_login(data: WxLoginRequest, response: Response, db: Session = Depends(get_db)):
     result = wx_login_service(db, data.code)
+    token = result.pop("token")
+    response.headers["Authorization"] = f"Bearer {token}"
     return success(result)
 
 
@@ -31,8 +33,11 @@ def wx_login(data: WxLoginRequest, db: Session = Depends(get_db)):
 @handle_api_exception
 def wx_bind(
     data: WxBindRequest,
+    response: Response,
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user)
 ):
     result = wx_bind_service(db, current_user_id, data.username, data.password)
+    token = result.pop("token")
+    response.headers["Authorization"] = f"Bearer {token}"
     return success(result)

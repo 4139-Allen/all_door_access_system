@@ -23,8 +23,14 @@ service.interceptors.request.use(
 // 响应拦截
 service.interceptors.response.use(
   (res) => {
+    // token 从 Authorization 响应头提取（标准做法）
+    const auth = res.headers['authorization'] || res.headers['Authorization']
+    const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
+    const result = { success: true, ...res.data }
+    if (token) result.token = token
+
     // 所有 2xx 响应统一带 success: true，组件通过 if (res.success) 判断
-    return { success: true, ...res.data }
+    return result
   },
   (error) => {
     // 被主动取消的请求（页面切换、组件卸载），不处理

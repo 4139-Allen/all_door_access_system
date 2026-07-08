@@ -34,6 +34,11 @@ function request(method, url, data) {
 
         const body = res.data
         if (res.statusCode >= 200 && res.statusCode < 300) {
+          // 从 Authorization 响应头提取 token（标准做法）
+          const auth = res.header && (res.header['authorization'] || res.header['Authorization'])
+          if (auth && auth.startsWith('Bearer ')) {
+            body._token = auth.slice(7)
+          }
           resolve(body)
         } else {
           wx.showToast({ title: body.msg || '请求失败', icon: 'none' })

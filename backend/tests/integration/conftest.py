@@ -205,8 +205,7 @@ def auth_headers(client, test_user):
         "username": "testuser",
         "password": "testpass123"
     })
-    token = response.json()["data"]["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": response.headers["authorization"]}
 
 
 @pytest.fixture
@@ -220,8 +219,7 @@ def admin_headers(client, test_admin):
         "username": "testadmin",
         "password": "adminpass123"
     })
-    token = response.json()["data"]["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": response.headers["authorization"]}
 
 
 # ———— 2e. WebSocket 连接管理器（很少用到） ————
