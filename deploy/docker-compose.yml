@@ -52,8 +52,6 @@
     ports:
       - "1883:1883"
     volumes:
-      - mosquitto-data:/mosquitto/data
-      - mosquitto-logs:/mosquitto/log
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   fastapi:
