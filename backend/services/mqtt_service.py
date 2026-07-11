@@ -65,6 +65,7 @@ class MQTTManager:
         self.connected = False
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._last_disconnect_log: float = 0  # 上次断线日志时间
+        self._retry_count: int = 0            # 连续重连次数
         # 开门确认：device_name -> Future，等待设备回复 OPENED
         self._pending_open: Dict[str, Future] = {}
 
@@ -94,6 +95,7 @@ class MQTTManager:
     def _on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             self.connected = True
+            self._retry_count = 0
             # 订阅所有设备的状态上报和信号强度
             client.subscribe(f"{MQTT_TOPIC_PREFIX}/+/status", qos=1)
             client.subscribe(f"{MQTT_TOPIC_PREFIX}/+/rssi", qos=0)
@@ -104,6 +106,11 @@ class MQTTManager:
     def _on_disconnect(self, client, userdata, rc):
         self.connected = False
         if rc != 0:
+            self._retry_count += 1
+            if self._retry_count > 10:
+                logger.warning(f"MQTT 连续 {self._retry_count} 次重连失败，已停止重连")
+                client.disconnect()
+                return
             now = time.time()
             if now - self._last_disconnect_log > 30:
                 self._last_disconnect_log = now
