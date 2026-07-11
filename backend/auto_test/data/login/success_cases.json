@@ -1,0 +1,19 @@
+{
+  "description": "登录成功场景数据",
+  "cases": [
+    {
+      "id": "admin_login",
+      "title": "管理员正常登录",
+      "request": {
+        "username": "admin",
+        "password": "123456"
+      },
+      "expect": {
+        "code": 200,
+        "msg": "操作成功",
+        "fields": ["token", "role", "username", "permissions"],
+        "role": "admin"
+      }
+    }
+  ]
+}

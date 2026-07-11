@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 import logging
 
-# 加载 .env 文件（确保在任何配置读取之前执行）
+# 加载 .env 文件
 load_dotenv(encoding="utf-8")
 
 # ==================== JWT 认证配置 ====================

@@ -12,6 +12,7 @@ from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from database.redis import redis_client
 from database.db import get_db
 from database.models.user import User
+from core.exceptions import AuthError, NotFoundError
 
 security = HTTPBearer(auto_error=False)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -111,25 +112,25 @@ def get_current_user(
         token = request.headers.get("X-Token")
 
     if not token:
-        raise HTTPException(status_code=401, detail="未提供认证凭证")
+        raise AuthError("未提供认证凭证")
 
     # ====================== 解码 JWT，自动校验过期======================
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
-            raise HTTPException(status_code=401, detail="Token 无效")
+            raise AuthError("Token 无效")
     except JWTError:
         # 自动捕获：过期、伪造、无效
-        raise HTTPException(status_code=401, detail="Token 无效或已过期")
+        raise AuthError("Token 无效或已过期")
 
     # ====================== 校验黑名单 ======================
     if redis_client and redis_client.exists(f"blacklist:{token}"):
-        raise HTTPException(status_code=401, detail="Token 已注销，请重新登录")
+        raise AuthError("Token 已注销，请重新登录")
 
     # ====================== 校验 Redis 是否存在 ======================
     if redis_client and not redis_client.exists(f"token:{token}"):
-        raise HTTPException(status_code=401, detail="Token 已退出登录")
+        raise AuthError("Token 已退出登录")
 
     return int(user_id)
 
@@ -149,7 +150,7 @@ def get_current_user_obj(
     """获取当前用户对象，避免在各处重复查询"""
     user = db.query(User).filter(User.id == current_user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
+        raise NotFoundError("用户不存在")
     return user
 
 # ====================== 密码相关======================
@@ -214,7 +215,7 @@ def require_permission(*codes: str):
             db.close()
 
         if not any(code in user_permissions for code in codes):
-            raise HTTPException(status_code=403, detail="无操作权限")
+            raise PermissionError("无操作权限")
         return current_user
 
     return dependency

@@ -360,13 +360,13 @@ npm run dev:h5
 cd backend
 
 # 运行全部测试
-pytest tests/ -v
+pytest auto_test/ -v
 
 # 运行指定模块
-pytest tests/test_auth.py -v
+pytest auto_test/test_auth.py -v
 
 # 生成覆盖率报告
-pytest tests/ --cov=. --cov-report=html
+pytest auto_test/ --cov=. --cov-report=html
 ```
 
 ## 多端说明

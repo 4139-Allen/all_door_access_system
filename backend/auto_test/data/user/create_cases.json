@@ -1,0 +1,17 @@
+{
+  "description": "用户管理场景数据",
+  "cases": [
+    {
+      "id": "create_user_default_role",
+      "title": "创建默认角色用户",
+      "request": {
+        "username": "__username__",
+        "password": "test123456"
+      },
+      "expect": {
+        "code": 200,
+        "role": "user"
+      }
+    }
+  ]
+}

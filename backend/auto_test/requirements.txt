@@ -1,0 +1,22 @@
+# ============================================
+# 自动化测试框架依赖
+# 安装：pip install -r requirements.txt
+# ============================================
+
+# 测试框架核心
+pytest>=7.4.3
+pytest-dependency>=0.5.1      # 测试用例间依赖管理
+pytest-html>=4.1.1            # HTML 报告
+pytest-xdist>=3.5.0           # 并发执行测试
+
+# HTTP 客户端
+requests>=2.31.0
+
+# 配置解析
+PyYAML>=6.0
+
+# 数据库校验（可选，仅 --db-check 时使用）
+PyMySQL>=1.1.0
+
+# 测试覆盖率（可选）
+pytest-cov>=4.1.0

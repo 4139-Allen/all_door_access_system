@@ -1,0 +1,29 @@
+{
+  "description": "登录失败场景数据",
+  "cases": [
+    {
+      "id": "wrong_password",
+      "title": "密码错误",
+      "request": {
+        "username": "admin",
+        "password": "wrong_password_123"
+      },
+      "expect": {
+        "code": 400,
+        "msg_contains": "密码错误"
+      }
+    },
+    {
+      "id": "nonexistent_user",
+      "title": "用户不存在",
+      "request": {
+        "username": "user_not_exist_999",
+        "password": "test123456"
+      },
+      "expect": {
+        "code": 400,
+        "msg_contains": "不存在"
+      }
+    }
+  ]
+}
