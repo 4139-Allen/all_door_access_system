@@ -22,10 +22,6 @@ async def lifespan(app: FastAPI):
     # 抑制 uvicorn 自带 access log（我们的 log_requests 中间件已接管请求日志）
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
-    # 测试环境（库名以 _test 结尾）抑制 MQTT 日志刷屏
-    if os.getenv("MYSQL_DB", "").endswith("_test"):
-        logging.getLogger("mqtt_service").setLevel(logging.WARNING)
-
     app_logger = AppLogger.get_logger()
     app_logger.info("=" * 50)
     app_logger.info("🚀 门禁管理系统正在启动...")
