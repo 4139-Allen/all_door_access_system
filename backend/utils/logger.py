@@ -45,8 +45,10 @@ class AppLogger:
             level_name = os.getenv("LOG_LEVEL", "INFO").upper()
             log_level = getattr(logging, level_name, logging.INFO)
 
-        # 创建 logs 文件夹（相对于 backend/ 目录的绝对路径）
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+        # 创建日志目录（可通过 LOG_DIR 环境变量自定义，用于测试环境）
+        log_dir = os.getenv("LOG_DIR")
+        if not log_dir:
+            log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 

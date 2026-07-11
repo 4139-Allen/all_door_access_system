@@ -11,11 +11,11 @@ class ApiResponse(BaseModel):
 
 
 def success(data=None, msg="操作成功") -> dict:
-    result = {"msg": msg}
+    result = {"code": 200, "msg": msg}
     if data is not None:
         result["data"] = data
     return result
 
 
-def error(msg="操作失败") -> dict:
-    return {"msg": msg}
+def error(msg="操作失败", code: int = 400) -> dict:
+    return {"code": code, "msg": msg}

@@ -22,6 +22,10 @@ async def lifespan(app: FastAPI):
     # 抑制 uvicorn 自带 access log（我们的 log_requests 中间件已接管请求日志）
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
+    # 测试环境（库名以 _test 结尾）抑制 MQTT 日志刷屏
+    if os.getenv("MYSQL_DB", "").endswith("_test"):
+        logging.getLogger("mqtt_service").setLevel(logging.WARNING)
+
     app_logger = AppLogger.get_logger()
     app_logger.info("=" * 50)
     app_logger.info("🚀 门禁管理系统正在启动...")
@@ -168,7 +172,12 @@ async def global_exception_handler(request: Request, exc: Exception):
         exc_info=True  # 记录完整堆栈
     )
 
-    return JSONResponse(status_code=500, content=error(msg="服务器内部错误"))
+    return JSONResponse(status_code=500, content=error("服务器内部错误", code=500))
+
+
+# 注册自定义异常处理器（AuthError, PermissionError 等）
+from utils.api_exception_handler import register_exception_handlers
+register_exception_handlers(app)
 
 
 # 健康检查端点（检测 MySQL 和 Redis 连通性，Docker 据此判定服务是否真正常）

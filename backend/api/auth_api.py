@@ -98,7 +98,7 @@ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends
         token = request.headers.get("X-Token")
 
     if not token:
-        return error("未提供认证凭证")
+        return error("未提供认证凭证", code=401)
 
     logout_token(token)
     return success(msg="退出成功，Token 已失效")

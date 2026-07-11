@@ -1,0 +1,29 @@
+{
+  "description": "设备创建场景数据",
+  "cases": [
+    {
+      "id": "create_minimal",
+      "title": "仅填必填字段",
+      "request": {
+        "name": "__name__",
+        "location": "__location__"
+      },
+      "expect": {
+        "code": 200,
+        "has_field": "device_id"
+      }
+    },
+    {
+      "id": "create_with_status",
+      "title": "含状态字段",
+      "request": {
+        "name": "__name__",
+        "location": "__location__",
+        "status": "online"
+      },
+      "expect": {
+        "code": 200
+      }
+    }
+  ]
+}

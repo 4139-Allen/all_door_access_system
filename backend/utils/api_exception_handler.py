@@ -3,7 +3,7 @@ import inspect
 import json
 from functools import wraps
 
-from fastapi import WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from jose import JWTError
 
@@ -33,25 +33,25 @@ def handle_api_exception(func):
     def _handle_exception(e, name):
         if isinstance(e, ValueError):
             logger.warning(f"业务逻辑错误 [{name}]: {str(e)}")
-            return JSONResponse(status_code=400, content=error(str(e)))
+            return JSONResponse(status_code=400, content=error(str(e), code=400))
         elif isinstance(e, PermissionError):
             logger.warning(f"权限错误 [{name}]: {str(e)}")
-            return JSONResponse(status_code=403, content=error(str(e)))
+            return JSONResponse(status_code=403, content=error(str(e), code=403))
         elif isinstance(e, NotFoundError):
             logger.warning(f"资源不存在 [{name}]: {str(e)}")
-            return JSONResponse(status_code=404, content=error(str(e)))
+            return JSONResponse(status_code=404, content=error(str(e), code=404))
         elif isinstance(e, AuthError):
             logger.warning(f"认证失败 [{name}]: {str(e)}")
-            return JSONResponse(status_code=401, content=error(str(e)))
+            return JSONResponse(status_code=401, content=error(str(e), code=401))
         elif isinstance(e, TooManyRequestsError):
             logger.warning(f"请求频率过高 [{name}]: {str(e)}")
-            return JSONResponse(status_code=429, content=error(str(e)))
+            return JSONResponse(status_code=429, content=error(str(e), code=429))
         elif isinstance(e, TimeoutError):
             logger.error(f"请求超时 [{name}]: {str(e)}")
-            return JSONResponse(status_code=504, content=error(str(e)))
+            return JSONResponse(status_code=504, content=error(str(e), code=504))
         else:
             logger.error(f"服务器内部错误 [{name}]: {str(e)}", exc_info=True)
-            return JSONResponse(status_code=500, content=error("服务器内部错误，请联系超级管理员"))
+            return JSONResponse(status_code=500, content=error("服务器内部错误，请联系超级管理员", code=500))
 
     if _is_async:
         @wraps(func)
@@ -127,3 +127,28 @@ def handle_websocket_exception(func):
                 pass
 
     return wrapper
+
+
+# ===================== App 级异常处理器 =====================
+# `@handle_api_exception` 只覆盖路由层，依赖（如 get_current_user）抛出的异常
+# 需要 app 级处理器来保证响应格式统一。
+
+
+def register_exception_handlers(app: FastAPI):
+    """在 FastAPI 应用上注册所有自定义异常处理器"""
+
+    @app.exception_handler(AuthError)
+    async def _auth_error_handler(request: Request, exc: AuthError):
+        return JSONResponse(status_code=401, content=error(str(exc), code=401))
+
+    @app.exception_handler(PermissionError)
+    async def _permission_error_handler(request: Request, exc: PermissionError):
+        return JSONResponse(status_code=403, content=error(str(exc), code=403))
+
+    @app.exception_handler(NotFoundError)
+    async def _not_found_handler(request: Request, exc: NotFoundError):
+        return JSONResponse(status_code=404, content=error(str(exc), code=404))
+
+    @app.exception_handler(TooManyRequestsError)
+    async def _too_many_requests_handler(request: Request, exc: TooManyRequestsError):
+        return JSONResponse(status_code=429, content=error(str(exc), code=429))

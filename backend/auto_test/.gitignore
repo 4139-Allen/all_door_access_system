@@ -1,0 +1,25 @@
+# 敏感配置（含密码、token、线上地址）
+config/test_env.yaml
+
+# 测试报告
+reports/
+*.html
+*.xml
+allure-results/
+
+# Python 缓存
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 覆盖率
+.coverage
+coverage.xml
+htmlcov/
+
+# 环境变量
+.env
+*.local
+
+# 测试文档（本地笔记，不提交）
+测试文档

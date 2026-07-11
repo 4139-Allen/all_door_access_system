@@ -1,0 +1,26 @@
+# 登录参数校验边界值数据
+# 用于 parametrize 测试，覆盖各种非法输入
+cases:
+  - id: empty_username
+    title: "用户名为空"
+    request:
+      username: ""
+      password: "123456"
+    expect:
+      http_status: 422
+
+  - id: short_password
+    title: "密码不足6位"
+    request:
+      username: "admin"
+      password: "123"
+    expect:
+      http_status: 422
+
+  - id: special_chars_username
+    title: "用户名含特殊字符"
+    request:
+      username: "admin@#$"
+      password: "123456"
+    expect:
+      http_status: 422

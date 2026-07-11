@@ -339,14 +339,14 @@ docker compose restart fastapi   # 重启服务
 cd backend
 
 # 全部测试
-pytest tests/ -v
+pytest auto_test/ -v
 
 # 指定模块
-pytest tests/test_auth.py -v
+pytest auto_test/test_auth.py -v
 
 # 覆盖率报告
-pytest tests/ --cov=. --cov-report=html
+pytest auto_test/ --cov=. --cov-report=html
 
 # 覆盖率摘要
-pytest tests/ --cov=. --cov-report=term-missing
+pytest auto_test/ --cov=. --cov-report=term-missing
 ```
