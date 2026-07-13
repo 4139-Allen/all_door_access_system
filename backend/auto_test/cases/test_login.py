@@ -89,7 +89,7 @@ class TestRegister:
         })
         assert_success(resp, "注册成功")
 
-    def test_register_duplicate_username(self, user_client, anon_client):
+    def test_register_duplicate_username(self, shared_user_client, anon_client):
         """重复用户名 → 400"""
         resp = anon_client.post("/auth/register", json={
             "username": "admin",
@@ -159,17 +159,17 @@ class TestPassword:
             "new_password": "test123456",
         })
 
-    def test_change_password_wrong_old(self, user_client):
+    def test_change_password_wrong_old(self, shared_user_client):
         """原密码错误 → 400"""
-        resp = user_client.put("/auth/password", json={
+        resp = shared_user_client.put("/auth/password", json={
             "old_password": "wrong_old",
             "new_password": "newpass123",
         })
         assert_failure(resp, 400, "原密码错误")
 
-    def test_change_password_too_short(self, user_client):
+    def test_change_password_too_short(self, shared_user_client):
         """新密码太短 → 422"""
-        resp = user_client.put("/auth/password", json={
+        resp = shared_user_client.put("/auth/password", json={
             "old_password": "test123456",
             "new_password": "123",
         })
@@ -187,9 +187,9 @@ class TestPassword:
 class TestProfile:
     """个人信息测试"""
 
-    def test_get_profile(self, user_client):
+    def test_get_profile(self, shared_user_client):
         """获取个人信息 → 返回用户详情"""
-        resp = user_client.get("/auth/profile")
+        resp = shared_user_client.get("/auth/profile")
         assert_success(resp) \
             .has_field("username") \
             .has_field("role") \

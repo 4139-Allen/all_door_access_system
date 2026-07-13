@@ -1,3 +1,5 @@
+import random
+
 from sqlalchemy.orm import Session
 
 from core.config import AUTO_CREATE_ADMIN, ADMIN_USERNAME, ADMIN_PASSWORD
@@ -11,11 +13,47 @@ from database.models.user_device import UserDevice
 from utils.auth import verify_password, hash_password, build_login_response
 from typing import Optional
 from utils.logger import AppLogger
+from database.redis import redis_client, cache_get_json, cache_set_json
 from services.stat_service import invalidate_all_stat_cache
 from services.permission_service import invalidate_user_perm_cache
 from schemas.user_schema import UserCreate
 
 logger = AppLogger.get_logger()
+
+# ==================== 缓存配置 ====================
+USER_LIST_CACHE_KEY = "cache:user:list:page:{page}:size:{size}:user:{username}:role:{role}"
+USER_PROFILE_CACHE_KEY = "cache:user:profile:{user_id}"
+USER_CACHE_TTL = 60  # 用户列表缓存 60 秒
+USER_PROFILE_CACHE_TTL = 300  # 个人信息缓存 5 分钟
+
+# 随机 TTL 偏移比例（±20%），防止缓存击穿
+TTL_JITTER = 0.2
+
+
+def _random_ttl(base: int) -> int:
+    """在 base TTL 上加 ±20% 随机偏移，避免多个缓存同时过期"""
+    offset = int(base * TTL_JITTER)
+    return base + random.randint(-offset, offset)
+
+
+def _invalidate_user_list_cache():
+    """清除所有用户列表缓存（创建/删除/修改用户后调用）"""
+    if not redis_client:
+        return
+    try:
+        cursor = 0
+        deleted = 0
+        while True:
+            cursor, keys = redis_client.scan(cursor, match="cache:user:list:*", count=100)
+            if keys:
+                redis_client.delete(*keys)
+                deleted += len(keys)
+            if cursor == 0:
+                break
+        if deleted > 0:
+            logger.debug(f"已清除 {deleted} 个用户列表缓存")
+    except Exception as e:
+        logger.warning(f"清除用户列表缓存失败: {e}")
 
 
 @service_exception_handler
@@ -86,6 +124,7 @@ def db_create_user(db: Session, username: str, password: str = None, role: str =
     db.commit()
     db.refresh(user)
     invalidate_all_stat_cache()
+    _invalidate_user_list_cache()
 
     logger.info(f"👤 创建用户成功 | 用户名: {username} | 角色: {role} | 用户ID: {user.id}")
     return user
@@ -136,6 +175,7 @@ def bulk_create_users(db: Session, user_list: list[UserCreate]) -> dict:
         db.commit()
 
     invalidate_all_stat_cache()
+    _invalidate_user_list_cache()
 
     logger.info(f"📦 批量创建用户 | 成功: {len(new_users)} | 失败: {len(fail_list)}")
     return {"success_count": len(new_users), "fail_list": fail_list}
@@ -184,6 +224,9 @@ def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> b
     db.commit()
 
     invalidate_all_stat_cache()
+    _invalidate_user_list_cache()
+    # 清除该用户的个人信息缓存
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user_id))
 
     logger.info(f"🗑️  删除用户成功 | 用户名: {username} | 用户ID: {user_id}")
     return True
@@ -236,6 +279,9 @@ def update_user_role(db: Session, user_id: int, new_role: str, current_user: Use
 
     # 清除该用户的权限缓存
     invalidate_user_perm_cache(user_id)
+    # 清除角色变更后的缓存（用户列表 + 个人信息）
+    _invalidate_user_list_cache()
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user_id))
 
     logger.info(f"✅ 修改用户角色成功 | 用户ID: {user_id} | {old_role} → {new_role}")
     return {"user_id": user.id, "username": user.username, "role": new_role, "role_name": role_obj.name}
@@ -274,6 +320,14 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
     """获取用户列表（带格式化，直接返回可响应的数据）"""
     from database.models.role import Role
 
+    # 无筛选条件时才使用缓存
+    use_cache = (username is None and role is None)
+    if use_cache:
+        cache_key = USER_LIST_CACHE_KEY.format(page=page, size=size, username="none", role="none")
+        cached = cache_get_json(cache_key)
+        if cached is not None:
+            return cached
+
     total, users = get_users_list(db, page, size, username, role)
 
     # 批量查询角色名称
@@ -281,7 +335,7 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
     roles = db.query(Role.code, Role.name).filter(Role.code.in_(role_codes)).all()
     role_name_map = {r.code: r.name for r in roles}
 
-    return {
+    result = {
         "total": total,
         "list": [{
             "id": u.id,
@@ -292,6 +346,11 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
             "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else ""
         } for u in users]
     }
+
+    if use_cache:
+        cache_set_json(cache_key, result, _random_ttl(USER_CACHE_TTL))
+
+    return result
 
 
 @service_exception_handler
@@ -375,12 +434,17 @@ def get_user_devices(db: Session, user_id: int) -> list:
 
 
 def get_user_profile(user: User, db: Session) -> dict:
-    """获取用户个人信息"""
+    """获取用户个人信息（带 Redis 缓存）"""
+    cache_key = USER_PROFILE_CACHE_KEY.format(user_id=user.id)
+    cached = cache_get_json(cache_key)
+    if cached is not None:
+        return cached
+
     from database.models.role import Role
     role_obj = db.query(Role.name).filter(Role.code == user.role).first()
     role_name = role_obj.name if role_obj else user.role
 
-    return {
+    result = {
         "id": user.id,
         "username": user.username,
         "role": user.role,
@@ -389,6 +453,9 @@ def get_user_profile(user: User, db: Session) -> dict:
         "has_password": bool(user.password),
         "created_at": user.created_at.strftime("%Y-%m-%d %H:%M:%S") if user.created_at else None
     }
+
+    cache_set_json(cache_key, result, _random_ttl(USER_PROFILE_CACHE_TTL))
+    return result
 
 
 @service_exception_handler
@@ -404,6 +471,11 @@ def update_username(db: Session, user: User, new_username: str) -> None:
 
     user.username = new_username
     db.commit()
+
+    # 清除缓存
+    _invalidate_user_list_cache()
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user.id))
+
     logger.info(f"用户修改用户名 | 用户ID: {user.id} | 新用户名: {new_username}")
 
 

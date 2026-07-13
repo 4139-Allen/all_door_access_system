@@ -102,9 +102,9 @@ class TestLogFilters:
 class TestLogAuthorization:
     """日志访问权限"""
 
-    def test_user_sees_only_own_logs(self, user_client, admin_client):
+    def test_user_sees_only_own_logs(self, shared_user_client, admin_client):
         """普通用户只能看到自己的日志（数量 <= 管理员看到的全部）"""
-        user_resp = user_client.get("/door-logs?page=1&size=100")
+        user_resp = shared_user_client.get("/door-logs?page=1&size=100")
         admin_resp = admin_client.get("/door-logs?page=1&size=100")
 
         user_total = user_resp.json()["data"]["total"]

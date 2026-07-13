@@ -65,7 +65,9 @@ class MQTTManager:
         self.connected = False
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._last_disconnect_log: float = 0  # 上次断线日志时间
-        self._retry_count: int = 0            # 连续重连次数
+        self._last_connect_log: float = 0     # 上次连接成功日志时间
+        self._retry_count: int = 0            # 连续断线次数
+        self._connect_attempts: int = 0       # 总连接尝试次数（上限 10 次）
         # 开门确认：device_name -> Future，等待设备回复 OPENED
         self._pending_open: Dict[str, Future] = {}
 
@@ -96,10 +98,24 @@ class MQTTManager:
         if rc == 0:
             self.connected = True
             self._retry_count = 0
-            # 订阅所有设备的状态上报和信号强度
+            self._connect_attempts += 1
+
+            # 连接成功但超过上限 → 停止重连
+            if self._connect_attempts > 10:
+                logger.warning(f"MQTT 连接成功但已超过 10 次上限，停止重连")
+                client.disconnect()
+                client.loop_stop()
+                self.connected = False
+                return
+
+            # 限流：30 秒内只打一次连接日志
+            now = time.time()
+            if now - self._last_connect_log > 30:
+                self._last_connect_log = now
+                logger.info(f"MQTT 已连接，已订阅 {MQTT_TOPIC_PREFIX}/+/status 和 {MQTT_TOPIC_PREFIX}/+/rssi")
+            # 订阅（即使不打日志也要订阅，保证功能正常）
             client.subscribe(f"{MQTT_TOPIC_PREFIX}/+/status", qos=1)
             client.subscribe(f"{MQTT_TOPIC_PREFIX}/+/rssi", qos=0)
-            logger.info(f"MQTT 已连接，已订阅 {MQTT_TOPIC_PREFIX}/+/status 和 {MQTT_TOPIC_PREFIX}/+/rssi")
         else:
             logger.error(f"MQTT 连接失败，返回码: {rc}")
 
@@ -107,8 +123,11 @@ class MQTTManager:
         self.connected = False
         if rc != 0:
             self._retry_count += 1
-            if self._retry_count > 10:
-                logger.warning(f"MQTT 连续 {self._retry_count} 次重连失败，已停止重连")
+            self._connect_attempts += 1
+            # 任意一个计数器超过 10 → 彻底停止
+            if self._retry_count > 10 or self._connect_attempts > 10:
+                logger.warning(f"MQTT 连续 {self._retry_count} 次重连失败（共尝试 {self._connect_attempts} 次），已停止重连")
+                client.loop_stop()
                 client.disconnect()
                 return
             now = time.time()

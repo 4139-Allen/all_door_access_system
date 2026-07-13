@@ -24,9 +24,9 @@ class TestStatistics:
         assert isinstance(data, dict), f"统计应为 dict 格式: {type(data)}"
 
     @pytest.mark.smoke
-    def test_get_statistics_as_user(self, user_client):
+    def test_get_statistics_as_user(self, shared_user_client):
         """普通用户获取统计 → 返回数据（角色过滤后的）"""
-        resp = user_client.get("/statistics")
+        resp = shared_user_client.get("/statistics")
         data = assert_success(resp).body.get("data", {})
         assert isinstance(data, dict)
 
@@ -47,9 +47,9 @@ class TestWeeklyTrend:
         # 趋势数据应为 dict 或 list
         assert data is not None
 
-    def test_get_trend_as_user(self, user_client):
+    def test_get_trend_as_user(self, shared_user_client):
         """普通用户获取本周趋势"""
-        resp = user_client.get("/statistics/trend")
+        resp = shared_user_client.get("/statistics/trend")
         data = assert_success(resp).body.get("data", {})
         assert data is not None
 
@@ -68,9 +68,9 @@ class TestActionDistribution:
         data = assert_success(resp).body.get("data", {})
         assert data is not None
 
-    def test_get_actions_as_user(self, user_client):
+    def test_get_actions_as_user(self, shared_user_client):
         """普通用户获取开锁方式分布"""
-        resp = user_client.get("/statistics/actions")
+        resp = shared_user_client.get("/statistics/actions")
         data = assert_success(resp).body.get("data", {})
         assert data is not None
 

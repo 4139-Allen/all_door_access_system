@@ -90,24 +90,19 @@ def user_client(account_manager: AccountManager) -> ApiClient:
 
     每个测试用例注册一个独立用户，互不干扰。
     登出、改密码、删用户等操作不会影响其他测试。
+    需要隔离用户的测试（destructive 或修改用户状态）使用此 fixture。
 
     无需 config 预配置账号。
     """
     client = account_manager.get_client_no_auth()
     name = f"auto_test_user_{uuid.uuid4().hex[:8]}"
 
-    # 注册（注册接口返回 201 Created）
+    # 注册
     resp = client.post("/auth/register", json={
         "username": name,
         "password": "test123456",
     })
-    if resp.status_code not in (200, 201):
-        name = f"auto_test_user_{uuid.uuid4().hex[:8]}"
-        resp = client.post("/auth/register", json={
-            "username": name,
-            "password": "test123456",
-        })
-        assert resp.status_code in (200, 201), f"用户注册失败: {resp.text}"
+    assert resp.status_code in (200, 201), f"用户注册失败: {resp.text}"
 
     # 登录
     resp = client.post("/auth/login", json={
@@ -122,6 +117,36 @@ def user_client(account_manager: AccountManager) -> ApiClient:
     token = auth_header.replace("Bearer ", "")
     client.set_token(token)
     logger.info(f"✅ 普通用户创建并登录成功: {name}")
+    return client
+
+
+@pytest.fixture(scope="session")
+def shared_user_client(account_manager: AccountManager) -> ApiClient:
+    """
+    共享普通用户客户端（session 级复用）
+
+    所有非 destructive 的只读测试共享此用户。
+    只需注册 + 登录一次，避免 26+ 个测试重复创建用户。
+    """
+    client = account_manager.get_client_no_auth()
+    name = f"shared_user_{uuid.uuid4().hex[:8]}"
+
+    resp = client.post("/auth/register", json={
+        "username": name,
+        "password": "test123456",
+    })
+    assert resp.status_code in (200, 201), f"共享用户注册失败: {resp.text}"
+
+    resp = client.post("/auth/login", json={
+        "username": name,
+        "password": "test123456",
+    })
+    body = resp.json()
+    assert body.get("code") == 200, f"共享用户登录失败: {resp.text}"
+
+    token = resp.headers.get("Authorization", "").replace("Bearer ", "")
+    client.set_token(token)
+    logger.info(f"✅ 共享用户创建并登录成功: {name}")
     return client
 
 
