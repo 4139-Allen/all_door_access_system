@@ -3,9 +3,12 @@
 自动化测试一键执行入口
 
 用法：
-    python run.py                              # dev 环境
-    python run.py --env=test                    # test 环境（自动删库+重启后端）
-    python run.py --env=test --smoke-only       # test 环境冒烟
+    python run.py                                 # API 测试（需手动启动后端）
+    python run.py --type=integration              # 集成测试
+    python run.py --type=all                      # API + 集成
+    python run.py --type=performance              # 性能测试（Locust）
+    python run.py --reset-db                      # 删库重建 + 自动启停后端
+    python run.py --reset-db --smoke-only         # 删库重建 + 冒烟测试
 """
 import sys
 import time
@@ -77,23 +80,23 @@ def wait_for_ready(url: str, timeout: int = 30) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description="门禁系统自动化测试")
-    parser.add_argument("--env", default="dev", choices=["dev", "test", "staging", "production"])
+    parser.add_argument("--type", default="api", choices=["api", "integration", "performance", "all"],
+                        help="测试类型: api(模块)/integration(集成)/performance(性能)/all(全部)")
+    parser.add_argument("--reset-db", action="store_true", help="删库重建 + 自动启停后端")
     parser.add_argument("--coverage", action="store_true", help="开启后端代码覆盖率")
     parser.add_argument("--smoke-only", action="store_true")
     parser.add_argument("--parallel", type=int, default=0)
     parser.add_argument("extra_args", nargs="*")
     args = parser.parse_args()
-    env = args.env
 
-    reports_dir = Path(__file__).parent / "reports" / env
+    reports_dir = Path(__file__).parent / "reports" / "test"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    # ===== 测试环境：删库 + 启动后端 =====
+    # ===== 删库 + 启动后端（--reset-db 时开启） =====
     backend_proc = None
-    if env == "test":
+    if args.reset_db:
         if not reset_test_db():
             sys.exit(1)
-        # 清理上次测试的日志
         log_dir = reports_dir / "logs"
         if log_dir.exists():
             import shutil
@@ -112,10 +115,19 @@ def main():
             sys.exit(1)
         print(" [OK]")
 
+    # ===== 根据 --type 选择测试目录 =====
+    type_map = {
+        "api": ["cases/"],
+        "integration": ["integration/"],
+        "performance": ["performance/locustfile.py"],
+        "all": ["cases/", "integration/"],
+    }
+    test_paths = type_map.get(args.type, ["cases/"])
+
     # ===== 拼装 pytest 命令 =====
     pytest_cmd = [
-        sys.executable, "-m", "pytest", "cases/",
-        "-v", "--tb=short", "--env", env,
+        sys.executable, "-m", "pytest", *test_paths,
+        "-v", "--tb=short",
     ]
 
     pytest_cmd.append(f"--junitxml={reports_dir / 'junit.xml'}")
@@ -129,7 +141,7 @@ def main():
     if args.extra_args:
         pytest_cmd.extend(args.extra_args)
 
-    print(f"[ENV] 环境: {env} | 报告: {reports_dir}")
+    print(f"[RUN] 类型: {args.type} | 报告: {reports_dir} {'| 已删库+自动启停' if args.reset_db else ''}")
     print(f"[RUN] {' '.join(pytest_cmd)}")
 
     # ===== 执行测试 =====

@@ -21,29 +21,30 @@ from test_util.assert_util import (
 )
 
 
-# ==================== 核心矩阵：3 个角色 × N 个操作 ====================
+# ==================== 公共参数组合 ====================
+# admin / user / anon 三类用户的行为矩阵
+ADMIN_FULL = [("admin_client", 200), ("shared_user_client", 403), ("anon_client", 401)]
+ADMIN_VIEW = [("admin_client", 200), ("shared_user_client", 200), ("anon_client", 401)]
+ADMIN_CREATE = [("admin_client", 201), ("shared_user_client", 403), ("anon_client", 401)]
+ADMIN_DELETE = [("admin_client", 204), ("shared_user_client", 403), ("anon_client", 401)]
+# destructive 操作需要独立用户测试
+ADMIN_CREATE_ISOLATED = [("admin_client", 201), ("user_client", 403), ("anon_client", 401)]
+ADMIN_DELETE_ISOLATED = [("admin_client", 204), ("user_client", 403), ("anon_client", 401)]
+
 
 class TestPermissionMatrix:
     """权限矩阵验证"""
 
     # ---- 用户管理 ----
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 200),
-        ("user_client", 403),
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_FULL)
     def test_list_users_permission(self, request, client_fixture, status_code):
         """GET /users 权限测试"""
         client = request.getfixturevalue(client_fixture)
         resp = client.get("/users")
         assert resp.status_code == status_code
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 201),
-        ("user_client", 403),
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_CREATE_ISOLATED)
     @pytest.mark.destructive
     def test_create_user_permission(self, request, client_fixture, status_code):
         """POST /users 权限测试"""
@@ -55,21 +56,15 @@ class TestPermissionMatrix:
         })
         if status_code == 201:
             assert resp.status_code in (200, 201)
-            # 清理
             user_id = resp.json()["data"]["id"]
             request.getfixturevalue("admin_client").delete(f"/users/{user_id}")
         else:
             assert resp.status_code == status_code
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 204),
-        ("user_client", 403),
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_DELETE_ISOLATED)
     @pytest.mark.destructive
     def test_delete_user_permission(self, request, client_fixture, status_code):
         """DELETE /users/{id} 权限测试"""
-        # 先创建一个用户
         admin = request.getfixturevalue("admin_client")
         import uuid
         create_resp = admin.post("/users", json={
@@ -77,23 +72,17 @@ class TestPermissionMatrix:
             "password": "test123456",
         })
         user_id = create_resp.json()["data"]["id"]
-
         client = request.getfixturevalue(client_fixture)
         resp = client.delete(f"/users/{user_id}")
         if status_code == 204:
             assert resp.status_code == 204
         else:
             assert resp.status_code == status_code
-            # 清理
             admin.delete(f"/users/{user_id}")
 
     # ---- 设备管理 ----
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 201),
-        ("user_client", 403),
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_CREATE)
     def test_create_device_permission(self, request, client_fixture, status_code):
         """POST /devices 权限测试"""
         client = request.getfixturevalue(client_fixture)
@@ -102,17 +91,12 @@ class TestPermissionMatrix:
             "location": "权限测试",
         })
         assert resp.status_code == status_code
-        # 如果 admin 创建成功，清理
         if status_code == 201:
             device_id = resp.json().get("data", {}).get("device_id")
             if device_id:
                 request.getfixturevalue("admin_client").delete(f"/devices/{device_id}")
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 200),
-        ("user_client", 200),  # 普通用户也能查看（有 door.open 权限）
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_VIEW)
     def test_view_devices_permission(self, request, client_fixture, status_code):
         """GET /devices 权限测试（普通用户也有查看权限）"""
         client = request.getfixturevalue(client_fixture)
@@ -121,11 +105,7 @@ class TestPermissionMatrix:
 
     # ---- 统计数据 ----
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 200),
-        ("user_client", 200),  # 普通用户也可以看统计
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_VIEW)
     def test_view_statistics_permission(self, request, client_fixture, status_code):
         """GET /statistics 权限测试"""
         client = request.getfixturevalue(client_fixture)
@@ -134,22 +114,14 @@ class TestPermissionMatrix:
 
     # ---- 权限管理（严格：仅 admin） ----
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 200),
-        ("user_client", 403),
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_FULL)
     def test_view_permissions_permission(self, request, client_fixture, status_code):
         """GET /permissions 权限测试"""
         client = request.getfixturevalue(client_fixture)
         resp = client.get("/permissions")
         assert resp.status_code == status_code
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 200),
-        ("user_client", 403),
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_FULL)
     def test_view_roles_permission(self, request, client_fixture, status_code):
         """GET /roles 权限测试"""
         client = request.getfixturevalue(client_fixture)
@@ -158,11 +130,7 @@ class TestPermissionMatrix:
 
     # ---- 门禁 ----
 
-    @pytest.mark.parametrize("client_fixture,status_code", [
-        ("admin_client", 200),
-        ("user_client", 200),  # 自己的日志可以看
-        ("anon_client", 401),
-    ])
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_VIEW)
     def test_view_door_logs_permission(self, request, client_fixture, status_code):
         """GET /door-logs 权限测试（用户可查看自己的日志）"""
         client = request.getfixturevalue(client_fixture)
@@ -182,14 +150,14 @@ class TestRoleSpecificBehavior:
         })
         assert resp.status_code in (200, 201)
 
-    def test_user_cannot_manage_permissions(self, user_client):
+    def test_user_cannot_manage_permissions(self, shared_user_client):
         """普通用户不能管理角色"""
-        resp = user_client.get("/roles")
+        resp = shared_user_client.get("/roles")
         assert resp.status_code == 403
 
-    def test_user_can_open_bound_doors(self, user_client, admin_client):
+    def test_user_can_open_bound_doors(self, shared_user_client, admin_client):
         """普通用户可以开门（如果有权限）"""
-        resp = user_client.get("/doors?page=1&size=10")
+        resp = shared_user_client.get("/doors?page=1&size=10")
         # 能访问 /doors/{id}/open 的权限检查通过即可
         # 具体开门测试在 test_door.py 中
         pass

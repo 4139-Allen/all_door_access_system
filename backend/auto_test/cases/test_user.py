@@ -51,9 +51,9 @@ class TestUserList:
         resp = anon_client.get("/users")
         assert_unauthorized(resp)
 
-    def test_list_users_forbidden_for_regular_user(self, user_client):
+    def test_list_users_forbidden_for_regular_user(self, shared_user_client):
         """普通用户无查看用户列表权限 → 403"""
-        resp = user_client.get("/users")
+        resp = shared_user_client.get("/users")
         assert_forbidden(resp)
 
 
@@ -97,9 +97,9 @@ class TestUserCreate:
         })
         assert_unauthorized(resp)
 
-    def test_create_user_forbidden(self, user_client):
+    def test_create_user_forbidden(self, shared_user_client):
         """普通用户创建用户 → 403"""
-        resp = user_client.post("/users", json={
+        resp = shared_user_client.post("/users", json={
             "username": f"usr_{uuid.uuid4().hex[:8]}",
             "password": "test123456",
         })
@@ -140,9 +140,9 @@ class TestUserDelete:
         resp = anon_client.delete("/users/1")
         assert_unauthorized(resp)
 
-    def test_delete_user_forbidden(self, user_client):
+    def test_delete_user_forbidden(self, shared_user_client):
         """普通用户删除用户 → 403"""
-        resp = user_client.delete("/users/1")
+        resp = shared_user_client.delete("/users/1")
         assert_forbidden(resp)
 
 
@@ -189,7 +189,7 @@ class TestUserDevices:
         resp = anon_client.get("/users/1/devices")
         assert_unauthorized(resp)
 
-    def test_get_user_devices_forbidden(self, user_client):
+    def test_get_user_devices_forbidden(self, shared_user_client):
         """普通用户无权查看其他用户的设备 → 403"""
-        resp = user_client.get("/users/1/devices")
+        resp = shared_user_client.get("/users/1/devices")
         assert_forbidden(resp)

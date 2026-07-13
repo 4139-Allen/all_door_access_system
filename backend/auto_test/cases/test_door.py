@@ -13,28 +13,7 @@ from test_util.assert_util import (
     assert_forbidden,
     assert_unauthorized,
 )
-
-
-# ==================== Helpers ====================
-
-def _prepare_bound_device(admin_client, user_id: int) -> int:
-    """创建设备并绑定给指定用户，返回 device_id"""
-    resp = admin_client.post("/devices", json={
-        "name": f"DOOR-{uuid.uuid4().hex[:6].upper()}",
-        "location": "自动化测试-门禁",
-    })
-    device_id = resp.json()["data"]["device_id"]
-    admin_client.post(f"/devices/{device_id}/bind", json={"user_id": user_id})
-    # 设备默认 offline，开门需要设为 online
-    admin_client.put(f"/devices/{device_id}", json={"status": "online"})
-    return device_id
-
-
-def _cleanup_device(admin_client, device_id: int, user_id: int = None):
-    """清理设备和绑定关系"""
-    if user_id:
-        admin_client.delete(f"/devices/{device_id}/unbind?user_id={user_id}")
-    admin_client.delete(f"/devices/{device_id}")
+from test_util.device_helper import create_bound_device, cleanup_device
 
 
 # ==================== Tests ====================
@@ -49,10 +28,10 @@ class TestDoorOpen:
     def test_admin_open_door_bound(self, admin_client):
         """管理员开门（管理员有全局权限）"""
         user_id = 1
-        device_id = _prepare_bound_device(admin_client, user_id)
+        device_id = create_bound_device(admin_client, user_id)
         resp = admin_client.post(f"/doors/{device_id}/open")
         assert_success(resp)
-        _cleanup_device(admin_client, device_id, user_id)
+        cleanup_device(admin_client, device_id, user_id)
 
     @pytest.mark.destructive
     @pytest.mark.skip(reason="开门需要真实 MQTT 设备在线，测试环境无硬件")
@@ -64,19 +43,19 @@ class TestDoorOpen:
             pytest.skip("没有可用用户")
         first_user = user_list[0]
         user_id = first_user["id"]
-        device_id = _prepare_bound_device(admin_client, user_id)
+        device_id = create_bound_device(admin_client, user_id)
         resp = user_client.post(f"/doors/{device_id}/open")
         assert_success(resp)
-        _cleanup_device(admin_client, device_id, user_id)
+        cleanup_device(admin_client, device_id, user_id)
 
     @pytest.mark.destructive
     @pytest.mark.skip(reason="开门需要真实 MQTT 设备在线，测试环境无硬件")
     def test_user_open_door_not_bound(self, user_client, admin_client):
         """未绑定用户开门 → 403"""
-        device_id = _prepare_bound_device(admin_client, user_id=1)
+        device_id = create_bound_device(admin_client, user_id=1)
         resp = user_client.post(f"/doors/{device_id}/open")
         assert_forbidden(resp)
-        _cleanup_device(admin_client, device_id, user_id=1)
+        cleanup_device(admin_client, device_id, user_id=1)
 
     def test_open_door_no_auth(self, anon_client):
         """未登录开门 → 401"""
@@ -101,9 +80,9 @@ class TestDoorLogs:
         assert_success(resp).has_pagination()
 
     @pytest.mark.smoke
-    def test_get_logs_as_user(self, user_client):
+    def test_get_logs_as_user(self, shared_user_client):
         """普通用户查看日志（只能看到自己的）"""
-        resp = user_client.get(
+        resp = shared_user_client.get(
             "/door-logs?page=1&size=10"
         )
         assert_success(resp).has_pagination()

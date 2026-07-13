@@ -50,7 +50,7 @@ class TestTokenValidation:
         }
         expired_token = pyjwt.encode(
             expired_payload,
-            "test-secret",
+            "test-secret-key-which-is-long-enough-32chars",
             algorithm="HS256",
         )
         anon_client.set_token(expired_token)
