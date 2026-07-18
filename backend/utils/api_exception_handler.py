@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from jose import JWTError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from utils.logger import AppLogger
 from core.response_schema import error
@@ -197,3 +198,15 @@ def register_exception_handlers(app: FastAPI):
 
         logger.warning(f"请求参数校验失败 [{request.method} {request.url.path}]: {msg}")
         return JSONResponse(status_code=422, content=error(msg, code=422))
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(request: Request, exc: StarletteHTTPException):
+        if exc.status_code == 404:
+            msg = "接口不存在"
+        elif exc.status_code == 405:
+            msg = "请求方法不允许"
+        elif exc.status_code == 500:
+            msg = "服务器内部错误"
+        else:
+            msg = exc.detail or "请求失败"
+        return JSONResponse(status_code=exc.status_code, content=error(msg, code=exc.status_code))

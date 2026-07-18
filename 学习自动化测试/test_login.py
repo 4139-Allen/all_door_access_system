@@ -19,7 +19,7 @@ def load_cases(module, filename):
 
 
 class TestLogin:
-    def test_user_login(client):
+    def test_user_login(self, client):
         """测试登录成功"""
         resp = client.post(
             f"{BASE_URL}/api/auth/login",
