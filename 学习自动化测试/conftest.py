@@ -5,6 +5,8 @@ import json
 
 from adodbapi.ado_consts import adNumeric
 
+from 学习自动化测试.test_utils.assert_util import assert_success
+
 BASE_URL = "https://www.doorlink.top"
 
 # ===============Fixture========================
@@ -34,13 +36,19 @@ def anon_client():
 
 @pytest.fixture
 def register_user(admin_client, anon_client):
-    """创建一个测试用户，测试完后admin删除"""
+    """注册一个测试用户，测试完后admin删除"""
     import uuid
     name = f"test-user-{uuid.uuid4().hex[:6]}"
     resp = anon_client.post(
         f"{BASE_URL}/api/auth/register",
-        json={"name":name, "password":}
+        json={"name":name, "password":test123456}
     )
+    user_id = resp.json()[]
+    assert_success(resp)
+
+    yield name
+
+    resp_del = admin_client.delete(f"{BASE_URL}/api/user")
 
 
 #===============设备=================

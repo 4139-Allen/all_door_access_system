@@ -84,8 +84,8 @@ def login_by_email(data: EmailLoginRequest, request: Request, response: Response
 @router.post("/auth/register", summary="用户注册", status_code=201)
 @handle_api_exception
 def register_new_user(data: UserCreate, db: Session = Depends(get_db)):
-    db_create_user(db, data.username, data.password, role="user")
-    return success(msg="注册成功")
+    user = db_create_user(db, data.username, data.password, role="user")
+    return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="注册成功")
 
 
 @router.post("/auth/logout", summary="退出登录")
