@@ -83,13 +83,13 @@
             <el-form-item prop="username">
               <div class="input-wrap" :class="{ focus: focusedField === 'ru' }">
                 <el-icon class="input-icon"><User /></el-icon>
-                <el-input v-model="registerForm.username" placeholder="请输入用户名" class="custom-input" @focus="focusedField = 'ru'" @blur="focusedField = ''" />
+                <el-input v-model="registerForm.username" placeholder="请输入用户名（1-30位）" maxlength="30" class="custom-input" @focus="focusedField = 'ru'" @blur="focusedField = ''" />
               </div>
             </el-form-item>
             <el-form-item prop="password">
               <div class="input-wrap" :class="{ focus: focusedField === 'rp' }">
                 <el-icon class="input-icon"><Lock /></el-icon>
-                <el-input v-model="registerForm.password" :type="regPwdVisible ? 'text' : 'password'" placeholder="密码至少 6 位" class="custom-input" @focus="focusedField = 'rp'" @blur="focusedField = ''" />
+                <el-input v-model="registerForm.password" :type="regPwdVisible ? 'text' : 'password'" placeholder="6-20位密码" class="custom-input" @focus="focusedField = 'rp'" @blur="focusedField = ''" />
                 <el-button text class="pwd-toggle" @click="regPwdVisible = !regPwdVisible">
                   <el-icon><View v-if="regPwdVisible" /><Hide v-else /></el-icon>
                 </el-button>
@@ -141,7 +141,7 @@
         <el-form-item prop="new_password">
           <div class="input-wrap" :class="{ focus: focusedField === 'fnp' }">
             <el-icon class="input-icon"><Lock /></el-icon>
-            <el-input v-model="forgotForm.new_password" type="password" placeholder="新密码（至少6位）" show-password class="custom-input" @focus="focusedField = 'fnp'" @blur="focusedField = ''" />
+            <el-input v-model="forgotForm.new_password" type="password" placeholder="6-20位新密码" show-password class="custom-input" @focus="focusedField = 'fnp'" @blur="focusedField = ''" />
           </div>
         </el-form-item>
         <el-form-item prop="confirm_password">
@@ -327,7 +327,7 @@ const registerRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' }
+    { min: 6, max: 20, message: '密码为6-20位', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
@@ -389,7 +389,7 @@ const forgotRules = {
   code: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
   new_password: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' }
+    { min: 6, max: 20, message: '密码为6-20位', trigger: 'blur' }
   ],
   confirm_password: [
     { required: true, message: '请再次输入新密码', trigger: 'blur' },

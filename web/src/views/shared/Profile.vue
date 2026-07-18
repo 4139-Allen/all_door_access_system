@@ -58,7 +58,7 @@
                   v-model="profileForm.username"
                   placeholder="请输入用户名"
                   :disabled="!editingUsername"
-                  maxlength="50"
+                  maxlength="30"
                 />
                 <el-button
                   v-if="!editingUsername"
@@ -109,7 +109,7 @@
               <el-input
                 v-model="pwdForm.new_password"
                 type="password"
-                :placeholder="hasPassword ? '请输入新密码（至少6位）' : '请设置密码（至少6位）'"
+                :placeholder="hasPassword ? '请输入新密码（6-20位）' : '请设置密码（6-20位）'"
                 show-password
               />
             </el-form-item>
@@ -189,7 +189,7 @@ const pwdRules = ref({
   old_password: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
   new_password: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' }
+    { min: 6, max: 20, message: '密码为6-20位', trigger: 'blur' }
   ],
   confirm_password: [
     { required: true, validator: validateConfirm, trigger: 'blur' }
