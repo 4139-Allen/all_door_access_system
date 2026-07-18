@@ -324,7 +324,10 @@ const validateConfirm = (rule, value, callback) => {
   else callback()
 }
 const registerRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_.\-一-龥]+$/, message: '用户名只能包含字母、数字、下划线、点和中划线', trigger: 'blur' }
+  ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, max: 20, message: '密码为6-20位', trigger: 'blur' }

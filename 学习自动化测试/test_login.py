@@ -33,7 +33,6 @@ class TestLogin:
 #===================参数化，从json/yaml加载数据======================
     #从模块加载数据，只加载一次
     _failure_cases = load_cases("login", "failure_cases.json")
-    print(_failure_cases)
 
 
     @pytest.mark.parametrize("case", _failure_cases, ids=lambda c: c["title"])

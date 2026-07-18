@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field, field_validator
 import re
 
-USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_一-龥]+$')
+USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.\-一-龥]+$')
 
 
 def _validate_password(v: str) -> str:

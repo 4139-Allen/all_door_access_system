@@ -42,6 +42,7 @@
             v-model="addForm.password"
             type="password"
             placeholder="6-20位密码"
+            maxlength="20"
             style="width: 170px"
             show-password
           />
@@ -293,6 +294,10 @@ const handleFileChange = async (e) => {
 const addUser = async () => {
   if (!addForm.value.username || !addForm.value.password) {
     ElMessage.warning('请输入用户名和密码')
+    return
+  }
+  if (!/^[a-zA-Z0-9_.\-一-龥]+$/.test(addForm.value.username)) {
+    ElMessage.warning('用户名只能包含字母、数字、下划线、点和中划线')
     return
   }
   adding.value = true
