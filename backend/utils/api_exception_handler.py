@@ -4,6 +4,7 @@ import json
 from functools import wraps
 
 from fastapi import FastAPI, Request, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from jose import JWTError
 
@@ -152,3 +153,47 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(TooManyRequestsError)
     async def _too_many_requests_handler(request: Request, exc: TooManyRequestsError):
         return JSONResponse(status_code=429, content=error(str(exc), code=429))
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error_handler(request: Request, exc: RequestValidationError):
+        """Pydantic 请求参数校验失败 → 统一中文错误提示"""
+        field_names = {
+            "username": "用户名",
+            "password": "密码",
+            "new_password": "新密码",
+            "old_password": "原密码",
+            "phone": "手机号",
+            "email": "邮箱",
+            "name": "名称",
+            "location": "位置",
+            "code": "验证码",
+        }
+
+        errors = exc.errors()
+        if not errors:
+            return JSONResponse(status_code=422, content=error("请求参数校验失败", code=422))
+
+        first = errors[0]
+        loc = first.get("loc", [])
+        # 取 loc 最后一段作为字段名（如 ["body", "password"] → "password"）
+        raw_field = str(loc[-1]) if loc else ""
+        cn_field = field_names.get(raw_field, raw_field)
+        err_type = first.get("type", "")
+        ctx = first.get("ctx") or {}
+
+        if err_type == "string_too_short":
+            min_len = ctx.get("min_length", "")
+            msg = f"{cn_field}长度不能少于{min_len}个字符"
+        elif err_type == "string_too_long":
+            max_len = ctx.get("max_length", "")
+            msg = f"{cn_field}长度不能超过{max_len}个字符"
+        elif err_type in ("missing", "value_error.missing"):
+            msg = f"{cn_field}不能为空"
+        elif err_type == "value_error":
+            # 自定义 field_validator 抛出的 ValueError
+            msg = first.get("msg", f"{cn_field}格式错误")
+        else:
+            msg = first.get("msg", f"{cn_field}格式错误")
+
+        logger.warning(f"请求参数校验失败 [{request.method} {request.url.path}]: {msg}")
+        return JSONResponse(status_code=422, content=error(msg, code=422))

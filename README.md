@@ -363,7 +363,7 @@ cd backend
 pytest auto_test/ -v
 
 # 运行指定模块
-pytest auto_test/test_auth.py -v
+pytest auto_test/test_login.py -v
 
 # 生成覆盖率报告
 pytest auto_test/ --cov=. --cov-report=html

@@ -50,7 +50,7 @@ def get_device_list_endpoint(
         size=size,
         current_user=current_user
     )
-    return success(data=device_data)
+    return success(msg="获取设备列表成功", data=device_data)
 
 
 # 更新设备

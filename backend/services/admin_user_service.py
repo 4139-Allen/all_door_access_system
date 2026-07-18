@@ -67,7 +67,6 @@ def login_user(db: Session, username: str, password: str) -> dict:
     异常:
         ValueError: 用户不存在或密码错误
     """
-    username = username.strip()
     user = db.query(User).filter(User.username == username).first()
 
     if not user:
@@ -512,14 +511,6 @@ def change_user_password(db: Session, user: User, old_password: str | None, new_
             logger.warning(f"❌ 修改密码失败 | 用户: {user.username} | 原因: 原密码错误")
             raise ValueError("原密码错误")
 
-    if len(new_password) < 6:
-        logger.warning(f"❌ 修改密码失败 | 用户: {user.username} | 原因: 密码长度不足6位")
-        raise ValueError("密码长度不能小于6位")
-
-    if len(new_password.encode('utf-8')) > 72:
-        logger.warning(f"❌ 修改密码失败 | 用户: {user.username} | 原因: 新密码过长")
-        raise ValueError("新密码过长，不能超过72字节")
-
     user.password = hash_password(new_password)
     db.commit()
 
@@ -543,12 +534,6 @@ def reset_user_password(db: Session, phone: str, new_password: str) -> bool:
     user = db.query(User).filter(User.phone == phone).first()
     if not user:
         raise ValueError("该手机号未注册")
-
-    if len(new_password) < 6:
-        raise ValueError("密码长度不能小于6位")
-
-    if len(new_password.encode('utf-8')) > 72:
-        raise ValueError("新密码过长，不能超过72字节")
 
     user.password = hash_password(new_password)
     db.commit()
