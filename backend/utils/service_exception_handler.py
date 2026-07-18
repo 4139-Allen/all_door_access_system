@@ -43,7 +43,10 @@ def service_exception_handler(func: Callable) -> Callable:
             except Exception as e:
                 if db:
                     db.rollback()
-                logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
+                if isinstance(e, (ValueError, PermissionError)):
+                    logger.warning(f"Service [{func.__name__}] 业务校验失败: {str(e)}")
+                else:
+                    logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
                 raise
         return async_wrapper
     else:
@@ -55,6 +58,9 @@ def service_exception_handler(func: Callable) -> Callable:
             except Exception as e:
                 if db:
                     db.rollback()
-                logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
+                if isinstance(e, (ValueError, PermissionError)):
+                    logger.warning(f"Service [{func.__name__}] 业务校验失败: {str(e)}")
+                else:
+                    logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
                 raise
         return sync_wrapper
