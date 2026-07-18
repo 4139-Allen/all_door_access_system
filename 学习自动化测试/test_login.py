@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import pytest
+from test_utils.assert_util import assert_success, assert_failure, print_response
 
 BASE_URL = "https://www.doorlink.top"
 
@@ -19,6 +20,7 @@ def load_cases(module, filename):
 
 
 class TestLogin:
+    @pytest.mark.smoke
     def test_user_login(self, client):
         """测试登录成功"""
         resp = client.post(
@@ -42,18 +44,10 @@ class TestLogin:
             f"{BASE_URL}/api/auth/login",
             json=case["request"]
         )
-        body = resp.json()
-
+        print_response(resp)
         expected = case["expect"]
+        data = assert_failure(resp, expected["code"], expected["msg_contains"])
 
-        if expected["code"] == 422:
-            pass
-        else:
-            assert body["code"] == expected["code"]
-
-        if "msg_contains" in expected:
-
-            assert expected["msg_contains"] in body["msg"]
 
 
 
