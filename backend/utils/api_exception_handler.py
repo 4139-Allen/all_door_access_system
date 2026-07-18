@@ -141,18 +141,22 @@ def register_exception_handlers(app: FastAPI):
 
     @app.exception_handler(AuthError)
     async def _auth_error_handler(request: Request, exc: AuthError):
+        logger.warning(f"认证失败 [{request.method} {request.url.path}]: {str(exc)}")
         return JSONResponse(status_code=401, content=error(str(exc), code=401))
 
     @app.exception_handler(PermissionError)
     async def _permission_error_handler(request: Request, exc: PermissionError):
+        logger.warning(f"权限错误 [{request.method} {request.url.path}]: {str(exc)}")
         return JSONResponse(status_code=403, content=error(str(exc), code=403))
 
     @app.exception_handler(NotFoundError)
     async def _not_found_handler(request: Request, exc: NotFoundError):
+        logger.warning(f"资源不存在 [{request.method} {request.url.path}]: {str(exc)}")
         return JSONResponse(status_code=404, content=error(str(exc), code=404))
 
     @app.exception_handler(TooManyRequestsError)
     async def _too_many_requests_handler(request: Request, exc: TooManyRequestsError):
+        logger.warning(f"请求频率过高 [{request.method} {request.url.path}]: {str(exc)}")
         return JSONResponse(status_code=429, content=error(str(exc), code=429))
 
     @app.exception_handler(RequestValidationError)
@@ -209,4 +213,5 @@ def register_exception_handlers(app: FastAPI):
             msg = "服务器内部错误"
         else:
             msg = exc.detail or "请求失败"
+        logger.warning(f"HTTP {exc.status_code} [{request.method} {request.url.path}]: {msg}")
         return JSONResponse(status_code=exc.status_code, content=error(msg, code=exc.status_code))
