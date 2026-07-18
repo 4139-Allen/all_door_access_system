@@ -1,15 +1,14 @@
 """
 服务层异常/事务
-通用异常处理装饰器和工具函数
-用于统一 Service 层的异常处理和日志记录
+事务兜底：异常时立即回滚，然后透传异常，由 API 层统一记录日志和返回响应。
+
+注意：此装饰器只负责回滚事务并透传异常，
+日志由上层（@handle_api_exception）统一记录，避免重复。
 """
 import functools
 import inspect
 from typing import Callable
 from sqlalchemy.orm import Session
-from utils.logger import AppLogger
-
-logger = AppLogger.get_logger()
 
 
 def service_exception_handler(func: Callable) -> Callable:
@@ -43,10 +42,6 @@ def service_exception_handler(func: Callable) -> Callable:
             except Exception as e:
                 if db:
                     db.rollback()
-                if isinstance(e, (ValueError, PermissionError)):
-                    logger.warning(f"Service [{func.__name__}] 业务校验失败: {str(e)}")
-                else:
-                    logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
                 raise
         return async_wrapper
     else:
@@ -58,9 +53,5 @@ def service_exception_handler(func: Callable) -> Callable:
             except Exception as e:
                 if db:
                     db.rollback()
-                if isinstance(e, (ValueError, PermissionError)):
-                    logger.warning(f"Service [{func.__name__}] 业务校验失败: {str(e)}")
-                else:
-                    logger.error(f"Service [{func.__name__}] 执行失败: {str(e)}", exc_info=True)
                 raise
         return sync_wrapper
