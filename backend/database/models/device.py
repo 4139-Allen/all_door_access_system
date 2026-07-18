@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Column, Integer, String, DateTime, func, UniqueConstraint
 
 from database.db import Base
 
@@ -13,3 +13,7 @@ class Device(Base):
     last_online_at = Column(DateTime, nullable=True)  # 最后在线时间
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('name', 'location', name='uq_device_name_location'),
+    )
