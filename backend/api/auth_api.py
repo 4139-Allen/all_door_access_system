@@ -42,7 +42,7 @@ def login(data: UserLogin, request: Request, response: Response, db: Session = D
     result = login_user(db, data.username, data.password)
     token = result.pop("token")
     response.headers["Authorization"] = f"Bearer {token}"
-    return success(result)
+    return success(result, msg="登录成功")
 
 
 @router.post("/auth/send-code", summary="发送验证码")
@@ -66,7 +66,7 @@ def login_by_phone(data: PhoneLoginRequest, request: Request, response: Response
     result = login_by_phone_service(db, data.phone, data.code)
     token = result.pop("token")
     response.headers["Authorization"] = f"Bearer {token}"
-    return success(result)
+    return success(result, msg="登录成功")
 
 
 @router.post("/auth/login-email", summary="邮箱登录")
@@ -78,7 +78,7 @@ def login_by_email(data: EmailLoginRequest, request: Request, response: Response
     result = login_by_email_service(db, data.email, data.code)
     token = result.pop("token")
     response.headers["Authorization"] = f"Bearer {token}"
-    return success(result)
+    return success(result, msg="登录成功")
 
 
 @router.post("/auth/register", summary="用户注册", status_code=201)
@@ -131,7 +131,7 @@ def get_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_obj)
 ):
-    return success(get_user_profile(current_user, db))
+    return success(get_user_profile(current_user, db), msg="获取个人信息成功")
 
 
 @router.put("/auth/profile", summary="修改用户名")

@@ -26,7 +26,7 @@ def list_users(
         current_user: User = Depends(require_permission("user.view"))
 ):
     data = get_users_list_formatted(db, page, size, username, role)
-    return success(data)
+    return success(data, msg="获取用户列表成功")
 
 
 @router.post("/users", summary="创建用户", status_code=201)
@@ -84,4 +84,4 @@ def get_user_devices_endpoint(
     current_user: User = Depends(require_permission("user.view"))
 ):
     device_list = get_user_devices(db, user_id)
-    return success(data=device_list)
+    return success(data=device_list, msg="获取用户设备成功")

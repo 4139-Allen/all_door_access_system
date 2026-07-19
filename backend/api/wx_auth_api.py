@@ -26,7 +26,7 @@ def wx_login(data: WxLoginRequest, response: Response, db: Session = Depends(get
     result = wx_login_service(db, data.code)
     token = result.pop("token")
     response.headers["Authorization"] = f"Bearer {token}"
-    return success(result)
+    return success(result, msg="登录成功")
 
 
 @router.put("/auth/wx-bind", summary="绑定已有账号到微信")
@@ -40,4 +40,4 @@ def wx_bind(
     result = wx_bind_service(db, current_user_id, data.username, data.password)
     token = result.pop("token")
     response.headers["Authorization"] = f"Bearer {token}"
-    return success(result)
+    return success(result, msg="绑定成功")

@@ -39,7 +39,7 @@ def get_alerts(
         start_time=start_time,
         end_time=end_time
     )
-    return success(data={"list": result, "total": total})
+    return success(data={"list": result, "total": total}, msg="获取异常事件列表成功")
 
 
 @router.get("/alerts/stats", summary="获取异常事件统计")
@@ -51,7 +51,7 @@ def get_alert_stats_api(
 ):
     """获取异常事件统计数据"""
     result = get_alert_stats(db=db, hours=hours)
-    return success(data=result)
+    return success(data=result, msg="获取异常事件统计成功")
 
 
 @router.post("/alerts/unlock/{device_name}", summary="解除设备锁定")
