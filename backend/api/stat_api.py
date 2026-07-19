@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database.db import get_db
 from utils.auth import require_permission
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success
+from core.response_schema import success
 from database.models.user import User
 from services.stat_service import get_statistics, get_weekly_trend, get_action_distribution
 

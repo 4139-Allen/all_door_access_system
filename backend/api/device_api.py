@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database.db import get_db
 from utils.auth import require_permission
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success
+from core.response_schema import success
 from schemas.device_schema import DeviceCreate, DeviceUpdate, BindUserDevice
 from services.device_service import (
     create_device,
@@ -67,15 +67,15 @@ def update(
 
 
 # 删除设备
-@router.delete("/devices/{device_id}", summary="删除设备", status_code=204)
+@router.delete("/devices/{device_id}", summary="删除设备")
 @handle_api_exception
 def delete_device_endpoint(
         device_id: int,
         db: Session = Depends(get_db),
         current_user: User = Depends(require_permission("device.delete"))
 ):
-    """删除设备，成功返回 204 No Content"""
     delete_device(db, device_id)
+    return success(msg="删除成功")
 
 
 # 绑定设备
@@ -92,7 +92,7 @@ def admin_bind_device(
 
 
 # 解绑设备
-@router.delete("/devices/{device_id}/unbind", summary="解除用户与设备的绑定", status_code=204)
+@router.delete("/devices/{device_id}/unbind", summary="解除用户与设备的绑定")
 @handle_api_exception
 def unbind_user_device_endpoint(
         device_id: int = Path(..., description="设备ID"),
@@ -100,5 +100,5 @@ def unbind_user_device_endpoint(
         db: Session = Depends(get_db),
         current_user: User = Depends(require_permission("device.bind"))
 ):
-    """解除用户与设备的绑定，成功返回 204 No Content"""
     unbind_user_device(db, user_id, device_id, operator_id=current_user.id)
+    return success(msg="解绑成功")
