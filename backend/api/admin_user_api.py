@@ -8,7 +8,7 @@ from services.admin_user_service import (
     get_users_list_formatted, import_users_from_bytes, update_user_role,
 )
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success
+from core.response_schema import success
 from utils.auth import require_permission
 from typing import Optional
 
@@ -65,15 +65,15 @@ async def import_users(
     return success(result, msg=result["msg"])
 
 
-@router.delete("/users/{user_id}", summary="删除用户", status_code=204)
+@router.delete("/users/{user_id}", summary="删除用户")
 @handle_api_exception
 def delete_user(
         user_id: int,
         db: Session = Depends(get_db),
         current_user: User = Depends(require_permission("user.manage"))
 ):
-    """删除用户，成功返回 204 No Content"""
     delete_user_by_id(db, user_id, current_user)
+    return success(msg="删除成功")
 
 
 @router.get("/users/{user_id}/devices", summary="查询用户绑定的设备")

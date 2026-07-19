@@ -11,7 +11,7 @@ from services.admin_user_service import (
 )
 from services.verify_code_service import send_verify_code_service
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success, error
+from core.response_schema import success, error
 from utils.auth import logout_token, get_current_user_obj, security
 from utils.rate_limiter import login_limiter
 from database.models.user import User

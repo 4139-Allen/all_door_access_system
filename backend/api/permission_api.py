@@ -12,7 +12,7 @@ from services.permission_service import (
     set_role_permissions,
 )
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success
+from core.response_schema import success
 from utils.auth import require_permission
 
 router = APIRouter(tags=["权限管理"])

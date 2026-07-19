@@ -182,6 +182,7 @@ def health_check():
     from database.db import SessionLocal
     from database.redis import redis_client
     from sqlalchemy import text
+    from core.response_schema import success
 
     checks = {"database": "unknown", "redis": "unknown"}
     http_status = 200
@@ -212,7 +213,7 @@ def health_check():
     from fastapi.responses import JSONResponse
     return JSONResponse(
         status_code=http_status,
-        content={"status": overall, "service": "door_access_system", "checks": checks}
+        content=success(data={"status": overall, "service": "door_access_system", "checks": checks})
     )
 
 

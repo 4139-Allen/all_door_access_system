@@ -5,7 +5,7 @@ from utils.auth import get_current_user_obj, require_permission
 from database.db import get_db
 from services.door_service import open_door_service, query_logs
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success
+from core.response_schema import success
 from database.models.user import User
 from schemas.door_schema import LogQuery
 from services.websocket_service import manager

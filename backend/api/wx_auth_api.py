@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from database.db import get_db
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import ApiResponse, success
+from core.response_schema import success
 from utils.auth import get_current_user
 from services.wx_auth_service import wx_login_service, wx_bind_service
 
