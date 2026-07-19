@@ -25,7 +25,7 @@ def list_permissions(
     current_user: User = Depends(require_permission("user.manage")),
 ):
     data = get_all_permissions(db)
-    return success(data)
+    return success(data, msg="获取权限列表成功")
 
 
 @router.get("/roles", summary="获取所有角色及权限")
@@ -35,7 +35,7 @@ def list_roles(
     current_user: User = Depends(require_permission("user.manage")),
 ):
     data = get_all_roles(db)
-    return success(data)
+    return success(data, msg="获取角色列表成功")
 
 
 @router.post("/roles", summary="创建自定义角色", status_code=201)
@@ -61,15 +61,15 @@ def edit_role(
     return success(msg="修改成功")
 
 
-@router.delete("/roles/{role_id}", summary="删除自定义角色", status_code=204)
+@router.delete("/roles/{role_id}", summary="删除自定义角色")
 @handle_api_exception
 def remove_role(
     role_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("user.manage")),
 ):
-    """删除自定义角色，成功返回 204 No Content"""
     delete_role(db, role_id)
+    return success(msg="删除成功")
 
 
 @router.put("/roles/{role_id}/permissions", summary="设置角色权限")

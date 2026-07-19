@@ -17,7 +17,7 @@ def get_stat(
     current_user: User = Depends(require_permission("dashboard.view"))
 ):
     data = get_statistics(db, current_user)
-    return success(data=data)
+    return success(data=data, msg="获取统计数据成功")
 
 
 @router.get("/statistics/trend", summary="本周开锁趋势")
@@ -27,7 +27,7 @@ def get_trend(
     current_user: User = Depends(require_permission("dashboard.view"))
 ):
     data = get_weekly_trend(db, current_user)
-    return success(data=data)
+    return success(data=data, msg="获取趋势数据成功")
 
 
 @router.get("/statistics/actions", summary="开锁方式占比")
@@ -37,4 +37,4 @@ def get_actions(
     current_user: User = Depends(require_permission("dashboard.view"))
 ):
     data = get_action_distribution(db, current_user)
-    return success(data=data)
+    return success(data=data, msg="获取开锁方式数据成功")
