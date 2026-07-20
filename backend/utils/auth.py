@@ -151,6 +151,8 @@ def get_current_user_obj(
     user = db.query(User).filter(User.id == current_user_id).first()
     if not user:
         raise NotFoundError("用户不存在")
+    if not user.is_active:
+        raise AuthError("账号已被停用")
     return user
 
 # ====================== 密码相关======================

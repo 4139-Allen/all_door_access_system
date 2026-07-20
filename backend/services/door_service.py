@@ -87,7 +87,7 @@ async def open_door_service(db: Session, user_id: int, device_id: int, ip: str =
         lock_ttl = redis_client.ttl(err_lock_key)
         _add_door_log(db, user_id, device_id, f"失败：设备已锁定（剩余{lock_ttl}秒）", ip)
         logger.warning(f"开门失败 | 设备: {device_name} | 用户: {username} | 原因: 设备已锁定（剩余{lock_ttl}秒）")
-        raise PermissionError(f"设备已锁定，请 {lock_ttl} 秒后再试")
+        raise ValueError(f"设备已锁定，请 {lock_ttl} 秒后再试")
 
     # 4. 权限判断（有 device.view 权限可操作任意设备，否则需绑定）
     if not user_has_permission(db, user, "device.view"):

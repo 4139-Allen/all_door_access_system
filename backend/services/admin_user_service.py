@@ -72,6 +72,9 @@ def login_user(db: Session, username: str, password: str) -> dict:
     if not user:
         raise ValueError("用户不存在")
 
+    if not user.is_active:
+        raise ValueError("账号已被停用")
+
     if not user.password:
         raise ValueError("该账号未设置密码，请使用手机号登录")
 
@@ -183,7 +186,7 @@ def bulk_create_users(db: Session, user_list: list[UserCreate]) -> dict:
 @service_exception_handler
 def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> bool:
     """
-    删除用户及其关联数据
+    停用用户（软删除）
 
     参数:
         db: 数据库会话
@@ -204,22 +207,30 @@ def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> b
     # 先检查用户是否存在
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        logger.warning(f"⚠️  删除用户失败 | 用户ID: {user_id} | 原因: 用户不存在")
+        logger.warning(f"⚠️  停用用户失败 | 用户ID: {user_id} | 原因: 用户不存在")
         raise NotFoundError("用户不存在")
 
     # 不能删除管理员
     if user.role == "admin":
         raise ValueError("无权删除超级管理员")
 
+    if not user.is_active:
+        raise ValueError("该用户已被停用")
+
     username = user.username
 
-    # 检查用户是否绑定了设备，已绑定则拒绝删除
-    has_bind = db.query(UserDevice).filter(UserDevice.user_id == user_id).first()
-    if has_bind:
-        raise ValueError("该用户已绑定设备，请先解绑后再删除")
+    # 软删除：打标记 + 释放唯一约束
+    user.is_active = False
+    user.deleted_at = datetime.now()
+    user.username = f"deleted_{user.id}_{user.username}"[:50]  # 释放用户名，截断到字段长度
 
-    # 删除用户（DoorLog 由数据库 ondelete=SET NULL 自动置空 user_id）
-    db.delete(user)
+    # 释放手机号和邮箱（如果有的话）
+    user.phone = None
+    user.email = None
+
+    # 解绑所有设备
+    db.query(UserDevice).filter(UserDevice.user_id == user_id).delete()
+
     db.commit()
 
     invalidate_all_stat_cache()
@@ -227,7 +238,7 @@ def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> b
     # 清除该用户的个人信息缓存
     redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user_id))
 
-    logger.info(f"🗑️  删除用户成功 | 用户名: {username} | 用户ID: {user_id}")
+    logger.info(f"🗑️  停用用户成功 | 用户名: {username} | 用户ID: {user_id}")
     return True
 
 
@@ -287,8 +298,8 @@ def update_user_role(db: Session, user_id: int, new_role: str, current_user: Use
 
 
 @service_exception_handler
-def get_users_list(db: Session, page: int, size: int, username: Optional[str] = None, role: Optional[str] = None) -> \
-tuple[int, list]:
+def get_users_list(db: Session, page: int, size: int, username: Optional[str] = None, role: Optional[str] = None,
+                   show_inactive: bool = False) -> tuple[int, list]:
     """
     获取用户列表（支持分页和筛选）
 
@@ -298,11 +309,15 @@ tuple[int, list]:
         size: 每页数量
         username: 用户名模糊搜索
         role: 角色筛选
+        show_inactive: 是否显示已停用用户（默认 False 只显示正常用户）
 
     返回:
         (total, users): 总数和用户列表
     """
     query = db.query(User)
+
+    if not show_inactive:
+        query = query.filter(User.is_active == True)
 
     if username:
         query = query.filter(User.username.contains(username))
@@ -315,19 +330,20 @@ tuple[int, list]:
     return total, users
 
 
-def get_users_list_formatted(db: Session, page: int, size: int, username: Optional[str] = None, role: Optional[str] = None) -> dict:
+def get_users_list_formatted(db: Session, page: int, size: int, username: Optional[str] = None, role: Optional[str] = None,
+                              show_inactive: bool = False) -> dict:
     """获取用户列表（带格式化，直接返回可响应的数据）"""
     from database.models.role import Role
 
-    # 无筛选条件时才使用缓存
-    use_cache = (username is None and role is None)
+    # 无筛选条件时才使用缓存（仅活跃用户列表可缓存）
+    use_cache = (username is None and role is None and not show_inactive)
     if use_cache:
         cache_key = USER_LIST_CACHE_KEY.format(page=page, size=size, username="none", role="none")
         cached = cache_get_json(cache_key)
         if cached is not None:
             return cached
 
-    total, users = get_users_list(db, page, size, username, role)
+    total, users = get_users_list(db, page, size, username, role, show_inactive=show_inactive)
 
     # 批量查询角色名称
     role_codes = {u.role for u in users}
@@ -562,6 +578,8 @@ def login_by_phone_service(db: Session, phone: str, code: str) -> dict:
     if not user:
         user = db_create_user(db, username=phone, password=None, role="user", phone=phone)
         logger.info(f"手机号自动注册: {phone}, 用户ID: {user.id}")
+    elif not user.is_active:
+        raise ValueError("该账号已被停用")
 
     return build_login_response(user, db=db)
 
@@ -586,6 +604,8 @@ def login_by_email_service(db: Session, email: str, code: str) -> dict:
     if not user:
         user = db_create_user(db, username=email, password=None, role="user", email=email)
         logger.info(f"邮箱自动注册: {email}, 用户ID: {user.id}")
+    elif not user.is_active:
+        raise ValueError("该账号已被停用")
 
     return build_login_response(user, db=db)
 
