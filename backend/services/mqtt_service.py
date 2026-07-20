@@ -4,6 +4,7 @@ MQTT 服务层
 """
 import asyncio
 from asyncio import Future
+import uuid
 import time
 from typing import Optional, Dict
 from datetime import datetime
@@ -66,8 +67,9 @@ class MQTTManager:
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._last_disconnect_log: float = 0  # 上次断线日志时间
         self._last_connect_log: float = 0     # 上次连接成功日志时间
-        self._retry_count: int = 0            # 连续断线次数
-        self._connect_attempts: int = 0       # 总连接尝试次数（上限 10 次）
+        self._retry_count: int = 0            # 连续断线次数（超过10次日志降频）
+        # 客户端唯一标识，避免 Mosquitto 因重复 ID 踢掉旧连接
+        self._client_id = f"door-backend-{uuid.uuid4().hex[:8]}"
         # 开门确认：device_name -> Future，等待设备回复 OPENED
         self._pending_open: Dict[str, Future] = {}
 
@@ -76,7 +78,7 @@ class MQTTManager:
         # 在启动时获取事件循环引用（主线程运行的循环）
         self._loop = asyncio.get_event_loop()
         try:
-            self.client = mqtt.Client(client_id="door-backend", clean_session=True)
+            self.client = mqtt.Client(client_id=self._client_id, clean_session=True)
             if MQTT_USERNAME:
                 self.client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
 
@@ -98,17 +100,8 @@ class MQTTManager:
         if rc == 0:
             self.connected = True
             self._retry_count = 0
-            self._connect_attempts += 1
 
-            # 连接成功但超过上限 → 停止重连
-            if self._connect_attempts > 10:
-                logger.warning(f"MQTT 连接成功但已超过 10 次上限，停止重连")
-                client.disconnect()
-                client.loop_stop()
-                self.connected = False
-                return
-
-            # 限流：30 秒内只打一次连接日志
+            # 限流：30 秒内只打一次连接日志，避免频繁重连时刷屏
             now = time.time()
             if now - self._last_connect_log > 30:
                 self._last_connect_log = now
@@ -123,10 +116,9 @@ class MQTTManager:
         self.connected = False
         if rc != 0:
             self._retry_count += 1
-            self._connect_attempts += 1
-            # 任意一个计数器超过 10 → 彻底停止
-            if self._retry_count > 10 or self._connect_attempts > 10:
-                logger.warning(f"MQTT 连续 {self._retry_count} 次重连失败（共尝试 {self._connect_attempts} 次），已停止重连")
+            # 连续断线超过 50 次 → 彻底停止（防止无限重连）
+            if self._retry_count > 50:
+                logger.warning(f"MQTT 连续 {self._retry_count} 次重连失败，已停止重连")
                 client.loop_stop()
                 client.disconnect()
                 return

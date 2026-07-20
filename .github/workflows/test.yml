@@ -16,7 +16,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: test123
-          MYSQL_DATABASE: door_access
+          MYSQL_DATABASE: door_access_test
         ports:
           - 3306:3306
         options: >-
@@ -54,10 +54,9 @@ jobs:
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PASSWORD: test123
-          MYSQL_DB: door_access
+          MYSQL_DB: door_access_test
           REDIS_HOST: 127.0.0.1
           SECRET_KEY: ci-test-secret-key
-          DISABLE_RATE_LIMIT: true
         run: |
           cd backend
           nohup python main.py > server.log 2>&1 &
@@ -85,7 +84,7 @@ jobs:
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PASSWORD: test123
-          MYSQL_DB: door_access
+          MYSQL_DB: door_access_test
           REDIS_HOST: 127.0.0.1
           SECRET_KEY: ci-test-secret-key
         run: |
