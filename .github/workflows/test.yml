@@ -57,6 +57,7 @@ jobs:
           MYSQL_DB: door_access
           REDIS_HOST: 127.0.0.1
           SECRET_KEY: ci-test-secret-key
+          DISABLE_RATE_LIMIT: true
         run: |
           cd backend
           nohup python main.py > server.log 2>&1 &
