@@ -6,7 +6,6 @@
 # 测试框架核心
 pytest>=7.4.3
 pytest-dependency>=0.5.1      # 测试用例间依赖管理
-pytest-html>=4.1.1            # HTML 报告
 pytest-xdist>=3.5.0           # 并发执行测试
 
 # HTTP 客户端
@@ -20,3 +19,6 @@ PyMySQL>=1.1.0
 
 # 测试覆盖率（可选）
 pytest-cov>=4.1.0
+
+# 测试报告（Allure）
+allure-pytest>=2.13.0

@@ -135,10 +135,15 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "登录成功",
   "data": {
     "user_id": 1,
     "role": "admin",
+    "role_name": "超级管理员",
+    "username": "admin",
+    "avatar": "/uploads/avatars/xxx.jpg",
+    "permissions": ["dashboard.view", "door.open", "device.view", ...]
+  }
     "role_name": "超级管理员",
     "username": "admin",
     "avatar": "/uploads/avatars/xxx.jpg",
@@ -229,7 +234,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取个人信息成功",
   "data": {
     "id": 1,
     "username": "admin",
@@ -313,7 +318,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取用户列表成功",
   "data": {
     "total": 50,
     "list": [
@@ -385,7 +390,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ### GET /users/{user_id}/devices — 查询绑定的设备
 
 ```json
-{"code": 200, "msg": "操作成功", "data": [1, 2, 3]}
+{"code": 200, "msg": "获取用户设备成功", "data": [1, 2, 3]}
 ```
 
 ---
@@ -581,7 +586,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取异常事件列表成功",
   "data": {
     "total": 10,
     "list": [
@@ -613,7 +618,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取异常事件统计成功",
   "data": {
     "total_alerts": 15,
     "lock_count": 3,
@@ -664,7 +669,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取权限列表成功",
   "data": [
     {
       "module": "仪表盘",
@@ -719,7 +724,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```
 
 ```json
-{"code": 200, "msg": "操作成功", "data": {"id": 5, "name": "安保员", "code": "security", "is_system": false}}
+{"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "code": "security", "is_system": false}}
 ```
 
 ### PUT /roles/{role_id}/permissions — 设置角色权限
@@ -731,7 +736,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```
 
 ```json
-{"code": 200, "msg": "操作成功", "data": {"role_id": 2, "role_name": "普通管理员", "permission_count": 5}}
+{"code": 200, "msg": "权限设置成功", "data": {"role_id": 2, "role_name": "普通管理员", "permission_count": 5}}
 ```
 
 ---
@@ -751,7 +756,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取统计数据成功",
   "data": {
     "user_total": 50,
     "device_online": 8,
@@ -766,7 +771,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取趋势数据成功",
   "data": [
     {"day": "07/13", "count": 15},
     {"day": "07/14", "count": 22},
@@ -784,7 +789,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": "获取开锁方式数据成功",
   "data": [
     {"name": "远程", "value": 80},
     {"name": "密码", "value": 30},
