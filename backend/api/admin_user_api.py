@@ -22,10 +22,11 @@ def list_users(
         size: int = Query(10, ge=1),
         username: Optional[str] = Query(None, description="用户名模糊搜索"),
         role: Optional[str] = Query(None, description="角色筛选: admin/operator/user"),
+        show_inactive: bool = Query(False, description="是否显示已停用用户"),
         db: Session = Depends(get_db),
         current_user: User = Depends(require_permission("user.view"))
 ):
-    data = get_users_list_formatted(db, page, size, username, role)
+    data = get_users_list_formatted(db, page, size, username, role, show_inactive=show_inactive)
     return success(data, msg="获取用户列表成功")
 
 
