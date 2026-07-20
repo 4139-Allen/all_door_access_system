@@ -159,8 +159,6 @@ class MQTTManager:
         if msg_type != "status":
             return
 
-        logger.info(f"MQTT 设备状态上报 [{device_id}]: {payload}")
-
         # 更新在线状态到 Redis
         if redis_client and payload in ("ONLINE", "OK", "OPENED"):
             redis_client.setex(f"device:online:{device_id}", 70, "online")
