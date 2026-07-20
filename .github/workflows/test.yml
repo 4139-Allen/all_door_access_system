@@ -70,6 +70,18 @@ jobs:
             sleep 1
           done
 
+      - name: 创建测试配置文件
+        run: |
+          mkdir -p backend/auto_test/config
+          cat > backend/auto_test/config/test_env.yaml << 'EOF'
+default_env: dev
+dev:
+  base_url: http://127.0.0.1:8000/api
+  admin:
+    username: admin
+    password: "123456"
+EOF
+
       - name: 运行测试
         env:
           MYSQL_HOST: 127.0.0.1
