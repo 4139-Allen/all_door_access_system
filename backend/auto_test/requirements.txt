@@ -22,3 +22,6 @@ pytest-cov>=4.1.0
 
 # 测试报告（Allure）
 allure-pytest>=2.13.0
+
+# MQTT 设备模拟（simulate_device.py）
+paho-mqtt>=1.6.1
