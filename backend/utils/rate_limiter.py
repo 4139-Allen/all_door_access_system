@@ -31,7 +31,10 @@ class RateLimiter:
         检查是否允许请求
         返回 True 表示允许，False 表示被限制
         """
-        # 测试环境（库名以 _test 或 _staging 结尾）自动跳过频率限制
+        # 设置 DISABLE_RATE_LIMIT=true 可完全跳过频率限制（测试/CI 环境）
+        if os.getenv("DISABLE_RATE_LIMIT", "").lower() in ("true", "1", "yes"):
+            return True
+        # 兼容旧方式：库名以 _test 或 _staging 结尾自动跳过
         db_name = os.getenv("MYSQL_DB", "")
         if db_name.endswith("_test") or db_name.endswith("_staging"):
             return True

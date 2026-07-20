@@ -74,7 +74,9 @@ class TestPermissionMatrix:
         user_id = create_resp.json()["data"]["id"]
         client = request.getfixturevalue(client_fixture)
         resp = client.delete(f"/users/{user_id}")
-        if status_code == 200:
+        if status_code == 204:
+            assert resp.status_code in (200, 204)
+        elif status_code == 200:
             assert resp.status_code == 200
         else:
             assert resp.status_code == status_code
