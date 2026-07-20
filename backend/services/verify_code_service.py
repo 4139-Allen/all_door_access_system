@@ -55,6 +55,9 @@ def verify_code(key: str, code: str) -> bool:
 
 def check_rate_limit(key: str) -> bool:
     """检查发送频率限制，返回 True 表示可以发送"""
+    import os
+    if os.getenv("DISABLE_RATE_LIMIT", "").lower() in ("true", "1", "yes"):
+        return True
     if not redis_client:
         return True
     return not redis_client.exists(f"{RATE_PREFIX}{key}")
