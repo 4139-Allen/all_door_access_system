@@ -6,6 +6,7 @@ reports/
 *.html
 *.xml
 allure-results/
+report/
 
 # Python 缓存
 __pycache__/

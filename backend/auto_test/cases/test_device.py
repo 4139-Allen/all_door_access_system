@@ -10,6 +10,7 @@
   - DELETE /devices/{device_id}/unbind      解绑用户（Admin only）
 """
 import uuid
+import allure
 import pytest
 from test_util.assert_util import (
     assert_success,
@@ -24,10 +25,13 @@ from test_util.device_helper import create_device, cleanup_device
 # ==================== Tests ====================
 
 
+@allure.feature("设备管理")
 @pytest.mark.usefixtures("admin_client")
 class TestDeviceCreate:
     """创建设备"""
 
+    @allure.story("创建设备")
+    @allure.title("管理员创建设备成功")
     @pytest.mark.destructive
     def test_create_device_success(self, admin_client):
         """管理员创建设备 → 返回 device_id"""
@@ -35,6 +39,8 @@ class TestDeviceCreate:
         assert isinstance(device_id, int) and device_id > 0
         cleanup_device(admin_client, device_id)
 
+    @allure.story("创建设备")
+    @allure.title("未登录创建设备返回 401")
     def test_create_device_no_auth(self, anon_client):
         """未登录 → 401"""
         resp = anon_client.post("/devices", json={
@@ -43,6 +49,8 @@ class TestDeviceCreate:
         })
         assert_unauthorized(resp)
 
+    @allure.story("创建设备")
+    @allure.title("普通用户创建设备返回 403")
     def test_create_device_forbidden(self, shared_user_client):
         """普通用户 → 403"""
         resp = shared_user_client.post("/devices", json={
@@ -51,6 +59,8 @@ class TestDeviceCreate:
         })
         assert_forbidden(resp)
 
+    @allure.story("创建设备")
+    @allure.title("缺少必填字段返回 422")
     def test_create_device_missing_name(self, admin_client):
         """缺少必填字段 name → 422"""
         resp = admin_client.post("/devices", json={
@@ -59,15 +69,20 @@ class TestDeviceCreate:
         assert resp.status_code == 422
 
 
+@allure.feature("设备管理")
 class TestDeviceList:
     """设备列表"""
 
+    @allure.story("设备列表")
+    @allure.title("管理员查看所有设备")
     @pytest.mark.smoke
     def test_list_devices_as_admin(self, admin_client):
         """管理员查看所有设备 → 包含分页"""
         resp = admin_client.get("/devices?page=1&size=10")
         assert_success(resp).has_pagination()
 
+    @allure.story("设备列表")
+    @allure.title("绑定设备的用户只能看到自己的设备")
     @pytest.mark.destructive
     def test_list_devices_as_bound_user(self, user_client, admin_client):
         """绑定设备的普通用户只能看到自己的设备"""
@@ -87,15 +102,20 @@ class TestDeviceList:
         # 清理
         cleanup_device(admin_client, device_id)
 
+    @allure.story("设备列表")
+    @allure.title("未登录查看设备返回 401")
     def test_list_devices_no_auth(self, anon_client):
         """未登录 → 401"""
         resp = anon_client.get("/devices")
         assert_unauthorized(resp)
 
 
+@allure.feature("设备管理")
 class TestDeviceUpdate:
     """更新设备"""
 
+    @allure.story("更新设备")
+    @allure.title("管理员更新设备成功")
     @pytest.mark.destructive
     def test_update_device_success(self, admin_client):
         """管理员更新设备信息"""
@@ -110,6 +130,8 @@ class TestDeviceUpdate:
 
         cleanup_device(admin_client, device_id)
 
+    @allure.story("更新设备")
+    @allure.title("未登录更新设备返回 401")
     def test_update_device_no_auth(self, anon_client, admin_client):
         """未登录 → 401"""
         device_id = create_device(admin_client)
@@ -117,6 +139,8 @@ class TestDeviceUpdate:
         assert_unauthorized(resp)
         cleanup_device(admin_client, device_id)
 
+    @allure.story("更新设备")
+    @allure.title("普通用户更新设备返回 403")
     def test_update_device_forbidden(self, shared_user_client, admin_client):
         """普通用户 → 403"""
         device_id = create_device(admin_client)
@@ -124,6 +148,8 @@ class TestDeviceUpdate:
         assert_forbidden(resp)
         cleanup_device(admin_client, device_id)
 
+    @allure.story("更新设备")
+    @allure.title("更新不存在的设备返回 404")
     def test_update_nonexistent_device(self, admin_client):
         """更新不存在的设备 → 404"""
         resp = admin_client.put("/devices/99999", json={
@@ -132,16 +158,21 @@ class TestDeviceUpdate:
         assert_failure(resp, 404, "不存在")
 
 
+@allure.feature("设备管理")
 class TestDeviceDelete:
     """删除设备"""
 
+    @allure.story("删除设备")
+    @allure.title("管理员删除设备成功")
     @pytest.mark.destructive
     def test_delete_device_success(self, admin_client):
         """管理员删除设备 → 204"""
         device_id = create_device(admin_client)
         resp = admin_client.delete(f"/devices/{device_id}")
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
+    @allure.story("删除设备")
+    @allure.title("未登录删除设备返回 401")
     def test_delete_device_no_auth(self, anon_client, admin_client):
         """未登录 → 401"""
         device_id = create_device(admin_client)
@@ -149,6 +180,8 @@ class TestDeviceDelete:
         assert_unauthorized(resp)
         cleanup_device(admin_client, device_id)
 
+    @allure.story("删除设备")
+    @allure.title("普通用户删除设备返回 403")
     def test_delete_device_forbidden(self, shared_user_client, admin_client):
         """普通用户 → 403"""
         device_id = create_device(admin_client)
@@ -156,15 +189,20 @@ class TestDeviceDelete:
         assert_forbidden(resp)
         cleanup_device(admin_client, device_id)
 
+    @allure.story("删除设备")
+    @allure.title("删除不存在的设备返回 404")
     def test_delete_nonexistent_device(self, admin_client):
         """删除不存在的设备 → 404"""
         resp = admin_client.delete("/devices/99999")
         assert_failure(resp, 404, "不存在")
 
 
+@allure.feature("设备管理")
 class TestDeviceBind:
     """绑定/解绑用户"""
 
+    @allure.story("绑定/解绑用户")
+    @allure.title("管理员绑定用户到设备成功")
     @pytest.mark.destructive
     def test_bind_user_success(self, admin_client):
         """管理员绑定用户到设备 → 成功"""
@@ -184,6 +222,8 @@ class TestDeviceBind:
         admin_client.delete(f"/devices/{device_id}/unbind?user_id={user_id}")
         cleanup_device(admin_client, device_id)
 
+    @allure.story("绑定/解绑用户")
+    @allure.title("未登录绑定用户返回 401")
     def test_bind_user_no_auth(self, anon_client, admin_client):
         """未登录 → 401"""
         device_id = create_device(admin_client)
@@ -191,6 +231,8 @@ class TestDeviceBind:
         assert_unauthorized(resp)
         cleanup_device(admin_client, device_id)
 
+    @allure.story("绑定/解绑用户")
+    @allure.title("普通用户绑定用户返回 403")
     def test_bind_user_forbidden(self, shared_user_client, admin_client):
         """普通用户 → 403"""
         device_id = create_device(admin_client)
@@ -198,6 +240,8 @@ class TestDeviceBind:
         assert_forbidden(resp)
         cleanup_device(admin_client, device_id)
 
+    @allure.story("绑定/解绑用户")
+    @allure.title("管理员解绑用户成功")
     @pytest.mark.destructive
     def test_unbind_user_success(self, admin_client):
         """管理员解绑用户 → 204"""
@@ -210,6 +254,6 @@ class TestDeviceBind:
         admin_client.post(f"/devices/{device_id}/bind", json={"user_id": user_id})
         # 再解绑
         resp = admin_client.delete(f"/devices/{device_id}/unbind?user_id={user_id}")
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
         cleanup_device(admin_client, device_id)

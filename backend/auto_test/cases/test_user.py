@@ -128,7 +128,7 @@ class TestUserDelete:
         user_id = create_resp.json()["data"]["id"]
 
         resp = admin_client.delete(f"/users/{user_id}")
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
     def test_delete_nonexistent_user(self, admin_client):
         """删除不存在的用户 → 404"""

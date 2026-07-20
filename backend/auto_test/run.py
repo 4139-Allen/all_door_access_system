@@ -131,8 +131,7 @@ def main():
     ]
 
     pytest_cmd.append(f"--junitxml={reports_dir / 'junit.xml'}")
-    pytest_cmd.append(f"--html={reports_dir / 'report.html'}")
-    pytest_cmd.append("--self-contained-html")
+    pytest_cmd.append(f"--alluredir={reports_dir / 'allure'}")
 
     if args.smoke_only:
         pytest_cmd.extend(["-m", "smoke"])

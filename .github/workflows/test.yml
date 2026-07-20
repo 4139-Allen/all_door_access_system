@@ -1,0 +1,89 @@
+name: API Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # 启动 MySQL 和 Redis 服务容器
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test123
+          MYSQL_DATABASE: door_access
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装依赖
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install allure-pytest
+
+      - name: 启动后端服务
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PASSWORD: test123
+          MYSQL_DB: door_access
+          REDIS_HOST: 127.0.0.1
+          SECRET_KEY: ci-test-secret-key
+        run: |
+          cd backend
+          nohup python main.py > server.log 2>&1 &
+          # 等后端 ready（最多等 30 秒）
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:8000/api/health > /dev/null 2>&1; then
+              echo "后端启动成功"
+              break
+            fi
+            echo "等待后端启动... ($i)"
+            sleep 1
+          done
+
+      - name: 运行测试
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PASSWORD: test123
+          MYSQL_DB: door_access
+          REDIS_HOST: 127.0.0.1
+          SECRET_KEY: ci-test-secret-key
+        run: |
+          cd backend/auto_test
+          pytest -v --alluredir=./report
+
+      - name: 上传 Allure 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: backend/auto_test/report
