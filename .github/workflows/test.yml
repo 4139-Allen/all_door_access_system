@@ -73,14 +73,12 @@ jobs:
       - name: 创建测试配置文件
         run: |
           mkdir -p backend/auto_test/config
-          cat > backend/auto_test/config/test_env.yaml << 'EOF'
-default_env: dev
-dev:
-  base_url: http://127.0.0.1:8000/api
-  admin:
-    username: admin
-    password: "123456"
-EOF
+          echo 'default_env: dev' > backend/auto_test/config/test_env.yaml
+          echo 'dev:' >> backend/auto_test/config/test_env.yaml
+          echo '  base_url: http://127.0.0.1:8000/api' >> backend/auto_test/config/test_env.yaml
+          echo '  admin:' >> backend/auto_test/config/test_env.yaml
+          echo '    username: admin' >> backend/auto_test/config/test_env.yaml
+          echo '    password: "123456"' >> backend/auto_test/config/test_env.yaml
 
       - name: 运行测试
         env:
