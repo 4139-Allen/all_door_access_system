@@ -22,6 +22,8 @@ from database.models.device import Device
 from database.models.door_log import DoorLog
 from services.websocket_service import manager as ws_manager
 from services.device_monitor_service import mark_device_online, is_device_known_online
+from services.device_service import invalidate_all_device_cache
+from services.stat_service import invalidate_all_stat_cache
 from utils.service_exception_handler import service_exception_handler
 from utils.logger import AppLogger
 
@@ -180,10 +182,15 @@ class MQTTManager:
                     db.commit()
                     mark_device_online(device.id, device_id)
 
-                    # 设备上线时检查锁定状态，如果 Redis 中无锁定键则发送 UNLOCK
-                    lock_key = f"door:err:lock:{device_id}"
-                    if not redis_client.exists(lock_key):
-                        self.publish_command(device_id, "UNLOCK")
+                    # 清除缓存，让前端首页和设备列表立即显示在线状态
+                    invalidate_all_device_cache()
+                    invalidate_all_stat_cache()
+
+                    # 首次上线时检查锁定状态，如果 Redis 中无锁定键则发送 UNLOCK
+                    if is_first_online:
+                        lock_key = f"door:err:lock:{device_id}"
+                        if not redis_client.exists(lock_key):
+                            self.publish_command(device_id, "UNLOCK")
 
                     # 只有首次上线才推送 WebSocket 通知
                     if is_first_online:
