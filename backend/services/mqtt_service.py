@@ -177,23 +177,22 @@ class MQTTManager:
             try:
                 device = db.query(Device).filter(Device.name == device_id).first()
                 if device:
-                    device.status = "online"
-                    device.last_online_at = datetime.now()
-                    db.commit()
+                    # 只有状态变化时才写数据库，避免每次心跳都 commit
+                    if is_first_online or device.status != "online":
+                        device.status = "online"
+                        device.last_online_at = datetime.now()
+                        db.commit()
+                        invalidate_all_device_cache()
+                        invalidate_all_stat_cache()
+                        logger.info(f"设备状态变更 [online] [{device_id}]")
+
                     mark_device_online(device.id, device_id)
 
-                    # 清除缓存，让前端首页和设备列表立即显示在线状态
-                    invalidate_all_device_cache()
-                    invalidate_all_stat_cache()
-
-                    # 首次上线时检查锁定状态，如果 Redis 中无锁定键则发送 UNLOCK
+                    # 首次上线：检查锁定状态发 UNLOCK + 推 WebSocket 通知
                     if is_first_online:
                         lock_key = f"door:err:lock:{device_id}"
                         if not redis_client.exists(lock_key):
                             self.publish_command(device_id, "UNLOCK")
-
-                    # 只有首次上线才推送 WebSocket 通知
-                    if is_first_online:
                         self._schedule_send_device_status(
                             device_id=device.id,
                             device_name=device.name,
