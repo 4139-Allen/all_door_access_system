@@ -76,14 +76,11 @@ def create_device(db: Session, data: DeviceCreate) -> Device:
     if not data.location or not data.location.strip():
         raise ValueError("设备位置不能为空")
 
-    # 检查设备是否已存在
-    exists = db.query(Device).filter(
-        Device.name == data.name,
-        Device.location == data.location
-    ).first()
+    # 检查设备名是否已存在
+    exists = db.query(Device).filter(Device.name == data.name).first()
     if exists:
         logger.warning(f"⚠️  创建设备失败 | 设备名: {data.name} | 原因: 已存在")
-        raise ValueError("该设备已存在，请勿重复添加")
+        raise ValueError(f"设备名「{data.name}」已存在")
 
     device = Device(
         name=data.name,
