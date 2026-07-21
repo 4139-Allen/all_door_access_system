@@ -69,7 +69,7 @@ def get_statistics(db: Session, user: User) -> StatisticsResult:
     today_start = get_today_start()
 
     if user_has_permission(db, user, "log.view"):
-        user_total = db.query(User).count()
+        user_total = db.query(User).filter(User.is_active == True).count()
         device_online = db.query(Device).filter(Device.status == "online").count()
         device_offline = db.query(Device).filter(Device.status != "online").count()
         today_log = db.query(DoorLog).filter(

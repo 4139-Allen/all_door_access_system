@@ -284,8 +284,8 @@ def execute_query(db: Session, user: User, target: str) -> str:
         return f"设备状态统计：总计 {total} 台，在线 {online} 台，离线 {offline} 台"
 
     if target == "user_count":
-        count = db.query(User).count()
-        return f"系统共有 {count} 个用户"
+        count = db.query(User).filter(User.is_active == True).count()
+        return f"系统共有 {count} 个活跃用户"
 
     if target == "recent_logs":
         query = db.query(
