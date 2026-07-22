@@ -196,7 +196,12 @@ def register_exception_handlers(app: FastAPI):
             msg = f"{cn_field}不能为空"
         elif err_type == "value_error":
             # 自定义 field_validator 抛出的 ValueError
-            msg = first.get("msg", f"{cn_field}格式错误")
+            # Pydantic v2 会给 msg 加上 "Value error, " 前缀，需要去掉
+            msg = first.get("msg", "")
+            if msg.startswith("Value error, "):
+                msg = msg[len("Value error, "):]
+            if not msg:
+                msg = f"{cn_field}格式错误"
         else:
             msg = first.get("msg", f"{cn_field}格式错误")
 

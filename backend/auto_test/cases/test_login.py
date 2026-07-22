@@ -104,7 +104,7 @@ class TestRegister:
             "username": f"reg_{uuid.uuid4().hex[:8]}",
             "password": "test123456",
         })
-        assert_success(resp, "注册成功")
+        assert_success(resp, "用户注册成功")
 
     @allure.story("用户注册")
     @allure.title("重复用户名返回 400")
