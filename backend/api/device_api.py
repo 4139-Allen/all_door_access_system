@@ -28,7 +28,7 @@ def create(
         current_user: User = Depends(require_permission("device.create"))
 ):
     device = create_device(db, data)
-    return success(data={"device_id": device.id}, msg="创建设备成功")
+    return success(data={"device_id": device.id}, msg="设备创建成功")
 
 
 # 获取设备列表（所有登录用户可用，service 层根据权限过滤：有 device.view 看全部，否则只看绑定的）

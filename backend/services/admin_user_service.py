@@ -87,7 +87,7 @@ def login_user(db: Session, username: str, password: str) -> dict:
 
 
 @service_exception_handler
-def db_create_user(db: Session, username: str, password: str = None, role: str = "user", phone: str = None, email: str = None) -> User:
+def db_create_user(db: Session, username: str, password: str = None, role: str = "user", phone: str = None, email: str = None, action: str = "创建") -> User:
     """
     创建新用户
 
@@ -98,6 +98,7 @@ def db_create_user(db: Session, username: str, password: str = None, role: str =
         role: 角色，默认为 user
         phone: 手机号（可选）
         email: 邮箱（可选）
+        action: 操作类型日志前缀，管理员调用为"创建"，用户注册调用为"注册"
 
     返回:
         User: 创建的用户对象
@@ -108,7 +109,7 @@ def db_create_user(db: Session, username: str, password: str = None, role: str =
     username = username.strip()
     existing_user = db.query(User).filter(User.username == username).first()
     if existing_user:
-        logger.warning(f"⚠️  创建用户失败 | 用户名: {username} | 原因: 已存在")
+        logger.warning(f"⚠️  {action}用户失败 | 用户名: {username} | 原因: 已存在")
         raise ValueError(f"用户名 '{username}' 已存在")
 
     if phone:
@@ -129,7 +130,7 @@ def db_create_user(db: Session, username: str, password: str = None, role: str =
     invalidate_all_stat_cache()
     _invalidate_user_list_cache()
 
-    logger.info(f"👤 创建用户成功 | 用户名: {username} | 角色: {role} | 用户ID: {user.id}")
+    logger.info(f"👤 {action}用户成功 | 用户名: {username} | 角色: {role} | 用户ID: {user.id}")
     return user
 
 
