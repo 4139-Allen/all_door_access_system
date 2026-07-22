@@ -13,7 +13,7 @@
     - code  始终存在，200=成功，非200=错误码
     - msg   始终存在，描述业务语义
     - data  始终存在，成功时为业务数据，失败时为 None
-    - 翻页列表统一使用 {"list": [...], "total": N} 格式
+    - 翻页列表统一使用 {"total": N, "list": [...]} 格式
 """
 from pydantic import BaseModel
 from typing import Any, Optional

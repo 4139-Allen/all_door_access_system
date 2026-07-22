@@ -53,6 +53,6 @@ def get_logs(
     )
 
     return success(
-        data={"list": log_list, "total": total},
+        data={"total": total, "list": log_list},
         msg="获取日志成功"
     )
