@@ -38,7 +38,7 @@ def create_new_user(
         current_user: User = Depends(require_permission("user.manage"))
 ):
     user = db_create_user(db, data.username, data.password, role=data.role)
-    return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="创建成功")
+    return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="用户创建成功")
 
 
 @router.put("/users/{user_id}/role", summary="修改用户角色")
