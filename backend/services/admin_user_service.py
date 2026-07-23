@@ -57,18 +57,41 @@ def _invalidate_user_list_cache():
         logger.warning(f"清除用户列表缓存失败: {e}")
 
 
-@service_exception_handler
-def login_user(db: Session, username: str, password: str) -> dict:
+def _resolve_user_by_credential(db: Session, credential: str):
     """
-    用户登录
+    根据凭据自动识别类型并查找用户
+
+    优先按类型查对应字段，未命中时降级按用户名查找（兼容用户名为纯数字的场景）
+    """
+    credential = credential.strip()
+    # 手机号 → 查 phone 字段
+    if re.match(r'^1[3-9]\d{9}$', credential):
+        user = db.query(User).filter(User.phone == credential).first()
+        if user:
+            return user
+        # 没查到则当用户名处理
+    # 邮箱 → 查 email 字段
+    elif '@' in credential:
+        user = db.query(User).filter(User.email == credential).first()
+        if user:
+            return user
+        # 没查到则当用户名处理
+    # 默认按用户名查
+    return db.query(User).filter(User.username == credential).first()
+
+
+@service_exception_handler
+def login_user(db: Session, credential: str, password: str) -> dict:
+    """
+    统一密码登录（自动识别手机号/邮箱/用户名）
 
     返回:
         dict: {"token", "role", "username", "avatar"}
 
     异常:
-        ValueError: 用户不存在或密码错误
+        ValueError: 用户不存在/密码错误/未设置密码
     """
-    user = db.query(User).filter(User.username == username).first()
+    user = _resolve_user_by_credential(db, credential)
 
     if not user:
         raise ValueError("用户不存在")
@@ -77,12 +100,12 @@ def login_user(db: Session, username: str, password: str) -> dict:
         raise ValueError("账号已被停用")
 
     if not user.password:
-        raise ValueError("该账号未设置密码，请使用手机号登录")
+        raise ValueError("该账号未设置密码，请使用验证码登录")
 
     if not verify_password(password, user.password):
         raise ValueError("密码错误")
 
-    logger.info(f"用户登录成功 | 用户名: {username} | 用户ID: {user.id}")
+    logger.info(f"用户登录成功 | 用户名: {user.username} | 用户ID: {user.id}")
     return build_login_response(user, db=db)
 
 
@@ -561,55 +584,48 @@ def reset_user_password(db: Session, phone: str, new_password: str) -> bool:
 
 
 @service_exception_handler
-def login_by_phone_service(db: Session, phone: str, code: str) -> dict:
+def login_by_code_service(db: Session, credential: str, code: str) -> dict:
     """
-    手机号验证码登录（未注册自动创建）
+    统一验证码登录（自动识别手机号/邮箱，用户名不支持验证码）
+
+    未注册的手机号/邮箱会自动创建账号。
 
     返回:
         dict: {"token", "role", "username", "avatar"}
 
     异常:
-        ValueError: 验证码错误
+        ValueError: 验证码错误 / 用户名不支持验证码
     """
-    from services.verify_code_service import check_sms_code
+    from services.verify_code_service import check_sms_code, verify_code
 
-    if not check_sms_code(phone, code):
-        raise ValueError("验证码错误或已过期")
+    credential = credential.strip()
 
-    user = db.query(User).filter(User.phone == phone).first()
-    if not user:
-        user = db_create_user(db, username=phone, password=None, role="user", phone=phone)
-        logger.info(f"手机号自动注册: {phone}, 用户ID: {user.id}")
-    elif not user.is_active:
-        raise ValueError("该账号已被停用")
+    # 手机号 → 短信验证码
+    if re.match(r'^1[3-9]\d{9}$', credential):
+        if not check_sms_code(credential, code):
+            raise ValueError("验证码错误或已过期")
+        user = db.query(User).filter(User.phone == credential).first()
+        if not user:
+            user = db_create_user(db, username=credential, password=None, role="user", phone=credential)
+            logger.info(f"手机号自动注册: {credential}, 用户ID: {user.id}")
+        elif not user.is_active:
+            raise ValueError("该账号已被停用")
+        return build_login_response(user, db=db)
 
-    return build_login_response(user, db=db)
+    # 邮箱 → 邮箱验证码
+    if '@' in credential:
+        if not verify_code(credential, code):
+            raise ValueError("验证码错误或已过期")
+        user = db.query(User).filter(User.email == credential).first()
+        if not user:
+            user = db_create_user(db, username=credential, password=None, role="user", email=credential)
+            logger.info(f"邮箱自动注册: {credential}, 用户ID: {user.id}")
+        elif not user.is_active:
+            raise ValueError("该账号已被停用")
+        return build_login_response(user, db=db)
 
-
-@service_exception_handler
-def login_by_email_service(db: Session, email: str, code: str) -> dict:
-    """
-    邮箱验证码登录（未注册自动创建）
-
-    返回:
-        dict: {"token", "role", "username", "avatar"}
-
-    异常:
-        ValueError: 验证码错误
-    """
-    from services.verify_code_service import verify_code
-
-    if not verify_code(email, code):
-        raise ValueError("验证码错误或已过期")
-
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        user = db_create_user(db, username=email, password=None, role="user", email=email)
-        logger.info(f"邮箱自动注册: {email}, 用户ID: {user.id}")
-    elif not user.is_active:
-        raise ValueError("该账号已被停用")
-
-    return build_login_response(user, db=db)
+    # 用户名不支持验证码登录
+    raise ValueError("用户名不支持验证码登录，请使用密码登录")
 
 
 @service_exception_handler

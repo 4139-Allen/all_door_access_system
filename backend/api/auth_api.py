@@ -3,10 +3,10 @@ from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from database.db import get_db
-from schemas.user_schema import UserLogin, UserCreate, PasswordChange, ProfileUpdate, ResetPassword
+from schemas.user_schema import UserLogin, CodeLogin, UserCreate, PasswordChange, ProfileUpdate, ResetPassword
 from services.admin_user_service import (
     login_user, change_user_password, get_user_profile, update_username,
-    db_create_user, login_by_phone_service, login_by_email_service,
+    db_create_user, login_by_code_service,
     reset_user_password_service, upload_avatar_service,
 )
 from services.verify_code_service import send_verify_code_service
@@ -19,21 +19,11 @@ from database.models.user import User
 router = APIRouter(tags=["认证管理"])
 
 
-class PhoneLoginRequest(BaseModel):
-    phone: str = Field(..., min_length=11, max_length=11, description="手机号")
-    code: str = Field(..., min_length=4, max_length=8, description="验证码")
-
-
-class EmailLoginRequest(BaseModel):
-    email: str = Field(..., description="邮箱地址")
-    code: str = Field(..., min_length=4, max_length=8, description="验证码")
-
-
 class SendCodeRequest(BaseModel):
     target: str = Field(..., description="手机号或邮箱")
 
 
-@router.post("/auth/login", summary="用户登录")
+@router.post("/auth/login", summary="统一密码登录（手机号/邮箱/用户名）")
 @handle_api_exception
 def login(data: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
@@ -57,25 +47,13 @@ def send_verify_code(data: SendCodeRequest, request: Request):
     return success(msg=msg)
 
 
-@router.post("/auth/login-phone", summary="手机号登录")
+@router.post("/auth/login-code", summary="统一验证码登录（手机号/邮箱）")
 @handle_api_exception
-def login_by_phone(data: PhoneLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+def login_by_code(data: CodeLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
     login_limiter.check(client_ip)
 
-    result = login_by_phone_service(db, data.phone, data.code)
-    token = result.pop("token")
-    response.headers["Authorization"] = f"Bearer {token}"
-    return success(result, msg="登录成功")
-
-
-@router.post("/auth/login-email", summary="邮箱登录")
-@handle_api_exception
-def login_by_email(data: EmailLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
-    client_ip = request.client.host if request.client else "unknown"
-    login_limiter.check(client_ip)
-
-    result = login_by_email_service(db, data.email, data.code)
+    result = login_by_code_service(db, data.username, data.code)
     token = result.pop("token")
     response.headers["Authorization"] = f"Bearer {token}"
     return success(result, msg="登录成功")

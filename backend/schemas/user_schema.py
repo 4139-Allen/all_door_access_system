@@ -29,20 +29,21 @@ def _validate_username(v: str) -> str:
     return v
 
 
-# 前端登录时 → 必须按这个格式传参
+# 统一密码登录（自动识别手机号/邮箱/用户名）
 class UserLogin(BaseModel):
-    username: str = Field(..., description="用户名")
+    username: str = Field(..., min_length=1, max_length=100, description="手机号/邮箱/用户名")
     password: str = Field(..., description="密码")
-
-    @field_validator('username')
-    @classmethod
-    def validate_username(cls, v):
-        return _validate_username(v)
 
     @field_validator('password')
     @classmethod
     def validate_password(cls, v):
         return _validate_password(v)
+
+
+# 统一验证码登录（自动识别手机号/邮箱，用户名不支持验证码）
+class CodeLogin(BaseModel):
+    username: str = Field(..., min_length=1, max_length=100, description="手机号/邮箱")
+    code: str = Field(..., min_length=4, max_length=8, description="验证码")
 
 
 # 前端注册时 → 必须按这个格式传参
