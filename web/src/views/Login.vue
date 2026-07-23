@@ -26,11 +26,6 @@
             </el-form-item>
 
             <!-- 密码/验证码方式选择 -->
-            <div class="auth-mode-switch">
-              <a :class="{ 'active-link': authMode === 'password' }" @click="switchTo('password')">密码登录</a>
-              <span class="switch-divider">|</span>
-              <a :class="{ 'active-link': authMode === 'code' }" @click="switchTo('code')">验证码登录</a>
-            </div>
 
             <!-- 密码模式 -->
             <template v-if="authMode === 'password'">
@@ -70,6 +65,11 @@
             <el-button type="primary" class="submit-btn" :loading="loginLoading" native-type="submit">登录</el-button>
 
             <div class="login-footer">
+              <span class="footer-switch">
+                <a :class="{ 'active-link': authMode === 'password' }" @click="switchTo('password')">密码登录</a>
+                <span class="switch-divider">|</span>
+                <a :class="{ 'active-link': authMode === 'code' }" @click="switchTo('code')">验证码登录</a>
+              </span>
               <a class="forgot-link" @click="showForgotDialog = true">忘记密码？</a>
             </div>
           </el-form>
@@ -199,12 +199,8 @@ const loginMode = computed(() => {
   return 'username'
 })
 
-// 切换密码/验证码模式（用户名不支持验证码）
+// 切换密码/验证码模式
 const switchTo = (mode) => {
-  if (mode === 'code' && loginMode.value === 'username') {
-    ElMessage.warning('用户名不支持验证码登录')
-    return
-  }
   authMode.value = mode
 }
 
@@ -224,7 +220,7 @@ const loginRules = computed(() => {
   return rules
 })
 
-// 由 auth-mode-switch 的链接直接控制，无需额外函数
+// 由 footer-switch 的链接直接控制
 
 // 数学验证码
 const genCaptcha = () => {
@@ -510,29 +506,14 @@ onUnmounted(() => {
 .login-form { display: flex; flex-direction: column; gap: 16px; }
 .login-form .el-form-item { margin-bottom: 0; width: 100%; }
 
-/* 密码/验证码切换 */
-.auth-mode-switch {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  align-items: center;
-}
-.auth-mode-switch a {
+.footer-switch a {
   font-size: 13px;
   color: #909399;
   cursor: pointer;
 }
-.auth-mode-switch a:hover {
-  color: #409eff;
-}
-.auth-mode-switch a.active-link {
-  color: #409eff;
-  font-weight: 500;
-}
-.switch-divider {
-  color: #dcdfe6;
-  font-size: 12px;
-}
+.footer-switch a:hover { color: #409eff; }
+.footer-switch a.active-link { color: #409eff; font-weight: 500; }
+.switch-divider { color: #dcdfe6; font-size: 12px; margin: 0 4px; }
 
 .input-wrap { width: 100%; }
 .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #c0c4cc; z-index: 1; }
@@ -573,7 +554,7 @@ onUnmounted(() => {
 .submit-btn { width: 100%; height: 44px; border-radius: 8px; font-size: 15px; font-weight: 500; margin-top: 4px; }
 .submit-btn :deep(.el-loading-spinner) .path { stroke: #fff; }
 
-.login-footer { display: flex; justify-content: flex-end; gap: 16px; margin-top: -4px; }
+.login-footer { display: flex; justify-content: space-between; align-items: center; margin-top: -4px; }
 .forgot-link { font-size: 13px; color: #409eff; cursor: pointer; }
 .forgot-link:hover { color: #66b1ff; }
 
