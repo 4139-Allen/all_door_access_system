@@ -150,7 +150,7 @@ const role = ref(localStorage.getItem('role') || '')
 const aiDialog = ref(false)
 const logsLoading = ref(false)
 
-const routePrefix = '/user'
+const routePrefix = '/app'
 
 const statLoading = ref(true)
 const stat = ref({ user_total: 0, device_online: 0, device_offline: 0, today_log: 0 })
