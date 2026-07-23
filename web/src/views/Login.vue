@@ -170,6 +170,8 @@ const router = useRouter()
 const activeTab = ref('login')
 const focusedField = ref('')
 
+// 焦点框由 CSS 的 :focus:not(:focus-visible) 控制
+
 // 切换 tab 时清除对应表单的校验状态和数据
 watch(activeTab, (tab) => {
   if (tab === 'login') {
@@ -498,13 +500,16 @@ onUnmounted(() => {
 .title { margin: 0 0 4px; font-size: 22px; font-weight: 600; color: #303133; }
 .subtitle { margin: 0; font-size: 13px; color: #909399; }
 
-.login-page :deep(*:focus) { outline: none; }
-.login-page :deep(*:focus-visible) { outline: none; }
-
 .login-tabs :deep(.el-tabs__header) { margin-bottom: 22px; }
-.login-tabs :deep(.el-tabs__item) { font-size: 13px; font-weight: 500; height: 36px; line-height: 36px; outline: none; }
-.login-tabs :deep(.el-tabs__item:focus) { outline: none; }
-.login-tabs :deep(.el-tabs__item:focus-visible) { outline: none; }
+.login-tabs :deep(.el-tabs__item) { font-size: 13px; font-weight: 500; height: 36px; line-height: 36px; }
+.login-tabs :deep(.el-tabs__item:focus:not(:focus-visible)) {
+  outline: none;
+  box-shadow: none;
+}
+.login-tabs :deep(.el-tabs__item:focus-visible) {
+  outline: 2px solid #409eff;
+  outline-offset: -2px;
+}
 .login-tabs :deep(.el-tabs__nav-wrap::after) { height: 0; }
 .login-tabs :deep(.el-tabs__active-bar) { height: 2px; }
 
