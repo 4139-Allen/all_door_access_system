@@ -13,64 +13,58 @@
         <!-- 登录 -->
         <el-tab-pane label="登录" name="login">
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form" @submit.prevent="handleLogin">
-            <!-- 账号输入 -->
-            <el-form-item prop="account">
-              <div class="input-wrap" :class="{ focus: focusedField === 'account' }">
-                <el-icon class="input-icon"><User /></el-icon>
-                <el-input v-model="loginForm.account" placeholder="用户名 / 手机号 / 邮箱" class="custom-input" @focus="focusedField = 'account'" @blur="focusedField = ''" clearable />
+            <!-- 统一凭据输入 -->
+            <el-form-item prop="username">
+              <div class="input-wrap" :class="{ focus: focusedField === 'username' }">
+                <el-icon class="input-icon">
+                  <Promotion v-if="loginMode === 'email'" />
+                  <Iphone v-else-if="loginMode === 'phone'" />
+                  <User v-else />
+                </el-icon>
+                <el-input v-model="loginForm.username" placeholder="手机号 / 邮箱 / 用户名" class="custom-input" @focus="focusedField = 'username'" @blur="focusedField = ''" clearable />
               </div>
             </el-form-item>
 
-            <!-- 密码（用户名模式 或 手机密码模式） -->
-            <el-form-item v-if="loginMode === 'username' || (loginMode === 'phone' && loginSubMode === 'password')" prop="password">
-              <div class="input-wrap" :class="{ focus: focusedField === 'pwd' }">
-                <el-icon class="input-icon"><Lock /></el-icon>
-                <el-input v-model="loginForm.password" :type="loginPwdVisible ? 'text' : 'password'" placeholder="请输入密码" class="custom-input" @focus="focusedField = 'pwd'" @blur="focusedField = ''" />
-                <el-button text class="pwd-toggle" @click="loginPwdVisible = !loginPwdVisible">
-                  <el-icon><View v-if="loginPwdVisible" /><Hide v-else /></el-icon>
-                </el-button>
-              </div>
-            </el-form-item>
-
-            <!-- 手机验证码 -->
-            <el-form-item v-if="loginMode === 'phone' && loginSubMode === 'code'" prop="code">
-              <div class="code-row">
-                <div class="input-wrap" :class="{ focus: focusedField === 'code' }">
-                  <el-icon class="input-icon"><Message /></el-icon>
-                  <el-input v-model="loginForm.code" placeholder="请输入验证码" maxlength="8" class="custom-input" @focus="focusedField = 'code'" @blur="focusedField = ''" />
+            <!-- 密码模式 -->
+            <template v-if="authMode === 'password'">
+              <el-form-item prop="password">
+                <div class="input-wrap" :class="{ focus: focusedField === 'pwd' }">
+                  <el-icon class="input-icon"><Lock /></el-icon>
+                  <el-input v-model="loginForm.password" :type="loginPwdVisible ? 'text' : 'password'" placeholder="请输入密码" class="custom-input" @focus="focusedField = 'pwd'" @blur="focusedField = ''" />
+                  <el-button text class="pwd-toggle" @click="loginPwdVisible = !loginPwdVisible">
+                    <el-icon><View v-if="loginPwdVisible" /><Hide v-else /></el-icon>
+                  </el-button>
                 </div>
-                <el-button type="primary" plain :disabled="cooldown > 0" @click="sendCode" class="code-btn">
-                  {{ cooldown > 0 ? `${cooldown}s` : '获取验证码' }}
-                </el-button>
-              </div>
-            </el-form-item>
-
-            <!-- 邮箱验证码 -->
-            <el-form-item v-if="loginMode === 'email'" prop="code">
-              <div class="code-row">
-                <div class="input-wrap" :class="{ focus: focusedField === 'code' }">
-                  <el-icon class="input-icon"><Promotion /></el-icon>
-                  <el-input v-model="loginForm.code" placeholder="请输入验证码" maxlength="8" class="custom-input" @focus="focusedField = 'code'" @blur="focusedField = ''" />
+              </el-form-item>
+              <!-- 用户名模式需要数学验证码 -->
+              <el-form-item v-if="loginMode === 'username'" prop="captcha">
+                <div class="captcha-row">
+                  <span class="captcha-question" @click="refreshCaptcha">{{ loginCaptcha.text }}</span>
+                  <el-input v-model="loginForm.captcha" placeholder="输入答案" class="captcha-input" />
                 </div>
-                <el-button type="primary" plain :disabled="cooldown > 0" @click="sendCode" class="code-btn">
-                  {{ cooldown > 0 ? `${cooldown}s` : '获取验证码' }}
-                </el-button>
-              </div>
-            </el-form-item>
+              </el-form-item>
+            </template>
 
-            <!-- 数学验证码（用户名模式） -->
-            <el-form-item v-if="loginMode === 'username'" prop="captcha">
-              <div class="captcha-row">
-                <span class="captcha-question" @click="refreshCaptcha">{{ loginCaptcha.text }}</span>
-                <el-input v-model="loginForm.captcha" placeholder="输入答案" class="captcha-input" />
-              </div>
-            </el-form-item>
+            <!-- 验证码模式（仅手机号/邮箱） -->
+            <template v-if="authMode === 'code'">
+              <el-form-item prop="code">
+                <div class="code-row">
+                  <div class="input-wrap" :class="{ focus: focusedField === 'code' }">
+                    <el-icon class="input-icon"><Message /></el-icon>
+                    <el-input v-model="loginForm.code" placeholder="请输入验证码" maxlength="8" class="custom-input" @focus="focusedField = 'code'" @blur="focusedField = ''" />
+                  </div>
+                  <el-button type="primary" plain :disabled="cooldown > 0" @click="sendCode" class="code-btn">
+                    {{ cooldown > 0 ? `${cooldown}s` : '获取验证码' }}
+                  </el-button>
+                </div>
+              </el-form-item>
+            </template>
 
             <el-button type="primary" class="submit-btn" :loading="loginLoading" native-type="submit">登录</el-button>
 
             <div class="login-footer">
-              <a v-if="loginMode === 'phone'" class="forgot-link" @click="loginSubMode = loginSubMode === 'password' ? 'code' : 'password'">
-                {{ loginSubMode === 'password' ? '验证码登录' : '密码登录' }}
+              <a v-if="canSwitchToCode" class="forgot-link" @click="switchAuthMode">
+                {{ authMode === 'password' ? '验证码登录' : '密码登录' }}
               </a>
               <a class="forgot-link" @click="showForgotDialog = true">忘记密码？</a>
             </div>
@@ -176,7 +170,8 @@ const focusedField = ref('')
 watch(activeTab, (tab) => {
   if (tab === 'login') {
     loginFormRef.value?.clearValidate()
-    loginForm.value = { account: '', password: '', code: '', captcha: '' }
+    loginForm.value = { username: '', password: '', code: '', captcha: '' }
+    authMode.value = 'password'
     refreshCaptcha()
   } else {
     registerFormRef.value?.clearValidate()
@@ -187,44 +182,51 @@ watch(activeTab, (tab) => {
 const loginLoading = ref(false)
 const loginPwdVisible = ref(false)
 const loginFormRef = ref(null)
-const loginForm = ref({ account: '', password: '', code: '', captcha: '' })
-const loginSubMode = ref('password')  // phone: 'password' | 'code'
+const loginForm = ref({ username: '', password: '', code: '', captcha: '' })
+const authMode = ref('password')      // 'password' | 'code'
 const cooldown = ref(0)
 let cooldownTimer = null
 
-// 自动识别登录模式
+// 自动识别凭据类型
 const loginMode = computed(() => {
-  const account = loginForm.value.account.trim()
-  if (/^1[3-9]\d{9}$/.test(account)) return 'phone'
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(account)) return 'email'
+  const v = loginForm.value.username.trim()
+  if (/^1[3-9]\d{9}$/.test(v)) return 'phone'
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'email'
   return 'username'
 })
 
-// 登录表单校验规则（动态）
+// 手机号/邮箱才能切换到验证码模式
+const canSwitchToCode = computed(() => {
+  return loginMode.value === 'phone' || loginMode.value === 'email'
+})
+
+// 凭据类型变为用户名时，强制切回密码模式（用户名不支持验证码）
+watch(loginMode, (mode) => {
+  if (mode === 'username' && authMode.value === 'code') {
+    authMode.value = 'password'
+  }
+})
+
+// 登录表单校验规则（按模式动态生成）
 const loginRules = computed(() => {
   const rules = {
-    account: [{ required: true, message: '请输入用户名/手机号/邮箱', trigger: 'blur' }]
+    username: [{ required: true, message: '请输入手机号/邮箱/用户名', trigger: 'blur' }]
   }
-  if (loginMode.value === 'username') {
+  if (authMode.value === 'password') {
     rules.password = [{ required: true, message: '请输入密码', trigger: 'blur' }]
-    rules.captcha = [{ required: true, message: '请输入验证码', trigger: 'blur' }]
-  } else if (loginMode.value === 'phone' && loginSubMode.value === 'password') {
-    rules.password = [{ required: true, message: '请输入密码', trigger: 'blur' }]
+    if (loginMode.value === 'username') {
+      rules.captcha = [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+    }
   } else {
     rules.code = [{ required: true, message: '请输入验证码', trigger: 'blur' }]
   }
   return rules
 })
 
-// 切换模式时清空
-watch(loginMode, (mode, oldMode) => {
-  if (mode !== oldMode) {
-    loginForm.value.password = ''
-    loginForm.value.code = ''
-    loginForm.value.captcha = ''
-    loginSubMode.value = mode === 'phone' ? 'password' : 'code'
-  }
-})
+// 切换密码/验证码模式
+const switchAuthMode = () => {
+  authMode.value = authMode.value === 'password' ? 'code' : 'password'
+}
 
 // 数学验证码
 const genCaptcha = () => {
@@ -242,13 +244,22 @@ const refreshRegCaptcha = () => { registerCaptcha.value = genCaptcha() }
 
 // 发送验证码
 const sendCode = async () => {
-  const account = loginForm.value.account.trim()
-  if (!account) {
-    ElMessage.warning('请输入手机号或邮箱')
+  const target = loginForm.value.username.trim()
+  if (!target) {
+    ElMessage.warning('请先输入手机号或邮箱')
+    return
+  }
+  const mode = loginMode.value
+  if (mode === 'phone' && !/^1[3-9]\d{9}$/.test(target)) {
+    ElMessage.warning('请输入正确的手机号')
+    return
+  }
+  if (mode === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) {
+    ElMessage.warning('请输入正确的邮箱地址')
     return
   }
   try {
-    const res = await request.post('/auth/send-code', { target: account })
+    const res = await request.post('/auth/send-code', { target })
     if (res.success) {
       ElMessage.success(res.msg || '验证码已发送')
       cooldown.value = 60
@@ -270,11 +281,11 @@ const handleLogin = async () => {
   const valid = await loginFormRef.value.validate().catch(() => false)
   if (!valid) return
 
+  const username = loginForm.value.username.trim()
   const mode = loginMode.value
-  const account = loginForm.value.account.trim()
 
-  // 用户名登录需要校验数学验证码
-  if (mode === 'username') {
+  // 用户名+密码模式需要校验数学验证码
+  if (mode === 'username' && authMode.value === 'password') {
     if (parseInt(loginForm.value.captcha) !== loginCaptcha.value.answer) {
       ElMessage.warning('验证码错误')
       refreshCaptcha()
@@ -286,14 +297,10 @@ const handleLogin = async () => {
   loginLoading.value = true
   try {
     let res
-    if (mode === 'phone' && loginSubMode.value === 'code') {
-      res = await request.post('/auth/login-phone', { phone: account, code: loginForm.value.code })
-    } else if (mode === 'phone' && loginSubMode.value === 'password') {
-      res = await request.post('/auth/login', { username: account, password: loginForm.value.password.trim() })
-    } else if (mode === 'email') {
-      res = await request.post('/auth/login-email', { email: account, code: loginForm.value.code })
+    if (authMode.value === 'code') {
+      res = await request.post('/auth/login-code', { username, code: loginForm.value.code })
     } else {
-      res = await request.post('/auth/login', { username: account, password: loginForm.value.password.trim() })
+      res = await request.post('/auth/login', { username, password: loginForm.value.password.trim() })
     }
 
     if (res.success) {
@@ -536,7 +543,7 @@ onUnmounted(() => {
 .captcha-input { flex: 1; }
 .captcha-input :deep(.el-input__wrapper) { height: 44px; border-radius: 8px; }
 
-/* 手机/邮箱验证码 */
+/* 验证码 */
 .code-row { display: flex; gap: 12px; width: 100%; }
 .code-row .input-wrap { flex: 1; }
 .code-btn { flex-shrink: 0; height: 44px; border-radius: 8px; }

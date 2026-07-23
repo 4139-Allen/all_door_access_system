@@ -121,7 +121,7 @@ const buttonText = computed(() => {
 })
 
 const buttonTooltip = computed(() => {
-  if (props.cooldown > 0) return `操作过于频繁，请等待 ${props.cooldown} 秒`
+  if (props.cooldown > 0) return `请等待 ${props.cooldown} 秒`
   if (buttonDisabled.value) {
     return props.selectedId ? '设备离线，无法开门' : '请先选择设备'
   }
