@@ -170,6 +170,7 @@ import { ref, onMounted } from 'vue'
 import * as XLSX from 'xlsx'
 import { useListFetch } from '@/composables/useListFetch'
 import request from '@/utils/request'
+import { refreshPermissions } from '@/utils/refreshPermissions'
 import { hasPermission } from '@/utils/permission'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import SearchFilter from '@/components/common/SearchFilter.vue'
@@ -351,6 +352,7 @@ const handleChangeRole = async ({ userId, newRole }) => {
     if (res.success) {
       ElMessage.success('角色修改成功')
       getUserList()
+      refreshPermissions()
     } else {
       ElMessage.error(res.msg || '修改失败')
     }
