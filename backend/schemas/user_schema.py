@@ -2,8 +2,10 @@
 from pydantic import BaseModel, Field, field_validator
 import re
 
-# 统一字符规则：字母、数字、下划线、点、中划线、@
-USER_PATTERN = re.compile(r'^[a-zA-Z0-9_.\-一-龥@]+$')
+# 用户名字符规则：字母、数字、下划线、点、中划线
+USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.\-一-龥]+$')
+# 登录凭据字符规则：同上 + @（兼容邮箱）
+CREDENTIAL_PATTERN = re.compile(r'^[a-zA-Z0-9_.\-一-龥@]+$')
 
 
 def _validate_password(v: str) -> str:
@@ -25,8 +27,8 @@ def _validate_username(v: str) -> str:
         raise ValueError('用户名不能为空')
     if len(v) > 32:
         raise ValueError('用户名长度不能超过32个字符')
-    if not USER_PATTERN.match(v):
-        raise ValueError('用户名只能包含字母、数字、下划线、点、中划线、@')
+    if not USERNAME_PATTERN.match(v):
+        raise ValueError('用户名只能包含字母、数字、下划线、点和中划线')
     return v
 
 
@@ -41,7 +43,7 @@ class UserLogin(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError('请输入手机号/邮箱/用户名')
-        if not USER_PATTERN.match(v):
+        if not CREDENTIAL_PATTERN.match(v):
             raise ValueError('只能包含字母、数字、下划线、点、中划线、@')
         return v
 
@@ -62,7 +64,7 @@ class CodeLogin(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError('请输入手机号/邮箱')
-        if not USER_PATTERN.match(v):
+        if not CREDENTIAL_PATTERN.match(v):
             raise ValueError('只能包含字母、数字、下划线、点、中划线、@')
         return v
 
