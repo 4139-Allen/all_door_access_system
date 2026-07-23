@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field, field_validator
 import re
 
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.\-一-龥]+$')
+# 登录凭据：允许用户名+手机号+邮箱的合法字符
+CREDENTIAL_PATTERN = re.compile(r'^[a-zA-Z0-9_.\-一-龥@]+$')
 
 
 def _validate_password(v: str) -> str:
@@ -34,6 +36,16 @@ class UserLogin(BaseModel):
     username: str = Field(..., min_length=1, max_length=100, description="手机号/邮箱/用户名")
     password: str = Field(..., description="密码")
 
+    @field_validator('username')
+    @classmethod
+    def validate_credential(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError('请输入手机号/邮箱/用户名')
+        if not CREDENTIAL_PATTERN.match(v):
+            raise ValueError('输入包含非法字符')
+        return v
+
     @field_validator('password')
     @classmethod
     def validate_password(cls, v):
@@ -44,6 +56,16 @@ class UserLogin(BaseModel):
 class CodeLogin(BaseModel):
     username: str = Field(..., min_length=1, max_length=100, description="手机号/邮箱")
     code: str = Field(..., min_length=4, max_length=8, description="验证码")
+
+    @field_validator('username')
+    @classmethod
+    def validate_credential(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError('请输入手机号/邮箱')
+        if not CREDENTIAL_PATTERN.match(v):
+            raise ValueError('输入包含非法字符')
+        return v
 
 
 # 前端注册时 → 必须按这个格式传参
