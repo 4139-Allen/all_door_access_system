@@ -137,7 +137,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UserFilled, Monitor, WarningFilled, Key, DataLine, List } from '@element-plus/icons-vue'
 import request from '@/utils/request'
-import { hasPermission, isAdminArea } from '@/utils/permission'
+import { hasPermission } from '@/utils/permission'
 import { getActionTagType, getShortStatus } from '@/utils/format'
 import StatCard from '@/components/Dashboard/StatCard.vue'
 import StatSkeleton from '@/components/common/StatSkeleton.vue'
@@ -150,8 +150,7 @@ const role = ref(localStorage.getItem('role') || '')
 const aiDialog = ref(false)
 const logsLoading = ref(false)
 
-// 根据权限生成路由前缀
-const routePrefix = computed(() => isAdminArea() ? '/admin' : '/user')
+const routePrefix = '/user'
 
 const statLoading = ref(true)
 const stat = ref({ user_total: 0, device_online: 0, device_offline: 0, today_log: 0 })
