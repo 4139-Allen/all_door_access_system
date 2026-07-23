@@ -287,23 +287,29 @@ def init_permissions(db: Session):
         # (code, name, module, sort)
         ("dashboard.view", "查看仪表盘", "仪表盘", 1),
         ("door.open", "远程开门", "门禁控制", 1),
-        ("door.view_own_log", "查看自己的开门记录", "门禁控制", 2),
+        ("door.view_own_log", "查看个人开门记录", "门禁控制", 2),
         ("device.view", "查看设备列表", "设备管理", 1),
         ("device.create", "创建设备", "设备管理", 2),
         ("device.edit", "编辑设备", "设备管理", 3),
         ("device.delete", "删除设备", "设备管理", 4),
         ("device.bind", "绑定/解绑用户", "设备管理", 5),
-        ("log.view", "查看门禁日志", "日志管理", 1),
+        ("log.view", "查看全部开门记录", "日志管理", 1),
         ("log.export", "导出日志", "日志管理", 2),
         ("alert.view", "查看异常事件", "异常事件", 1),
         ("alert.unlock", "解除设备锁定", "异常事件", 2),
         ("user.view", "查看用户列表", "用户管理", 1),
         ("user.manage", "管理用户", "用户管理", 2),
     ]
-    existing_codes = {p.code for p in db.query(Permission.code).all()}
+    existing = {p.code: p for p in db.query(Permission).all()}
     for code, name, module, sort in perm_data:
-        if code not in existing_codes:
+        if code not in existing:
             db.add(Permission(code=code, name=name, module=module, sort=sort))
+        else:
+            # 同步已有权限的名称/模块（允许代码定义覆盖数据库）
+            perm = existing[code]
+            if perm.name != name or perm.module != module:
+                perm.name = name
+                perm.module = module
     db.commit()
 
     # 3. 分配默认权限

@@ -124,6 +124,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Setting, Delete } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { refreshPermissions } from '@/utils/refreshPermissions'
 
 const loading = ref(false)
 const roleList = ref([])
@@ -208,6 +209,8 @@ const savePermissions = async () => {
       ElMessage.success('权限设置成功')
       permDialogVisible.value = false
       fetchRoles()
+      // 如果当前用户也被该角色影响，刷新权限缓存
+      refreshPermissions()
     } else {
       ElMessage.error(res.msg || '设置失败')
     }
