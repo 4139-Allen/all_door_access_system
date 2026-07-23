@@ -27,7 +27,7 @@ def _validate_username(v: str) -> str:
     if len(v) > 30:
         raise ValueError('用户名长度不能超过30个字符')
     if not USERNAME_PATTERN.match(v):
-        raise ValueError('用户名只能包含字母、数字、下划线、点和中划线')
+        raise ValueError('只能包含字母、数字、下划线、点、中划线、@')
     return v
 
 
@@ -43,7 +43,7 @@ class UserLogin(BaseModel):
         if not v:
             raise ValueError('请输入手机号/邮箱/用户名')
         if not CREDENTIAL_PATTERN.match(v):
-            raise ValueError('输入包含非法字符')
+            raise ValueError('只能包含字母、数字、下划线、点、中划线、@')
         return v
 
     @field_validator('password')
@@ -64,7 +64,7 @@ class CodeLogin(BaseModel):
         if not v:
             raise ValueError('请输入手机号/邮箱')
         if not CREDENTIAL_PATTERN.match(v):
-            raise ValueError('输入包含非法字符')
+            raise ValueError('只能包含字母、数字、下划线、点、中划线、@')
         return v
 
 
