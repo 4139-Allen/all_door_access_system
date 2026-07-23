@@ -25,12 +25,11 @@
               </div>
             </el-form-item>
 
-            <!-- 密码/验证码方式选择（手机号/邮箱才显示验证码选项） -->
-            <div class="auth-mode-selector" v-if="canSwitchToCode">
-              <el-radio-group v-model="authMode" class="auth-radio-group">
-                <el-radio-button value="password">密码登录</el-radio-button>
-                <el-radio-button value="code">验证码登录</el-radio-button>
-              </el-radio-group>
+            <!-- 密码/验证码方式选择 -->
+            <div class="auth-mode-switch">
+              <a :class="{ 'active-link': authMode === 'password' }" @click="switchTo('password')">密码登录</a>
+              <span class="switch-divider">|</span>
+              <a :class="{ 'active-link': authMode === 'code' }" @click="switchTo('code')">验证码登录</a>
             </div>
 
             <!-- 密码模式 -->
@@ -200,17 +199,14 @@ const loginMode = computed(() => {
   return 'username'
 })
 
-// 手机号/邮箱才能切换到验证码模式
-const canSwitchToCode = computed(() => {
-  return loginMode.value === 'phone' || loginMode.value === 'email'
-})
-
-// 凭据类型变为用户名时，强制切回密码模式（用户名不支持验证码）
-watch(loginMode, (mode) => {
-  if (mode === 'username' && authMode.value === 'code') {
-    authMode.value = 'password'
+// 切换密码/验证码模式（用户名不支持验证码）
+const switchTo = (mode) => {
+  if (mode === 'code' && loginMode.value === 'username') {
+    ElMessage.warning('用户名不支持验证码登录')
+    return
   }
-})
+  authMode.value = mode
+}
 
 // 登录表单校验规则（按模式动态生成）
 const loginRules = computed(() => {
@@ -228,8 +224,7 @@ const loginRules = computed(() => {
   return rules
 })
 
-// 切换密码/验证码模式
-// 由 auth-mode-selector 的 radio-group 直接控制，无需额外函数
+// 由 auth-mode-switch 的链接直接控制，无需额外函数
 
 // 数学验证码
 const genCaptcha = () => {
@@ -515,14 +510,28 @@ onUnmounted(() => {
 .login-form { display: flex; flex-direction: column; gap: 16px; }
 .login-form .el-form-item { margin-bottom: 0; width: 100%; }
 
-/* 密码/验证码方式选择器 */
-.auth-mode-selector {
+/* 密码/验证码切换 */
+.auth-mode-switch {
   display: flex;
   justify-content: center;
+  gap: 8px;
+  align-items: center;
 }
-.auth-radio-group :deep(.el-radio-button__inner) {
-  padding: 6px 24px;
+.auth-mode-switch a {
   font-size: 13px;
+  color: #909399;
+  cursor: pointer;
+}
+.auth-mode-switch a:hover {
+  color: #409eff;
+}
+.auth-mode-switch a.active-link {
+  color: #409eff;
+  font-weight: 500;
+}
+.switch-divider {
+  color: #dcdfe6;
+  font-size: 12px;
 }
 
 .input-wrap { width: 100%; }
