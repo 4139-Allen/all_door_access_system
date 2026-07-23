@@ -87,6 +87,53 @@
           </el-form>
         </div>
 
+        <!-- 绑定手机号 -->
+        <div class="profile-card">
+          <h3 class="card-title">绑定手机号</h3>
+          <div class="bind-row">
+            <span v-if="profile.phone" class="bind-value">{{ profile.phone }}</span>
+            <span v-else class="bind-value bind-empty">未绑定</span>
+            <el-button v-if="profile.phone" type="danger" text size="small" @click="handleUnbind('phone')">解绑</el-button>
+            <el-button type="primary" text size="small" @click="showBindDialog('phone')">
+              {{ profile.phone ? '更换' : '绑定' }}
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 绑定邮箱 -->
+        <div class="profile-card">
+          <h3 class="card-title">绑定邮箱</h3>
+          <div class="bind-row">
+            <span v-if="profile.email" class="bind-value">{{ profile.email }}</span>
+            <span v-else class="bind-value bind-empty">未绑定</span>
+            <el-button v-if="profile.email" type="danger" text size="small" @click="handleUnbind('email')">解绑</el-button>
+            <el-button type="primary" text size="small" @click="showBindDialog('email')">
+              {{ profile.email ? '更换' : '绑定' }}
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 绑定弹窗 -->
+        <el-dialog v-model="bindDialogVisible" :title="bindDialogTitle" width="400px" :close-on-click-modal="false" @close="resetBindDialog">
+          <el-form ref="bindFormRef" :model="bindForm" :rules="bindRules" label-width="0">
+            <el-form-item prop="target">
+              <el-input v-model="bindForm.target" :placeholder="bindType === 'phone' ? '请输入手机号' : '请输入邮箱地址'" :maxlength="bindType === 'phone' ? 11 : 50" />
+            </el-form-item>
+            <el-form-item prop="code">
+              <div class="code-row">
+                <el-input v-model="bindForm.code" placeholder="请输入验证码" maxlength="8" />
+                <el-button type="primary" plain :disabled="bindCooldown > 0" @click="sendBindCode">
+                  {{ bindCooldown > 0 ? `${bindCooldown}s` : '获取验证码' }}
+                </el-button>
+              </div>
+            </el-form-item>
+          </el-form>
+          <template #footer>
+            <el-button @click="bindDialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="bindLoading" @click="confirmBind">确认绑定</el-button>
+          </template>
+        </el-dialog>
+
         <!-- 修改密码 -->
         <div class="profile-card">
           <h3 class="card-title">{{ hasPassword ? '修改密码' : '设置密码' }}</h3>
@@ -134,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Camera, ZoomIn, Upload } from '@element-plus/icons-vue'
@@ -328,6 +375,125 @@ const savePassword = async () => {
   }
 }
 
+// ======== 绑定手机号/邮箱 ========
+const bindDialogVisible = ref(false)
+const bindType = ref('phone')  // 'phone' | 'email'
+const bindForm = reactive({ target: '', code: '' })
+const bindFormRef = ref(null)
+const bindLoading = ref(false)
+const bindCooldown = ref(0)
+let bindTimer = null
+
+const bindDialogTitle = computed(() => {
+  return bindType.value === 'phone' ? '绑定手机号' : '绑定邮箱'
+})
+
+const bindRules = computed(() => {
+  if (bindType.value === 'phone') {
+    return {
+      target: [
+        { required: true, message: '请输入手机号', trigger: 'blur' },
+        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+      ],
+      code: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+    }
+  }
+  return {
+    target: [
+      { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+      { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+    ],
+    code: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+  }
+})
+
+const showBindDialog = (type) => {
+  bindType.value = type
+  bindForm.target = ''
+  bindForm.code = ''
+  bindDialogVisible.value = true
+}
+
+const resetBindDialog = () => {
+  bindForm.target = ''
+  bindForm.code = ''
+  bindFormRef.value?.clearValidate()
+  clearInterval(bindTimer)
+  bindCooldown.value = 0
+}
+
+const sendBindCode = async () => {
+  const target = bindForm.target.trim()
+  if (!target) {
+    ElMessage.warning('请先输入手机号或邮箱')
+    return
+  }
+  const valid = bindType.value === 'phone'
+    ? /^1[3-9]\d{9}$/.test(target)
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)
+  if (!valid) {
+    ElMessage.warning(bindType.value === 'phone' ? '请输入正确的手机号' : '请输入正确的邮箱地址')
+    return
+  }
+  try {
+    const res = await request.post('/auth/send-code', { target })
+    if (res.success) {
+      ElMessage.success(res.msg)
+      bindCooldown.value = 60
+      bindTimer = setInterval(() => {
+        bindCooldown.value--
+        if (bindCooldown.value <= 0) clearInterval(bindTimer)
+      }, 1000)
+    } else {
+      ElMessage.error(res.msg || '发送失败')
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.msg || '发送失败')
+  }
+}
+
+const confirmBind = async () => {
+  if (!bindFormRef.value) return
+  const valid = await bindFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  bindLoading.value = true
+  try {
+    let res
+    if (bindType.value === 'phone') {
+      res = await request.put('/auth/bind-phone', { phone: bindForm.target.trim(), code: bindForm.code })
+    } else {
+      res = await request.put('/auth/bind-email', { email: bindForm.target.trim(), code: bindForm.code })
+    }
+    if (res.success) {
+      ElMessage.success(res.msg || '绑定成功')
+      bindDialogVisible.value = false
+      loadProfile()
+    } else {
+      ElMessage.error(res.msg || '绑定失败')
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.msg || '绑定失败')
+  } finally {
+    bindLoading.value = false
+  }
+}
+
+const handleUnbind = async (type) => {
+  const label = type === 'phone' ? '手机号' : '邮箱'
+  try {
+    const res = await request.delete(`/auth/bind-${type}`)
+    if (res.success) {
+      ElMessage.success(`${label}解绑成功`)
+      loadProfile()
+    } else {
+      ElMessage.error(res.msg || '解绑失败')
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.msg || '解绑失败')
+  }
+}
+
 onMounted(() => {
   loadProfile()
 })
@@ -460,6 +626,29 @@ onMounted(() => {
   font-size: 72px;
   font-weight: 600;
   color: #fff;
+}
+
+/* 绑定手机号/邮箱 */
+.bind-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bind-value {
+  font-size: 14px;
+  color: #303133;
+}
+.bind-empty {
+  color: #c0c4cc;
+}
+
+/* 绑定弹窗验证码 */
+.code-row {
+  display: flex;
+  gap: 12px;
+}
+.code-row .el-input {
+  flex: 1;
 }
 
 /* 右侧 */

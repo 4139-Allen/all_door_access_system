@@ -8,6 +8,7 @@ from services.admin_user_service import (
     login_user, change_user_password, get_user_profile, update_username,
     db_create_user, login_by_code_service,
     reset_user_password_service, upload_avatar_service,
+    bind_phone, bind_email, unbind_phone, unbind_email,
 )
 from services.verify_code_service import send_verify_code_service
 from utils.api_exception_handler import handle_api_exception
@@ -21,6 +22,16 @@ router = APIRouter(tags=["认证管理"])
 
 class SendCodeRequest(BaseModel):
     target: str = Field(..., description="手机号或邮箱")
+
+
+class BindPhoneRequest(BaseModel):
+    phone: str = Field(..., description="手机号")
+    code: str = Field(..., min_length=4, max_length=8, description="验证码")
+
+
+class BindEmailRequest(BaseModel):
+    email: str = Field(..., description="邮箱")
+    code: str = Field(..., min_length=4, max_length=8, description="验证码")
 
 
 @router.post("/auth/login", summary="统一密码登录（手机号/邮箱/用户名）")
@@ -133,3 +144,45 @@ async def upload_avatar(
     contents = await file.read()
     avatar_url = upload_avatar_service(db, current_user, contents, file.filename, file.content_type)
     return success({"avatar": avatar_url}, msg="头像上传成功")
+
+
+@router.put("/auth/bind-phone", summary="绑定手机号")
+@handle_api_exception
+def bind_user_phone(
+        data: BindPhoneRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user_obj)
+):
+    bind_phone(db, current_user, data.phone, data.code)
+    return success(msg="手机号绑定成功")
+
+
+@router.put("/auth/bind-email", summary="绑定邮箱")
+@handle_api_exception
+def bind_user_email(
+        data: BindEmailRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user_obj)
+):
+    bind_email(db, current_user, data.email, data.code)
+    return success(msg="邮箱绑定成功")
+
+
+@router.delete("/auth/bind-phone", summary="解绑手机号")
+@handle_api_exception
+def unbind_user_phone(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user_obj)
+):
+    unbind_phone(db, current_user)
+    return success(msg="手机号解绑成功")
+
+
+@router.delete("/auth/bind-email", summary="解绑邮箱")
+@handle_api_exception
+def unbind_user_email(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user_obj)
+):
+    unbind_email(db, current_user)
+    return success(msg="邮箱解绑成功")
