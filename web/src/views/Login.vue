@@ -164,7 +164,6 @@ import { ElMessage } from 'element-plus'
 import { User, Lock, View, Hide, Iphone, Message, Promotion } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { initWebSocket } from '@/services/websocket'
-import { isAdminArea } from '@/utils/permission'
 
 const router = useRouter()
 const activeTab = ref('login')
@@ -466,7 +465,7 @@ const handleLoginSuccess = (data, token) => {
   localStorage.setItem('permissions', JSON.stringify(data.permissions || []))
   initWebSocket()
   ElMessage.success('登录成功')
-  router.push(isAdminArea() ? '/admin/dashboard' : '/user/dashboard')
+  router.push('/app/dashboard')
 }
 
 onUnmounted(() => {

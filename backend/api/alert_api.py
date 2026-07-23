@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from utils.auth import require_permission
+from utils.auth import RequirePermission
 from database.db import get_db
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
@@ -26,7 +26,7 @@ def get_alerts(
     start_time: Optional[str] = Query(None, description="开始时间"),
     end_time: Optional[str] = Query(None, description="结束时间"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("alert.view"))
+    current_user: User = Depends(RequirePermission("alert.view"))
 ):
     """获取异常事件列表（设备锁定、开门失败等）"""
     total, result = get_alert_list(
@@ -47,7 +47,7 @@ def get_alerts(
 def get_alert_stats_api(
     hours: int = Query(24, ge=1, le=720, description="统计时间范围（小时）"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("alert.view"))
+    current_user: User = Depends(RequirePermission("alert.view"))
 ):
     """获取异常事件统计数据"""
     result = get_alert_stats(db=db, hours=hours)
@@ -59,7 +59,7 @@ def get_alert_stats_api(
 def unlock_device_api(
     device_name: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("alert.unlock"))
+    current_user: User = Depends(RequirePermission("alert.unlock"))
 ):
     """解除设备密码锁定"""
     msg = unlock_device(db=db, device_name=device_name)

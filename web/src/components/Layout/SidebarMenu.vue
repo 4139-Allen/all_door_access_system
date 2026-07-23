@@ -93,7 +93,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowRight, Lock, HomeFilled, Key, DataLine, UserFilled, List, Setting, Warning } from '@element-plus/icons-vue'
-import { hasPermission, isAdminArea } from '@/utils/permission'
+import { hasPermission } from '@/utils/permission'
 
 defineProps({ role: String })
 const emit = defineEmits(['navigate'])
@@ -114,8 +114,8 @@ const onAvatarUpdated = () => {
 }
 onMounted(() => window.addEventListener('avatar-updated', onAvatarUpdated))
 onUnmounted(() => window.removeEventListener('avatar-updated', onAvatarUpdated))
-// 根据权限生成正确的路由前缀（有管理权限走 /admin，否则走 /user）
-const routePrefix = computed(() => isAdminArea() ? '/admin' : '/user')
+// 统一 /app 路由前缀（单路由树，根据权限控制菜单显隐）
+const routePrefix = '/app'
 const activeRoute = computed(() => route.path)
 </script>
 

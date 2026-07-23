@@ -16,6 +16,7 @@ from core.response_schema import success, error
 from utils.auth import logout_token, get_current_user_obj, security
 from utils.rate_limiter import login_limiter
 from database.models.user import User
+from services.permission_service import get_user_permission_codes, invalidate_user_perm_cache
 
 router = APIRouter(tags=["认证管理"])
 
@@ -121,6 +122,18 @@ def get_profile(
     current_user: User = Depends(get_current_user_obj)
 ):
     return success(get_user_profile(current_user, db), msg="获取个人信息成功")
+
+
+@router.get("/auth/permissions", summary="刷新当前用户的权限列表")
+@handle_api_exception
+def refresh_own_permissions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_obj)
+):
+    """清除缓存并重新查询当前用户的权限，用于管理员修改权限后前端主动刷新"""
+    invalidate_user_perm_cache(current_user.id)
+    permissions = get_user_permission_codes(db, current_user.id, current_user.role)
+    return success(data={"permissions": permissions}, msg="权限刷新成功")
 
 
 @router.put("/auth/profile", summary="修改用户名")

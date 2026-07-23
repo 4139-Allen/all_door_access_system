@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 
-from utils.auth import get_current_user_obj, require_permission
+from utils.auth import get_current_user_obj, RequirePermission
 from database.db import get_db
 from services.door_service import open_door_service, query_logs
 from utils.api_exception_handler import handle_api_exception
@@ -20,7 +20,7 @@ async def door_open(
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("door.open"))
+    current_user: User = Depends(RequirePermission("door.open"))
 ):
     client_ip = request.client.host if request.client else None
     result = await open_door_service(
@@ -44,7 +44,7 @@ async def door_open(
 def get_logs(
     params: LogQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("door.view_own_log"))
+    current_user: User = Depends(RequirePermission("door.view_own_log"))
 ):
     total, log_list = query_logs(
         db=db,

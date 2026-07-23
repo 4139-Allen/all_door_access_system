@@ -27,7 +27,7 @@
             <el-icon :size="20"><Fold /></el-icon>
           </el-button>
           <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/admin/dashboard' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/app/dashboard' }">首页</el-breadcrumb-item>
             <el-breadcrumb-item>{{ currentPageName }}</el-breadcrumb-item>
           </el-breadcrumb>
         </div>
@@ -83,19 +83,16 @@ router.afterEach(() => {
 })
 
 const pageNames = {
-  '/admin/dashboard': '仪表盘',
-  '/admin/door': '用户开门',
-  '/admin/statistics': '数据统计',
-  '/admin/profile': '个人中心',
-  '/admin/user': '用户管理',
-  '/admin/device': '设备管理',
-  '/admin/log': '门禁日志',
-  '/user/dashboard': '仪表盘',
-  '/user/door': '用户开门',
-  '/user/statistics': '数据统计',
-  '/user/profile': '个人中心',
+  '/app/dashboard': '仪表盘',
+  '/app/door': '用户开门',
+  '/app/statistics': '数据统计',
+  '/app/profile': '个人中心',
+  '/app/user': '用户管理',
+  '/app/device': '设备管理',
+  '/app/log': '门禁日志',
+  '/app/alert': '异常事件',
+  '/app/roles': '权限管理',
 }
-// operator 复用 admin 路由，pageNames 已覆盖
 
 const currentPageName = computed(() => pageNames[route.path] || '')
 

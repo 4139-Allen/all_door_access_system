@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Path, Body, Query
 from sqlalchemy.orm import Session
 from database.db import get_db
-from utils.auth import require_permission
+from utils.auth import RequirePermission
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
 from schemas.device_schema import DeviceCreate, DeviceUpdate, BindUserDevice
@@ -25,7 +25,7 @@ router = APIRouter(tags=["【超级管理员】设备管理"])
 def create(
         data: DeviceCreate,
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("device.create"))
+        current_user: User = Depends(RequirePermission("device.create"))
 ):
     device = create_device(db, data)
     return success(data={"device_id": device.id}, msg="设备创建成功")
@@ -39,7 +39,7 @@ def get_device_list_endpoint(
     size: int = Query(10, description="每页条数"),
     name: Optional[str] = Query(None, description="设备名称模糊搜索"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("device.view", "door.open"))
+    current_user: User = Depends(RequirePermission("device.view", "door.open"))
 ):
     device_data = get_device_list(
         db=db,
@@ -60,7 +60,7 @@ def update(
         device_id: int = Path(...),
         data: DeviceUpdate = Body(...),
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("device.edit"))
+        current_user: User = Depends(RequirePermission("device.edit"))
 ):
     update_device(db, device_id, data)
     return success(msg="更新成功")
@@ -72,7 +72,7 @@ def update(
 def delete_device_endpoint(
         device_id: int,
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("device.delete"))
+        current_user: User = Depends(RequirePermission("device.delete"))
 ):
     delete_device(db, device_id)
     return success(msg="删除成功")
@@ -85,7 +85,7 @@ def admin_bind_device(
         device_id: int = Path(..., description="设备ID"),
         data: BindUserDevice = Body(...),
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("device.bind"))
+        current_user: User = Depends(RequirePermission("device.bind"))
 ):
     bind_user_device(db, data.user_id, device_id, operator_id=current_user.id)
     return success(msg="绑定成功")
@@ -98,7 +98,7 @@ def unbind_user_device_endpoint(
         device_id: int = Path(..., description="设备ID"),
         user_id: int = Query(..., description="用户ID"),
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("device.bind"))
+        current_user: User = Depends(RequirePermission("device.bind"))
 ):
     unbind_user_device(db, user_id, device_id, operator_id=current_user.id)
     return success(msg="解绑成功")

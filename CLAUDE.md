@@ -217,10 +217,20 @@ Just configure your log collector to read `logs/app.log` line by line.
 ## API Endpoints
 
 ### Authentication
-- `POST /auth/login` - User login with username/password
+- `POST /auth/login` - Unified password login ({username: 手机号/邮箱/用户名, password})
+- `POST /auth/login-code` - Verification code login ({username: 手机号/邮箱, code}), auto-register if not exists
+- `POST /auth/send-code` - Send verification code ({target: 手机号/邮箱}), auto-detect type
 - `POST /auth/register` - User registration (creates regular user)
 - `POST /auth/logout` - Logout and invalidate token
 - `PUT /auth/password` - Change current user's password
+- `POST /auth/reset-password` - Reset password via phone + verification code
+- `GET /auth/profile` - Get personal profile (includes username, phone, email, role, avatar)
+- `PUT /auth/profile` - Modify username
+- `PUT /auth/avatar` - Upload avatar
+- `PUT /auth/bind-phone` - Bind phone number ({phone, code}), requires verification code
+- `PUT /auth/bind-email` - Bind email ({email, code}), requires verification code
+- `DELETE /auth/bind-phone` - Unbind phone number
+- `DELETE /auth/bind-email` - Unbind email
 - `POST /auth/wx-login` - WeChat Mini Program login (code → JWT)
 - `PUT /auth/wx-bind` - Bind existing account to WeChat
 
