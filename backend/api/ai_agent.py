@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database.db import get_db
-from utils.auth import get_current_user_obj, require_permission
+from utils.auth import get_current_user_obj, RequirePermission
 from database.models.user import User
 from services.ai_agent_service import process_ai_chat_command
 from utils.api_exception_handler import handle_api_exception
@@ -20,7 +20,7 @@ class ChatRequest(BaseModel):
 def ai_chat(
         req: ChatRequest,
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("door.open", "device.view"))
+        current_user: User = Depends(RequirePermission("door.open", "device.view"))
 ):
     """
     AI 智能开门接口

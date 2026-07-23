@@ -109,19 +109,24 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 | 方法 | 路径 | 描述 | 权限 | 限流 |
 |------|------|------|------|------|
-| POST | `/auth/login` | 用户登录（用户名+密码） | 公开 | 5 次/60s |
-| POST | `/auth/register` | 用户注册（创建普通用户） | 公开 | 5 次/60s |
+| POST | `/auth/login` | 统一密码登录（手机号/邮箱/用户名） | 公开 | 5 次/60s |
+| POST | `/auth/login-code` | 统一验证码登录（手机号/邮箱） | 公开 | 5 次/60s |
 | POST | `/auth/send-code` | 发送验证码（手机号或邮箱） | 公开 | 5 次/60s |
-| POST | `/auth/login-phone` | 手机号+验证码登录 | 公开 | 5 次/60s |
-| POST | `/auth/login-email` | 邮箱+验证码登录 | 公开 | 5 次/60s |
+| POST | `/auth/register` | 用户注册（创建普通用户） | 公开 | 5 次/60s |
 | POST | `/auth/logout` | 退出登录（Token 加入黑名单） | 已认证 | - |
 | PUT | `/auth/password` | 修改当前用户密码 | 已认证 | - |
 | POST | `/auth/reset-password` | 忘记密码（手机号+验证码重置） | 公开 | 5 次/60s |
-| GET | `/auth/profile` | 获取个人信息 | 已认证 | - |
+| GET | `/auth/profile` | 获取个人信息（含手机号/邮箱） | 已认证 | - |
 | PUT | `/auth/profile` | 修改用户名 | 已认证 | - |
 | PUT | `/auth/avatar` | 上传头像 | 已认证 | - |
+| PUT | `/auth/bind-phone` | 绑定手机号（需验证码） | 已认证 | - |
+| PUT | `/auth/bind-email` | 绑定邮箱（需验证码） | 已认证 | - |
+| DELETE | `/auth/bind-phone` | 解绑手机号 | 已认证 | - |
+| DELETE | `/auth/bind-email` | 解绑邮箱 | 已认证 | - |
 
-### POST /auth/login — 用户登录
+### POST /auth/login — 统一密码登录
+
+> `username` 支持手机号、邮箱或用户名，后端自动识别。
 
 ```json
 {
@@ -144,12 +149,22 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
     "avatar": "/uploads/avatars/xxx.jpg",
     "permissions": ["dashboard.view", "door.open", "device.view", ...]
   }
-    "role_name": "超级管理员",
-    "username": "admin",
-    "avatar": "/uploads/avatars/xxx.jpg",
-    "permissions": ["dashboard.view", "door.open", "device.view", ...]
-  }
 }
+```
+
+### POST /auth/login-code — 统一验证码登录
+
+> 自动识别手机号或邮箱，未注册的凭据自动创建账号（随机用户名）。用户名不支持验证码登录。
+
+```json
+{
+  "username": "13800138000",
+  "code": "123456"
+}
+```
+
+```json
+{"code": 200, "msg": "登录成功", "data": {同上}}
 ```
 
 ### POST /auth/register — 用户注册
@@ -158,7 +173,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 | 字段 | 规则 |
 |------|------|
-| username | 1-30 字符，支持中文、字母、数字、下划线、点、中划线 |
+| username | 1-32 字符，支持中文、字母、数字、下划线、点、中划线 |
 | password | 6-20 字符 |
 
 ```json
@@ -186,18 +201,6 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {"code": 200, "msg": "验证码已发送", "data": null}
 ```
-
-### POST /auth/login-phone / POST /auth/login-email — 验证码登录
-
-```json
-// 手机号登录
-{"phone": "13800138000", "code": "123456"}
-
-// 邮箱登录
-{"email": "user@example.com", "code": "123456"}
-```
-
-> 未注册的手机号/邮箱自动创建用户。Token 在响应头中返回。响应格式同 `/auth/login`。
 
 ### POST /auth/logout — 退出登录
 
@@ -238,6 +241,8 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
   "data": {
     "id": 1,
     "username": "admin",
+    "phone": "13800138000",
+    "email": "admin@example.com",
     "role": "admin",
     "role_name": "超级管理员",
     "avatar": "/uploads/avatars/xxx.jpg",
@@ -268,6 +273,34 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ```json
 {"code": 200, "msg": "头像上传成功", "data": {"avatar": "/uploads/avatars/1_abc123.jpg"}}
+```
+
+### PUT /auth/bind-phone — 绑定手机号
+
+> 需先获取验证码。同一手机号只能绑定一个账号。
+
+```json
+{"phone": "13800138000", "code": "123456"}
+```
+
+```json
+{"code": 200, "msg": "手机号绑定成功", "data": null}
+```
+
+### PUT /auth/bind-email — 绑定邮箱
+
+```json
+{"email": "user@example.com", "code": "123456"}
+```
+
+```json
+{"code": 200, "msg": "邮箱绑定成功", "data": null}
+```
+
+### DELETE /auth/bind-phone / DELETE /auth/bind-email — 解绑
+
+```json
+{"code": 200, "msg": "手机号解绑成功", "data": null}
 ```
 
 ---

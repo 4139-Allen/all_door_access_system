@@ -9,14 +9,13 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { isAdminArea } from '@/utils/permission'
 const router = useRouter()
 const goHome = () => {
   if (!localStorage.getItem('token')) {
     router.push('/login')
     return
   }
-  router.push(isAdminArea() ? '/admin/dashboard' : '/user/dashboard')
+  router.push('/app/dashboard')
 }
 </script>
 

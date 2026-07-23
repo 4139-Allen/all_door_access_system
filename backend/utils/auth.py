@@ -193,32 +193,31 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # 基于权限的验证
-def require_permission(*codes: str):
+class RequirePermission:
     """
-    权限验证依赖工厂
+    权限验证依赖类（替代旧的 require_permission 函数）
+
+    复用 FastAPI 的 Depends(get_db) 管理 DB session，避免手动 SessionLocal()。
 
     使用示例:
         @router.get("/devices")
-        def list_devices(current_user: User = Depends(require_permission("device.view"))):
+        def list_devices(current_user: User = Depends(RequirePermission("device.view"))):
             ...
 
         @router.delete("/devices/{id}")
-        def delete_device(current_user: User = Depends(require_permission("device.delete"))):
+        def delete_device(current_user: User = Depends(RequirePermission("device.delete"))):
             ...
     """
-    def dependency(current_user: User = Depends(get_current_user_obj)) -> User:
+
+    def __init__(self, *codes: str):
+        self.codes = codes
+
+    def __call__(self, db: Session = Depends(get_db),
+                 current_user: User = Depends(get_current_user_obj)) -> User:
         from services.permission_service import get_user_permission_codes
-        from database.db import SessionLocal
 
-        db = SessionLocal()
-        try:
-            user_permissions = get_user_permission_codes(db, current_user.id, current_user.role)
-        finally:
-            db.close()
-
-        if not any(code in user_permissions for code in codes):
+        user_permissions = get_user_permission_codes(db, current_user.id, current_user.role)
+        if not any(code in user_permissions for code in self.codes):
             raise PermissionError("无操作权限")
         return current_user
-
-    return dependency
 

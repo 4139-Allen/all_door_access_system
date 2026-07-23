@@ -1,37 +1,33 @@
 //========路由配置=========
 import { createRouter, createWebHistory } from 'vue-router'
-import { hasPermission, isAdminArea } from '@/utils/permission'
+import { hasPermission } from '@/utils/permission'
 
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: () => import('../views/Login.vue') },
-  // 管理员路由
+
+  // 旧路径兼容重定向（保留书签/链接兼容性）
+  { path: '/admin/:pathMatch(.*)*', redirect: to => '/app' + to.path.replace('/admin', '') },
+  { path: '/user/:pathMatch(.*)*', redirect: to => '/app' + to.path.replace('/user', '') },
+
+  // 统一 /app 单路由树
   {
-    path: '/admin',
+    path: '/app',
     component: () => import('../views/Layout.vue'),
-    redirect: '/admin/dashboard',
+    redirect: '/app/dashboard',
     children: [
+      // 共享页面（无需特定权限，内容按权限动态展示）
       { path: 'dashboard', component: () => import('../views/shared/Dashboard.vue') },
       { path: 'door', component: () => import('../views/shared/Door.vue') },
       { path: 'statistics', component: () => import('../views/shared/Statistics.vue') },
       { path: 'profile', component: () => import('../views/shared/Profile.vue') },
-      { path: 'user', component: () => import('../views/admin/Users.vue'), meta: { permission: 'user.view' } },
-      { path: 'device', component: () => import('../views/admin/Device.vue'), meta: { permission: 'device.view' } },
-      { path: 'log', component: () => import('../views/admin/Log.vue'), meta: { permission: ['door.view_own_log', 'log.view'] } },
-      { path: 'alert', component: () => import('../views/admin/Alert.vue'), meta: { permission: 'alert.view' } },
-      { path: 'roles', component: () => import('../views/admin/RoleManage.vue'), meta: { permission: 'user.manage' } }
-    ]
-  },
-  // 普通用户路由
-  {
-    path: '/user',
-    component: () => import('../views/Layout.vue'),
-    redirect: '/user/dashboard',
-    children: [
-      { path: 'dashboard', component: () => import('../views/shared/Dashboard.vue') },
-      { path: 'door', component: () => import('../views/shared/Door.vue') },
-      { path: 'statistics', component: () => import('../views/shared/Statistics.vue') },
-      { path: 'profile', component: () => import('../views/shared/Profile.vue') }
+
+      // 管理页面（需要特定权限）
+      { path: 'user',   component: () => import('../views/admin/Users.vue'),    meta: { permission: 'user.view' } },
+      { path: 'device', component: () => import('../views/admin/Device.vue'),  meta: { permission: 'device.view' } },
+      { path: 'log',    component: () => import('../views/admin/Log.vue'),     meta: { permission: ['door.view_own_log', 'log.view'] } },
+      { path: 'alert',  component: () => import('../views/admin/Alert.vue'),   meta: { permission: 'alert.view' } },
+      { path: 'roles',  component: () => import('../views/admin/RoleManage.vue'), meta: { permission: 'user.manage' } },
     ]
   },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue') }
@@ -44,22 +40,16 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  const role = localStorage.getItem('role')
 
+  // 未登录 → 登录页
   if (to.path !== '/login' && !token) {
     next('/login')
     return
   }
 
-  // 已登录访问登录页 → 根据权限跳转
+  // 已登录访问登录页 → 仪表盘
   if (to.path === '/login' && token) {
-    next(isAdminArea() ? '/admin/dashboard' : '/user/dashboard')
-    return
-  }
-
-  // 旧角色守卫（兼容）→ 权限不足时跳转
-  if (to.meta?.roles && !to.meta.roles.includes(role)) {
-    next(isAdminArea() ? '/admin/dashboard' : '/user/dashboard')
+    next('/app/dashboard')
     return
   }
 
@@ -68,7 +58,7 @@ router.beforeEach((to, from, next) => {
     const perm = to.meta.permission
     const allowed = Array.isArray(perm) ? perm.some(p => hasPermission(p)) : hasPermission(perm)
     if (!allowed) {
-      next('/admin/dashboard')
+      next('/app/dashboard')
       return
     }
   }

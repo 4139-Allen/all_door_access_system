@@ -13,7 +13,7 @@ from services.permission_service import (
 )
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
-from utils.auth import require_permission
+from utils.auth import RequirePermission
 
 router = APIRouter(tags=["权限管理"])
 
@@ -22,7 +22,7 @@ router = APIRouter(tags=["权限管理"])
 @handle_api_exception
 def list_permissions(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.manage")),
+    current_user: User = Depends(RequirePermission("user.manage")),
 ):
     data = get_all_permissions(db)
     return success(data, msg="获取权限列表成功")
@@ -32,7 +32,7 @@ def list_permissions(
 @handle_api_exception
 def list_roles(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.manage")),
+    current_user: User = Depends(RequirePermission("user.manage")),
 ):
     data = get_all_roles(db)
     return success(data, msg="获取角色列表成功")
@@ -43,7 +43,7 @@ def list_roles(
 def add_role(
     body: RoleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.manage")),
+    current_user: User = Depends(RequirePermission("user.manage")),
 ):
     role = create_role(db, body.name, body.code)
     return success({"id": role.id, "name": role.name, "code": role.code}, msg="创建成功")
@@ -55,7 +55,7 @@ def edit_role(
     role_id: int,
     body: RoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.manage")),
+    current_user: User = Depends(RequirePermission("user.manage")),
 ):
     update_role(db, role_id, body.name)
     return success(msg="修改成功")
@@ -66,7 +66,7 @@ def edit_role(
 def remove_role(
     role_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.manage")),
+    current_user: User = Depends(RequirePermission("user.manage")),
 ):
     delete_role(db, role_id)
     return success(msg="删除成功")
@@ -78,7 +78,7 @@ def update_role_permissions(
     role_id: int,
     body: RolePermissionUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.manage")),
+    current_user: User = Depends(RequirePermission("user.manage")),
 ):
     result = set_role_permissions(db, role_id, body.permission_ids)
     return success(result, msg="权限设置成功")

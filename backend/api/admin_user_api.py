@@ -9,7 +9,7 @@ from services.admin_user_service import (
 )
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
-from utils.auth import require_permission
+from utils.auth import RequirePermission
 from typing import Optional
 
 router = APIRouter(tags=["【超级管理员】用户管理"])
@@ -24,7 +24,7 @@ def list_users(
         role: Optional[str] = Query(None, description="角色筛选: admin/operator/user"),
         show_inactive: bool = Query(False, description="是否显示已停用用户"),
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("user.view"))
+        current_user: User = Depends(RequirePermission("user.view"))
 ):
     data = get_users_list_formatted(db, page, size, username, role, show_inactive=show_inactive)
     return success(data, msg="获取用户列表成功")
@@ -35,7 +35,7 @@ def list_users(
 def create_new_user(
         data: UserCreate,
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("user.manage"))
+        current_user: User = Depends(RequirePermission("user.manage"))
 ):
     user = db_create_user(db, data.username, data.password, role=data.role)
     return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="用户创建成功")
@@ -47,7 +47,7 @@ def change_user_role(
         user_id: int,
         data: RoleUpdate,
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("user.manage"))
+        current_user: User = Depends(RequirePermission("user.manage"))
 ):
     result = update_user_role(db, user_id, data.role, current_user)
     return success(result, msg="角色修改成功")
@@ -59,7 +59,7 @@ def change_user_role(
 async def import_users(
         file: UploadFile = File(...),
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("user.manage"))
+        current_user: User = Depends(RequirePermission("user.manage"))
 ):
     contents = await file.read()
     result = import_users_from_bytes(db, contents, file.filename)
@@ -71,7 +71,7 @@ async def import_users(
 def delete_user(
         user_id: int,
         db: Session = Depends(get_db),
-        current_user: User = Depends(require_permission("user.manage"))
+        current_user: User = Depends(RequirePermission("user.manage"))
 ):
     delete_user_by_id(db, user_id, current_user)
     return success(msg="删除成功")
@@ -82,7 +82,7 @@ def delete_user(
 def get_user_devices_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("user.view"))
+    current_user: User = Depends(RequirePermission("user.view"))
 ):
     device_list = get_user_devices(db, user_id)
     return success(data=device_list, msg="获取用户设备成功")
