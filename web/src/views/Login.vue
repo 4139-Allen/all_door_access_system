@@ -465,7 +465,7 @@ const handleLoginSuccess = (data, token) => {
   localStorage.setItem('permissions', JSON.stringify(data.permissions || []))
   initWebSocket()
   ElMessage.success('登录成功')
-  router.push('/user/dashboard')
+  router.push('/app/dashboard')
 }
 
 onUnmounted(() => {

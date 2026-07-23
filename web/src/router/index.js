@@ -8,13 +8,14 @@ const routes = [
   { path: '/login', component: () => import('../views/Login.vue') },
 
   // 旧路径兼容重定向
-  { path: '/admin/:pathMatch(.*)*', redirect: to => '/user' + to.path.replace('/admin', '') },
+  { path: '/admin/:pathMatch(.*)*', redirect: to => '/app' + to.path.replace('/admin', '') },
+  { path: '/user/:pathMatch(.*)*', redirect: to => '/app' + to.path.replace('/user', '') },
 
   // 单路由树
   {
-    path: '/user',
+    path: '/app',
     component: () => import('../views/Layout.vue'),
-    redirect: '/user/dashboard',
+    redirect: '/app/dashboard',
     children: [
       // 共享页面
       { path: 'dashboard', component: () => import('../views/shared/Dashboard.vue') },
@@ -47,7 +48,7 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.path === '/login' && token) {
-    next('/user/dashboard')
+    next('/app/dashboard')
     return
   }
 
@@ -56,7 +57,7 @@ router.beforeEach((to, from, next) => {
     const allowed = Array.isArray(perm) ? perm.some(p => hasPermission(p)) : hasPermission(perm)
     if (!allowed) {
       ElMessage.error('暂无权限访问该页面')
-      next('/user/dashboard')
+      next('/app/dashboard')
       return
     }
   }

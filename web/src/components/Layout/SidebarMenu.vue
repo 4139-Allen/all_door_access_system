@@ -115,7 +115,7 @@ const onAvatarUpdated = () => {
 onMounted(() => window.addEventListener('avatar-updated', onAvatarUpdated))
 onUnmounted(() => window.removeEventListener('avatar-updated', onAvatarUpdated))
 // 单路由树，根据权限控制菜单显隐
-const routePrefix = '/user'
+const routePrefix = '/app'
 const activeRoute = computed(() => route.path)
 </script>
 
