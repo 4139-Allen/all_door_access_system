@@ -488,6 +488,8 @@ def get_user_profile(user: User, db: Session) -> dict:
     result = {
         "id": user.id,
         "username": user.username,
+        "phone": user.phone or "",
+        "email": user.email or "",
         "role": user.role,
         "role_name": role_name,
         "avatar": user.avatar,
@@ -518,6 +520,69 @@ def update_username(db: Session, user: User, new_username: str) -> None:
     redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user.id))
 
     logger.info(f"用户修改用户名 | 用户ID: {user.id} | 新用户名: {new_username}")
+
+
+@service_exception_handler
+def bind_phone(db: Session, user: User, phone: str, code: str) -> None:
+    """绑定手机号（需验证码确认）"""
+    from services.verify_code_service import check_sms_code
+
+    if not re.match(r'^1[3-9]\d{9}$', phone):
+        raise ValueError("请输入正确的手机号")
+
+    if not check_sms_code(phone, code):
+        raise ValueError("验证码错误或已过期")
+
+    # 检查手机号是否被其他用户绑定
+    existing = db.query(User).filter(User.phone == phone, User.id != user.id).first()
+    if existing:
+        raise ValueError("该手机号已被其他账号绑定")
+
+    user.phone = phone
+    db.commit()
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user.id))
+    logger.info(f"用户绑定手机号 | 用户ID: {user.id} | 手机号: {phone}")
+
+
+@service_exception_handler
+def bind_email(db: Session, user: User, email: str, code: str) -> None:
+    """绑定邮箱（需验证码确认）"""
+    from services.verify_code_service import verify_code
+
+    if not verify_code(email, code):
+        raise ValueError("验证码错误或已过期")
+
+    # 检查邮箱是否被其他用户绑定
+    existing = db.query(User).filter(User.email == email, User.id != user.id).first()
+    if existing:
+        raise ValueError("该邮箱已被其他账号绑定")
+
+    user.email = email
+    db.commit()
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user.id))
+    logger.info(f"用户绑定邮箱 | 用户ID: {user.id} | 邮箱: {email}")
+
+
+@service_exception_handler
+def unbind_phone(db: Session, user: User) -> None:
+    """解绑手机号"""
+    if not user.phone:
+        raise ValueError("未绑定手机号")
+    user.phone = None
+    db.commit()
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user.id))
+    logger.info(f"用户解绑手机号 | 用户ID: {user.id}")
+
+
+@service_exception_handler
+def unbind_email(db: Session, user: User) -> None:
+    """解绑邮箱"""
+    if not user.email:
+        raise ValueError("未绑定邮箱")
+    user.email = None
+    db.commit()
+    redis_client.delete(USER_PROFILE_CACHE_KEY.format(user_id=user.id))
+    logger.info(f"用户解绑邮箱 | 用户ID: {user.id}")
 
 
 @service_exception_handler

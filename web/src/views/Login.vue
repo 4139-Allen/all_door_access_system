@@ -38,8 +38,8 @@
                   </el-button>
                 </div>
               </el-form-item>
-              <!-- 用户名模式需要数学验证码 -->
-              <el-form-item v-if="loginMode === 'username'" prop="captcha">
+              <!-- 密码模式需要数学验证码 -->
+              <el-form-item v-if="authMode === 'password'" prop="captcha">
                 <div class="captcha-row">
                   <span class="captcha-question" @click="refreshCaptcha">{{ loginCaptcha.text }}</span>
                   <el-input v-model="loginForm.captcha" placeholder="输入答案" class="captcha-input" />
@@ -211,9 +211,7 @@ const loginRules = computed(() => {
   }
   if (authMode.value === 'password') {
     rules.password = [{ required: true, message: '请输入密码', trigger: 'blur' }]
-    if (loginMode.value === 'username') {
-      rules.captcha = [{ required: true, message: '请输入验证码', trigger: 'blur' }]
-    }
+    rules.captcha = [{ required: true, message: '请输入验证码', trigger: 'blur' }]
   } else {
     rules.code = [{ required: true, message: '请输入验证码', trigger: 'blur' }]
   }
@@ -278,8 +276,8 @@ const handleLogin = async () => {
   const username = loginForm.value.username.trim()
   const mode = loginMode.value
 
-  // 用户名+密码模式需要校验数学验证码
-  if (mode === 'username' && authMode.value === 'password') {
+  // 密码模式需要校验数学验证码
+  if (authMode.value === 'password') {
     if (parseInt(loginForm.value.captcha) !== loginCaptcha.value.answer) {
       ElMessage.warning('验证码错误')
       refreshCaptcha()
@@ -306,7 +304,7 @@ const handleLogin = async () => {
     ElMessage.error(error.response?.data?.msg || '登录失败')
   } finally {
     loginLoading.value = false
-    if (mode === 'username') {
+    if (authMode.value === 'password') {
       refreshCaptcha()
       loginForm.value.captcha = ''
     }
@@ -500,8 +498,15 @@ onUnmounted(() => {
 .title { margin: 0 0 4px; font-size: 22px; font-weight: 600; color: #303133; }
 .subtitle { margin: 0; font-size: 13px; color: #909399; }
 
+.login-page :deep(*:focus) { outline: none; }
+.login-page :deep(*:focus-visible) { outline: none; }
+
 .login-tabs :deep(.el-tabs__header) { margin-bottom: 22px; }
-.login-tabs :deep(.el-tabs__item) { font-size: 13px; font-weight: 500; height: 36px; line-height: 36px; }
+.login-tabs :deep(.el-tabs__item) { font-size: 13px; font-weight: 500; height: 36px; line-height: 36px; outline: none; }
+.login-tabs :deep(.el-tabs__item:focus) { outline: none; }
+.login-tabs :deep(.el-tabs__item:focus-visible) { outline: none; }
+.login-tabs :deep(.el-tabs__nav-wrap::after) { height: 0; }
+.login-tabs :deep(.el-tabs__active-bar) { height: 2px; }
 
 .login-form { display: flex; flex-direction: column; gap: 16px; }
 .login-form .el-form-item { margin-bottom: 0; width: 100%; }
