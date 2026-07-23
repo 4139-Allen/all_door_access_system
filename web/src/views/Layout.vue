@@ -27,7 +27,7 @@
             <el-icon :size="20"><Fold /></el-icon>
           </el-button>
           <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/app/dashboard' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/user/dashboard' }">首页</el-breadcrumb-item>
             <el-breadcrumb-item>{{ currentPageName }}</el-breadcrumb-item>
           </el-breadcrumb>
         </div>
@@ -83,15 +83,15 @@ router.afterEach(() => {
 })
 
 const pageNames = {
-  '/app/dashboard': '仪表盘',
-  '/app/door': '用户开门',
-  '/app/statistics': '数据统计',
-  '/app/profile': '个人中心',
-  '/app/user': '用户管理',
-  '/app/device': '设备管理',
-  '/app/log': '门禁日志',
-  '/app/alert': '异常事件',
-  '/app/roles': '权限管理',
+  '/user/dashboard': '仪表盘',
+  '/user/door': '用户开门',
+  '/user/statistics': '数据统计',
+  '/user/profile': '个人中心',
+  '/user/user': '用户管理',
+  '/user/device': '设备管理',
+  '/user/log': '门禁日志',
+  '/user/alert': '异常事件',
+  '/user/roles': '权限管理',
 }
 
 const currentPageName = computed(() => pageNames[route.path] || '')

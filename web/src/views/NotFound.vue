@@ -15,7 +15,7 @@ const goHome = () => {
     router.push('/login')
     return
   }
-  router.push('/app/dashboard')
+  router.push('/user/dashboard')
 }
 </script>
 
