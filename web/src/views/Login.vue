@@ -25,6 +25,14 @@
               </div>
             </el-form-item>
 
+            <!-- 密码/验证码方式选择（手机号/邮箱才显示验证码选项） -->
+            <div class="auth-mode-selector" v-if="canSwitchToCode">
+              <el-radio-group v-model="authMode" class="auth-radio-group">
+                <el-radio-button value="password">密码登录</el-radio-button>
+                <el-radio-button value="code">验证码登录</el-radio-button>
+              </el-radio-group>
+            </div>
+
             <!-- 密码模式 -->
             <template v-if="authMode === 'password'">
               <el-form-item prop="password">
@@ -63,9 +71,6 @@
             <el-button type="primary" class="submit-btn" :loading="loginLoading" native-type="submit">登录</el-button>
 
             <div class="login-footer">
-              <a v-if="canSwitchToCode" class="forgot-link" @click="switchAuthMode">
-                {{ authMode === 'password' ? '验证码登录' : '密码登录' }}
-              </a>
               <a class="forgot-link" @click="showForgotDialog = true">忘记密码？</a>
             </div>
           </el-form>
@@ -224,9 +229,7 @@ const loginRules = computed(() => {
 })
 
 // 切换密码/验证码模式
-const switchAuthMode = () => {
-  authMode.value = authMode.value === 'password' ? 'code' : 'password'
-}
+// 由 auth-mode-selector 的 radio-group 直接控制，无需额外函数
 
 // 数学验证码
 const genCaptcha = () => {
@@ -511,6 +514,16 @@ onUnmounted(() => {
 
 .login-form { display: flex; flex-direction: column; gap: 16px; }
 .login-form .el-form-item { margin-bottom: 0; width: 100%; }
+
+/* 密码/验证码方式选择器 */
+.auth-mode-selector {
+  display: flex;
+  justify-content: center;
+}
+.auth-radio-group :deep(.el-radio-button__inner) {
+  padding: 6px 24px;
+  font-size: 13px;
+}
 
 .input-wrap { width: 100%; }
 .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #c0c4cc; z-index: 1; }
