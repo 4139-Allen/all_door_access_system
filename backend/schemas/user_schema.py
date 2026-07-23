@@ -24,8 +24,8 @@ def _validate_username(v: str) -> str:
     v = v.strip()
     if not v:
         raise ValueError('用户名不能为空')
-    if len(v) > 30:
-        raise ValueError('用户名长度不能超过30个字符')
+    if len(v) > 32:
+        raise ValueError('用户名长度不能超过32个字符')
     if not USERNAME_PATTERN.match(v):
         raise ValueError('只能包含字母、数字、下划线、点、中划线、@')
     return v
@@ -33,7 +33,7 @@ def _validate_username(v: str) -> str:
 
 # 统一密码登录（自动识别手机号/邮箱/用户名）
 class UserLogin(BaseModel):
-    username: str = Field(..., min_length=1, max_length=100, description="手机号/邮箱/用户名")
+    username: str = Field(..., min_length=1, max_length=32, description="手机号/邮箱/用户名")
     password: str = Field(..., description="密码")
 
     @field_validator('username')
@@ -54,7 +54,7 @@ class UserLogin(BaseModel):
 
 # 统一验证码登录（自动识别手机号/邮箱，用户名不支持验证码）
 class CodeLogin(BaseModel):
-    username: str = Field(..., min_length=1, max_length=100, description="手机号/邮箱")
+    username: str = Field(..., min_length=1, max_length=32, description="手机号/邮箱")
     code: str = Field(..., min_length=4, max_length=8, description="验证码")
 
     @field_validator('username')
