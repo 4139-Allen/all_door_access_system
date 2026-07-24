@@ -9,7 +9,7 @@ class LogQuery(BaseModel):
     start_time: Optional[datetime] = Field(None, description="开始时间")
     end_time: Optional[datetime] = Field(None, description="结束时间")
     page: int = Field(1, ge=1, description="页码")
-    size: int = Field(100, ge=1, le=100, description="每页数量")
+    size: int = Field(10, ge=1, le=100, description="每页数量")
 
     @field_validator("size")
     @classmethod
