@@ -36,7 +36,12 @@ async def door_open(
         action="远程开门"
     )
 
-    return success(msg=result["message"])
+    return success(data={
+        "device_id": result["device_id"],
+        "device_name": result["device_name"],
+        "location": result.get("location", ""),
+        "success": result["success"],
+    }, msg=result["message"])
 
 
 @router.get("/door-logs", summary="获取开门日志")
