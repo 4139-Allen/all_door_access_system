@@ -272,6 +272,71 @@ def query_logs(
     return total, result
 
 
+@service_exception_handler
+def export_logs(
+    db: Session,
+    params: LogQuery,
+    current_user_id: int
+) -> list[dict]:
+    """
+    导出门禁日志（不分页，用于生成 Excel）
+
+    复用 query_logs 的查询条件，跳过缓存和分页。
+    """
+    # 基础查询（与 query_logs 保持一致）
+    query = db.query(
+        DoorLog,
+        Device.name.label("device_name"),
+        Device.location.label("device_location"),
+        User.username.label("username")
+    ).outerjoin(Device, DoorLog.device_id == Device.id
+    ).outerjoin(User, DoorLog.user_id == User.id)
+
+    # 权限过滤
+    from database.models.user import User as UserModel
+    _user = db.query(UserModel).filter(UserModel.id == current_user_id).first()
+    can_view_all = _user and user_has_permission(db, _user, "log.view")
+
+    if not can_view_all:
+        query = query.filter(DoorLog.user_id == current_user_id)
+
+    # 筛选条件
+    conditions = []
+    if params.user_id and can_view_all:
+        conditions.append(DoorLog.user_id == params.user_id)
+    if params.device_name:
+        conditions.append(Device.name.contains(params.device_name))
+    if params.status:
+        conditions.append(DoorLog.status.startswith(params.status))
+    if params.start_time:
+        conditions.append(DoorLog.time >= params.start_time)
+    if params.end_time:
+        conditions.append(DoorLog.time <= params.end_time)
+    if conditions:
+        query = query.filter(and_(*conditions))
+
+    query = query.order_by(DoorLog.time.desc())
+
+    # 不分页，全部返回
+    logs = query.all()
+
+    result = []
+    for log, device_name, device_location, username in logs:
+        result.append({
+            "id": log.id,
+            "user_id": log.user_id,
+            "username": "本地" if log.user_id is None else (username or "未知用户"),
+            "device_name": device_name or "未知设备",
+            "device_location": device_location or "未知位置",
+            "action": log.action,
+            "status": log.status,
+            "ip": log.ip or "",
+            "time": str(log.time) if log.time else None
+        })
+
+    return result
+
+
 def invalidate_log_cache():
     """
     清除所有日志缓存
