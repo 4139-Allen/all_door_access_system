@@ -40,6 +40,8 @@ async def door_open(
         "device_id": result["device_id"],
         "device_name": result["device_name"],
         "location": result.get("location", ""),
+        "username": result.get("username", ""),
+        "time": result.get("time", ""),
         "success": result["success"],
     }, msg=result["message"])
 

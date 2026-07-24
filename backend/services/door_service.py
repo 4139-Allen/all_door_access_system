@@ -134,7 +134,8 @@ async def open_door_service(db: Session, user_id: int, device_id: int, ip: str =
                 "device_id": device.id,
                 "username": username,
                 "device_name": device_name,
-                "location": device.location or ""
+                "location": device.location or "",
+                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         except asyncio.TimeoutError:
             # 设备未回复
