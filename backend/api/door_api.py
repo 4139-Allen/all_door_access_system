@@ -3,11 +3,11 @@ from sqlalchemy.orm import Session
 
 from utils.auth import get_current_user_obj, RequirePermission
 from database.db import get_db
-from services.door_service import open_door_service, query_logs
+from services.door_service import open_door_service, query_logs, export_logs
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
 from database.models.user import User
-from schemas.door_schema import LogQuery
+from schemas.door_schema import LogQuery, LogExportQuery
 from services.websocket_service import manager
 
 router = APIRouter(tags=["门禁管理"])
@@ -74,4 +74,23 @@ def get_logs(
     return success(
         data={"total": total, "list": log_list},
         msg=msg
+    )
+
+
+@router.get("/door-logs/export", summary="导出门禁日志（Excel）")
+@handle_api_exception
+def export_logs_endpoint(
+    params: LogExportQuery = Depends(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("log.export"))
+):
+    log_list = export_logs(
+        db=db,
+        params=params,
+        current_user_id=current_user.id
+    )
+
+    return success(
+        data={"list": log_list},
+        msg=f"导出 {len(log_list)} 条记录"
     )

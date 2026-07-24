@@ -24,7 +24,7 @@
       />
       <el-button v-if="hasPermission('log.export')" type="success" plain :loading="exporting" @click="exportExcel">
         <el-icon><Download /></el-icon>
-        导出 Excel
+        {{ exporting ? '正在导出...' : '导出 Excel' }}
       </el-button>
     </div>
 
@@ -85,9 +85,9 @@ const {
 
 const exportExcel = async () => {
   exporting.value = true
+  const msg = ElMessage.info('正在获取数据，数据量大时请耐心等待...', { duration: 0 })
   try {
-    // 请求全部数据（不分页）
-    const params = { page: 1, size: 9999 }
+    const params = {}
     const f = filterForm.value
     if (f.user_id?.trim()) params.user_id = f.user_id.trim()
     if (f.device_name?.trim()) params.device_name = f.device_name.trim()
@@ -97,7 +97,10 @@ const exportExcel = async () => {
       params.end_time = f.time_range[1]
     }
 
-    const res = await request.get('/door-logs', { params })
+    // 导出接口单独设 60 秒超时
+    const res = await request.get('/door-logs/export', { params, timeout: 60000 })
+    msg.close()
+
     if (!res.success) {
       ElMessage.error(res.msg || '导出失败')
       return
@@ -114,11 +117,15 @@ const exportExcel = async () => {
       'IP地址': item.ip || '本地'
     }))
 
+    if (rows.length === 0) {
+      ElMessage.warning('没有符合条件的记录可导出')
+      return
+    }
+
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '开门记录')
 
-    // 设置列宽
     ws['!cols'] = [
       { wch: 6 }, { wch: 20 }, { wch: 10 },
       { wch: 12 }, { wch: 15 }, { wch: 8 },
@@ -128,9 +135,14 @@ const exportExcel = async () => {
     const now = new Date()
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
     XLSX.writeFile(wb, `门禁日志_${dateStr}.xlsx`)
-    ElMessage.success(`导出 ${rows.length} 条记录`)
+    ElMessage.success(`成功导出 ${rows.length} 条记录`)
   } catch (e) {
-    ElMessage.error('导出失败')
+    msg.close()
+    if (e.code === 'ECONNABORTED' || e.message?.includes('timeout')) {
+      ElMessage.error('导出超时，请缩小筛选范围后重试')
+    } else {
+      ElMessage.error('导出失败，请稍后重试')
+    }
   } finally {
     exporting.value = false
   }
