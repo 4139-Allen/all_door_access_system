@@ -84,9 +84,11 @@ const {
 })
 
 const exportExcel = async () => {
-  exporting.value = true
-  const msg = ElMessage.info('正在获取数据，数据量大时请耐心等待...', { duration: 0 })
+  let msg
   try {
+    exporting.value = true
+    msg = ElMessage.info('正在获取数据，数据量大时请耐心等待...', { duration: 0 })
+
     const params = {}
     const f = filterForm.value
     if (f.user_id?.trim()) params.user_id = f.user_id.trim()
@@ -97,9 +99,8 @@ const exportExcel = async () => {
       params.end_time = f.time_range[1]
     }
 
-    // 导出接口单独设 60 秒超时
     const res = await request.get('/door-logs/export', { params, timeout: 60000 })
-    msg.close()
+    if (msg) msg.close()
 
     if (!res.success) {
       ElMessage.error(res.msg || '导出失败')
@@ -137,7 +138,7 @@ const exportExcel = async () => {
     XLSX.writeFile(wb, `门禁日志_${dateStr}.xlsx`)
     ElMessage.success(`成功导出 ${rows.length} 条记录`)
   } catch (e) {
-    msg.close()
+    if (msg) msg.close()
     if (e.code === 'ECONNABORTED' || e.message?.includes('timeout')) {
       ElMessage.error('导出超时，请缩小筛选范围后重试')
     } else {
