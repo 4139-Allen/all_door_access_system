@@ -21,8 +21,6 @@
       class="sidebar-menu"
       @select="emit('navigate')"
     >
-      <div class="menu-label">导航</div>
-
       <el-menu-item :index="routePrefix + '/dashboard'">
         <el-icon><HomeFilled /></el-icon>
         <span>首页</span>
@@ -38,8 +36,13 @@
         <span>数据统计</span>
       </el-menu-item>
 
-      <template v-if="hasPermission('device.view') || hasPermission('log.view') || hasPermission('alert.view')">
+      <template v-if="hasPermission('user.view') || hasPermission('user.manage') || hasPermission('device.view') || hasPermission('log.view') || hasPermission('alert.view')">
         <div class="menu-label">管理</div>
+
+        <el-menu-item v-if="hasPermission('user.view')" :index="routePrefix + '/user'">
+          <el-icon><UserFilled /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
 
         <el-menu-item v-if="hasPermission('device.view')" :index="routePrefix + '/device'">
           <el-icon><Lock /></el-icon>
@@ -54,15 +57,6 @@
         <el-menu-item v-if="hasPermission('alert.view')" :index="routePrefix + '/alert'">
           <el-icon><Warning /></el-icon>
           <span>异常事件</span>
-        </el-menu-item>
-      </template>
-
-      <template v-if="hasPermission('user.view')">
-        <div class="menu-label">系统</div>
-
-        <el-menu-item :index="routePrefix + '/user'">
-          <el-icon><UserFilled /></el-icon>
-          <span>用户管理</span>
         </el-menu-item>
 
         <el-menu-item v-if="hasPermission('user.manage')" :index="routePrefix + '/roles'">
