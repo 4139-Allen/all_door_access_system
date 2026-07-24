@@ -79,7 +79,7 @@ def get_logs(
         msg = f"已筛选{'、'.join(filters)}，共 {total} 条"
 
     return success(
-        data={"total": total, "list": log_list},
+        data={"total": total, "page": params.page, "size": params.size, "list": log_list},
         msg=msg
     )
 

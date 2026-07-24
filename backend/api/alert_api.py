@@ -39,7 +39,7 @@ def get_alerts(
         start_time=start_time,
         end_time=end_time
     )
-    return success(data={"total": total, "list": result}, msg="获取异常事件列表成功")
+    return success(data={"total": total, "page": page, "size": size, "list": result}, msg="获取异常事件列表成功")
 
 
 @router.get("/alerts/stats", summary="获取异常事件统计")
