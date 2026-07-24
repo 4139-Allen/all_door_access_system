@@ -52,7 +52,26 @@ def get_logs(
         current_user_id=current_user.id
     )
 
+    # 根据筛选条件生成对应的消息
+    filters = []
+    if params.user_id:
+        filters.append("指定用户")
+    if params.device_name:
+        filters.append(f"设备「{params.device_name}」")
+    if params.status:
+        filters.append(f"状态「{params.status}」")
+    if params.start_time and params.end_time:
+        filters.append(f"时间范围")
+    elif params.start_time:
+        filters.append("开始时间")
+    elif params.end_time:
+        filters.append("结束时间")
+    if not filters:
+        msg = f"获取日志成功，共 {total} 条"
+    else:
+        msg = f"已筛选{'、'.join(filters)}，共 {total} 条"
+
     return success(
         data={"total": total, "list": log_list},
-        msg="获取日志成功"
+        msg=msg
     )
