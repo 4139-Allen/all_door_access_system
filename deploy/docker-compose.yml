@@ -11,6 +11,7 @@
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-123456}
       MYSQL_DATABASE: ${MYSQL_DB:-door_access_system}
+      TZ: Asia/Shanghai
     ports:
       - "127.0.0.1:3307:3306"
     volumes:
@@ -105,6 +106,8 @@
     volumes:
       - ../SSL/doorlink.top.pem:/etc/nginx/ssl/doorlink.top.pem:ro
       - ../SSL/doorlink.top.key:/etc/nginx/ssl/doorlink.top.key:ro
+    environment:
+      - TZ=Asia/Shanghai
     depends_on:
       fastapi:
         condition: service_healthy

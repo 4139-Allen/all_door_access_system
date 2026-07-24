@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, func
 
 from database.db import Base
@@ -12,7 +13,7 @@ class DoorLog(Base):
     action = Column(String(50))
     status = Column(String(50))
     ip = Column(String(50), nullable=True)  # 操作者IP，本地开门为NULL
-    time = Column(DateTime, server_default=func.now())
+    time = Column(DateTime, default=datetime.now)
 
     # 复合索引：用户 + 时间（覆盖非管理员查自己日志 + 时间排序）
     # 单列 time 索引：管理员全局时间范围查询
