@@ -16,5 +16,6 @@ class User(Base):
     openid = Column(String(100), unique=True, nullable=True)
     avatar = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, comment="账号状态：True=正常，False=已停用")
+    is_builtin = Column(Boolean, default=False, comment="是否系统内置账号（不可删除）")
     deleted_at = Column(DateTime, nullable=True, comment="停用时间")
     created_at = Column(DateTime, server_default=func.now())
