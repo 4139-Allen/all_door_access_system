@@ -39,7 +39,13 @@ def get_alerts(
         start_time=start_time,
         end_time=end_time
     )
-    return success(data={"total": total, "page": page, "size": size, "list": result}, msg="获取异常事件列表成功")
+
+    if total == 0:
+        msg = "没有异常事件记录" if not device_name and not alert_type else "没有找到符合条件的异常事件"
+    else:
+        msg = f"获取异常事件列表成功，共 {total} 条"
+
+    return success(data={"total": total, "page": page, "size": size, "list": result}, msg=msg)
 
 
 @router.get("/alerts/stats", summary="获取异常事件统计")
