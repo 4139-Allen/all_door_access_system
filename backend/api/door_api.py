@@ -64,7 +64,7 @@ def get_logs(
     if params.user_id:
         filters.append("指定用户")
     if params.device_name:
-        filters.append(f"设备「{params.device_name}」")
+        filters.append("指定设备")
     if params.status:
         filters.append(f"状态「{params.status}」")
     if params.start_time and params.end_time:
