@@ -15,6 +15,12 @@ from core.exceptions import NotFoundError, AuthError, TooManyRequestsError
 
 logger = AppLogger.get_logger()
 
+# Pydantic v2 核心校验异常（不继承 ValueError，需单独处理）
+try:
+    from pydantic_core import ValidationError as PydanticCoreValidationError
+except ImportError:
+    PydanticCoreValidationError = None
+
 
 def handle_api_exception(func):
     """
@@ -33,6 +39,16 @@ def handle_api_exception(func):
     _is_async = inspect.iscoroutinefunction(func)
 
     def _handle_exception(e, name):
+        # Pydantic 校验错误 → 转 422（model_validator 抛出的 core 错误不继承 ValueError）
+        if (PydanticCoreValidationError and isinstance(e, PydanticCoreValidationError)):
+            errors = e.errors() if hasattr(e, "errors") else [{"msg": str(e)}]
+            first = errors[0] if errors else {}
+            msg = first.get("msg", "请求参数校验失败")
+            if msg.startswith("Value error, "):
+                msg = msg[len("Value error, "):]
+            logger.warning(f"请求参数校验失败 [{name}]: {msg}")
+            return JSONResponse(status_code=422, content=error(msg, code=422))
+
         if isinstance(e, ValueError):
             logger.warning(f"业务逻辑错误 [{name}]: {str(e)}")
             return JSONResponse(status_code=400, content=error(str(e), code=400))
@@ -158,6 +174,18 @@ def register_exception_handlers(app: FastAPI):
     async def _too_many_requests_handler(request: Request, exc: TooManyRequestsError):
         logger.warning(f"请求频率过高 [{request.method} {request.url.path}]: {str(exc)}")
         return JSONResponse(status_code=429, content=error(str(exc), code=429))
+
+    # Pydantic v2 核心校验错误（model_validator 抛出，不继承 ValueError）
+    if PydanticCoreValidationError:
+        @app.exception_handler(PydanticCoreValidationError)
+        async def _pydantic_core_validation_handler(request: Request, exc: PydanticCoreValidationError):
+            errors = exc.errors() if hasattr(exc, "errors") else [{"msg": str(exc)}]
+            first = errors[0] if errors else {}
+            msg = first.get("msg", "请求参数校验失败")
+            if msg.startswith("Value error, "):
+                msg = msg[len("Value error, "):]
+            logger.warning(f"请求参数校验失败 [{request.method} {request.url.path}]: {msg}")
+            return JSONResponse(status_code=422, content=error(msg, code=422))
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error_handler(request: Request, exc: RequestValidationError):
