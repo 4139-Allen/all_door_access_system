@@ -74,7 +74,7 @@
             <el-icon><Monitor /></el-icon>
           </el-button>
         </el-tooltip>
-        <el-tooltip v-if="hasPermission('user.manage') && scope.row.role !== 'admin' && scope.row.username !== currentUsername" content="删除用户" placement="top" :show-after="300">
+        <el-tooltip v-if="hasPermission('user.manage') && !scope.row.is_builtin && scope.row.username !== currentUsername" content="删除用户" placement="top" :show-after="300">
           <el-button size="small" class="action-icon-btn action-icon-danger" @click="$emit('delete', scope.row.id)">
             <el-icon><Delete /></el-icon>
           </el-button>
