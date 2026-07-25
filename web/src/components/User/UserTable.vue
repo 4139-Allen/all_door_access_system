@@ -66,14 +66,28 @@
         </el-tag>
       </template>
     </el-table-column>
+    <el-table-column label="绑定设备" min-width="180">
+      <template #default="{ row }">
+        <div v-if="row.devices?.length" class="device-tag-list">
+          <el-tag
+            v-for="name in row.devices.slice(0, 3)"
+            :key="name"
+            size="small"
+            type="info"
+            effect="plain"
+          >
+            {{ name }}
+          </el-tag>
+          <el-tag v-if="row.devices.length > 3" size="small" type="info" effect="dark">
+            +{{ row.devices.length - 3 }}
+          </el-tag>
+        </div>
+        <span v-else class="no-device">未绑定</span>
+      </template>
+    </el-table-column>
     <el-table-column label="创建时间" prop="created_at" width="175" />
     <el-table-column label="操作" width="120" align="center">
       <template #default="scope">
-        <el-tooltip v-if="hasPermission('user.view')" content="查看设备" placement="top" :show-after="300">
-          <el-button size="small" class="action-icon-btn" @click="$emit('show-devices', scope.row.id)">
-            <el-icon><Monitor /></el-icon>
-          </el-button>
-        </el-tooltip>
         <el-tooltip v-if="hasPermission('user.manage') && !scope.row.is_builtin && scope.row.username !== currentUsername" content="删除用户" placement="top" :show-after="300">
           <el-button size="small" class="action-icon-btn action-icon-danger" @click="$emit('delete', scope.row.id)">
             <el-icon><Delete /></el-icon>
@@ -87,7 +101,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import BaseTable from '@/components/common/BaseTable.vue'
-import { Monitor, Delete, Edit } from '@element-plus/icons-vue'
+import { Delete, Edit } from '@element-plus/icons-vue'
 import { hasPermission } from '@/utils/permission'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
@@ -181,6 +195,17 @@ const confirmChangeRole = (row, newRole) => {
   border-color: #f56c6c;
   color: #f56c6c;
   background: #fef0f0;
+}
+
+.device-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.no-device {
+  color: #c0c4cc;
+  font-size: 12px;
 }
 
 .role-tag-editable {

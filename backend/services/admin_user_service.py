@@ -12,6 +12,7 @@ from database.models.user import User
 from database.models.role import Role
 from database.models.door_log import DoorLog
 from database.models.user_device import UserDevice
+from database.models.device import Device
 from utils.auth import verify_password, hash_password, build_login_response
 from typing import Optional
 from utils.logger import AppLogger
@@ -377,6 +378,18 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
     roles = db.query(Role.code, Role.name).filter(Role.code.in_(role_codes)).all()
     role_name_map = {r.code: r.name for r in roles}
 
+    # 批量查询用户绑定的设备名
+    user_ids = [u.id for u in users]
+    bindings = (
+        db.query(UserDevice.user_id, Device.name)
+        .join(Device, Device.id == UserDevice.device_id)
+        .filter(UserDevice.user_id.in_(user_ids))
+        .all()
+    )
+    device_map = {}
+    for uid, name in bindings:
+        device_map.setdefault(uid, []).append(name)
+
     result = {
         "total": total,
         "list": [{
@@ -386,6 +399,7 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
             "role_name": role_name_map.get(u.role, u.role),
             "avatar": u.avatar or "",
             "is_builtin": u.is_builtin,
+            "devices": device_map.get(u.id, []),
             "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else ""
         } for u in users]
     }
