@@ -61,8 +61,8 @@ def get_logs(
 
     # 根据筛选条件生成对应的消息
     filters = []
-    if params.user_id:
-        filters.append("指定用户")
+    if params.username:
+        filters.append("指定用户名")
     if params.device_name:
         filters.append("指定设备")
     if params.status:

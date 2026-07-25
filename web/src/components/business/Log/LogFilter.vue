@@ -3,8 +3,8 @@
     <div v-if="showUser" class="filter-item">
       <span v-if="showLabels" class="filter-label">用户</span>
       <el-input
-        v-model="filterForm.user_id"
-        placeholder="用户ID"
+        v-model="filterForm.username"
+        placeholder="用户名"
         style="width: 140px"
         clearable
         size="default"
@@ -14,7 +14,7 @@
       <span v-if="showLabels" class="filter-label">设备</span>
       <el-input
         v-model="filterForm.device_name"
-        placeholder="设备编号"
+        placeholder="设备名"
         style="width: 160px"
         clearable
         size="default"

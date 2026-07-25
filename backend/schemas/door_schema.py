@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class LogQuery(BaseModel):
-    user_id: Optional[int] = Field(None, description="用户ID（仅管理员可用）")
+    username: Optional[str] = Field(None, max_length=50, description="用户名模糊搜索")
     device_name: Optional[str] = Field(None, max_length=100, description="设备名称模糊搜索")
     status: Optional[str] = Field(None, max_length=50, description="状态筛选（支持前缀匹配，如「失败」匹配「失败：无权限」）")
     start_time: Optional[datetime] = Field(None, description="开始时间")
@@ -29,7 +29,7 @@ class LogQuery(BaseModel):
 
 class LogExportQuery(BaseModel):
     """日志导出筛选（不分页，仅筛选条件）"""
-    user_id: Optional[int] = Field(None, description="用户ID")
+    username: Optional[str] = Field(None, max_length=50, description="用户名模糊搜索")
     device_name: Optional[str] = Field(None, max_length=100, description="设备名称模糊搜索")
     status: Optional[str] = Field(None, max_length=50, description="状态筛选")
     start_time: Optional[datetime] = Field(None, description="开始时间")
