@@ -21,12 +21,6 @@ from services.permission_service import invalidate_user_perm_cache
 from schemas.user_schema import UserCreate
 
 
-def _resolve_role_id(db: Session, role_code: str) -> int | None:
-    """根据角色标识查询对应的 role.id（用于同步 user.role_id）"""
-    role = db.query(Role.id).filter(Role.code == role_code).first()
-    return role.id if role else None
-
-
 logger = AppLogger.get_logger()
 
 # ==================== 缓存配置 ====================
@@ -154,8 +148,7 @@ def db_create_user(db: Session, username: str, password: str = None, role: str =
             raise ValueError("该邮箱已被注册")
 
     hashed = hash_password(password) if password else None
-    user = User(username=username, password=hashed, role=role, phone=phone, email=email,
-                role_id=_resolve_role_id(db, role))
+    user = User(username=username, password=hashed, role=role, phone=phone, email=email)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -199,17 +192,11 @@ def bulk_create_users(db: Session, user_list: list[UserCreate]) -> dict:
             seen_in_file.add(u.username)
             users_to_create.append(u)
 
-    # 3. 批量哈希密码 + 构建对象（同时批量解析 role_id）
-    role_codes_used = {u.role for u in users_to_create}
-    role_id_map = {
-        row.code: row.id for row in
-        db.query(Role.code, Role.id).filter(Role.code.in_(role_codes_used)).all()
-    } if role_codes_used else {}
+    # 3. 批量哈希密码 + 构建对象
     new_users = []
     for u in users_to_create:
         hashed = hash_password(u.password)
-        new_users.append(User(username=u.username, password=hashed, role=u.role,
-                              role_id=role_id_map.get(u.role)))
+        new_users.append(User(username=u.username, password=hashed, role=u.role))
 
     # 4. 一次插入 + 一次提交
     if new_users:
@@ -322,10 +309,9 @@ def update_user_role(db: Session, user_id: int, new_role: str, current_user: Use
     if user.role == new_role:
         return {"user_id": user.id, "username": user.username, "role": user.role, "role_name": role_obj.name}
 
-    # 更新角色（同步 role 字段 + role_id 外键）
+    # 更新角色
     old_role = user.role
     user.role = new_role
-    user.role_id = role_obj.id
     db.commit()
 
     # 清除该用户的权限缓存
