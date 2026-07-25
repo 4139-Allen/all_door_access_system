@@ -73,7 +73,15 @@ def get_logs(
         filters.append("开始时间")
     elif params.end_time:
         filters.append("结束时间")
-    if not filters:
+
+    if total == 0:
+        if not filters:
+            msg = "日志记录为空"
+        else:
+            msg = f"已筛选{'、'.join(filters)}，没有找到符合条件的记录"
+    elif len(log_list) == 0:
+        msg = f"当前页无数据，共 {total} 条记录"
+    elif not filters:
         msg = f"获取日志成功，共 {total} 条"
     else:
         msg = f"已筛选{'、'.join(filters)}，共 {total} 条"

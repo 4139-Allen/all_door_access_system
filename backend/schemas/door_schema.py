@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -20,6 +20,12 @@ class LogQuery(BaseModel):
             raise ValueError("每页最多 100 条")
         return v
 
+    @model_validator(mode="after")
+    def validate_time_range(self):
+        if self.start_time and self.end_time and self.start_time > self.end_time:
+            raise ValueError("开始时间不能晚于结束时间")
+        return self
+
 
 class LogExportQuery(BaseModel):
     """日志导出筛选（不分页，仅筛选条件）"""
@@ -28,3 +34,9 @@ class LogExportQuery(BaseModel):
     status: Optional[str] = Field(None, max_length=50, description="状态筛选")
     start_time: Optional[datetime] = Field(None, description="开始时间")
     end_time: Optional[datetime] = Field(None, description="结束时间")
+
+    @model_validator(mode="after")
+    def validate_time_range(self):
+        if self.start_time and self.end_time and self.start_time > self.end_time:
+            raise ValueError("开始时间不能晚于结束时间")
+        return self
