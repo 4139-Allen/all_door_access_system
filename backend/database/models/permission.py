@@ -9,4 +9,3 @@ class Permission(Base):
     code = Column(String(50), nullable=False, unique=True)
     name = Column(String(50), nullable=False)
     module = Column(String(30), nullable=False)
-    sort = Column(Integer, default=0)
