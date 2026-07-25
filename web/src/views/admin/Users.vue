@@ -91,7 +91,6 @@
         v-model:page="page"
         v-model:size="size"
         :role-options="roleList"
-        @show-devices="showDevices"
         @delete="deleteUser"
         @change-role="handleChangeRole"
       />
@@ -137,31 +136,6 @@
         <el-button type="primary" :loading="binding" @click="bindDevice">绑定</el-button>
       </template>
     </el-dialog>
-
-    <!-- 查看用户设备弹窗 -->
-    <el-dialog v-model="deviceDialogVisible" width="min(420px, 90vw)" top="30vh">
-      <template #header>
-        <span>绑定设备</span>
-      </template>
-
-      <div v-if="deviceList.length === 0" class="empty-devices">
-        <svg class="empty-devices-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="12" y="8" width="40" height="48" rx="4" stroke="#cbd5e1" stroke-width="2"/>
-          <circle cx="32" cy="32" r="8" stroke="#cbd5e1" stroke-width="2"/>
-          <line x1="32" y1="28" x2="32" y2="36" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <p>该用户未绑定任何设备</p>
-      </div>
-      <div v-else class="device-grid">
-        <div
-          v-for="d in deviceList"
-          :key="d"
-          class="device-chip"
-        >
-          <span>设备 #{{ d }}</span>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -193,8 +167,6 @@ const binding = ref(false)
 const unbinding = ref(false)
 const importing = ref(false)
 const bindDialogVisible = ref(false)
-const deviceDialogVisible = ref(false)
-const deviceList = ref([])
 const allUsers = ref([])
 const allDevices = ref([])
 
@@ -363,20 +335,6 @@ const handleChangeRole = async ({ userId, newRole }) => {
   }
 }
 
-const showDevices = async (uid) => {
-  try {
-    const res = await request.get(`/users/${uid}/devices`)
-    if (res.success) {
-      deviceList.value = [...new Set(res.data || [])]
-      deviceDialogVisible.value = true
-    } else {
-      ElMessage.error(res.msg || '获取失败')
-    }
-  } catch (e) {
-    ElMessage.error('网络错误，请稍后重试')
-  }
-}
-
 const bindDevice = async () => {
   if (!bindForm.value.user_id || !bindForm.value.device_id) {
     ElMessage.warning('请选择用户和设备')
@@ -464,42 +422,4 @@ onMounted(() => {
   width: 100%;
 }
 
-.empty-devices {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 0;
-  color: #909399;
-}
-
-.empty-devices-icon {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-}
-
-.empty-devices p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.device-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.device-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
-  color: #606266;
-}
 </style>

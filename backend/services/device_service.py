@@ -271,6 +271,10 @@ def bind_user_device(db: Session, user_id: int, device_id: int, operator_id: Opt
     if operator_id and operator_id != user_id:
         invalidate_device_cache(operator_id)
 
+    # 清除用户列表缓存（设备名已变更）
+    from services.admin_user_service import _invalidate_user_list_cache
+    _invalidate_user_list_cache()
+
     logger.info(f"🔗 绑定设备成功 | 用户: {user.username} | 设备: {device.name} | 设备ID: {device_id}")
     return record
 
@@ -314,6 +318,10 @@ def unbind_user_device(db: Session, user_id: int, device_id: int, operator_id: O
     invalidate_stat_cache(user_id)
     if operator_id and operator_id != user_id:
         invalidate_device_cache(operator_id)
+
+    # 清除用户列表缓存（设备名已变更）
+    from services.admin_user_service import _invalidate_user_list_cache
+    _invalidate_user_list_cache()
 
     logger.info(f"🔓 解绑设备成功 | 用户: {username} | 设备: {device_name} | 设备ID: {device_id}")
     return True
