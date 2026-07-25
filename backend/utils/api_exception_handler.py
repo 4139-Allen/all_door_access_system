@@ -172,6 +172,19 @@ def register_exception_handlers(app: FastAPI):
             "name": "名称",
             "location": "位置",
             "code": "验证码",
+            "user_id": "用户ID",
+            "device_id": "设备ID",
+            "device_name": "设备名称",
+            "status": "状态",
+            "action": "操作类型",
+            "start_time": "开始时间",
+            "end_time": "结束时间",
+            "page": "页码",
+            "size": "每页条数",
+            "target": "接收目标",
+            "avatar": "头像",
+            "captcha": "验证码",
+            "ip": "IP地址",
         }
 
         errors = exc.errors()
@@ -194,6 +207,14 @@ def register_exception_handlers(app: FastAPI):
             msg = f"{cn_field}长度不能超过{max_len}个字符"
         elif err_type in ("missing", "value_error.missing"):
             msg = f"{cn_field}不能为空"
+        elif err_type in ("datetime_parsing", "date_parsing", "datetime_from_date_parsing", "date_from_datetime_parsing"):
+            msg = f"{cn_field}格式错误，请使用 YYYY-MM-DD HH:mm:ss 格式"
+        elif err_type == "int_parsing":
+            msg = f"{cn_field}必须为数字"
+        elif err_type == "greater_than_equal":
+            msg = f"{cn_field}不能小于{ctx.get('ge', '')}"
+        elif err_type == "less_than_equal":
+            msg = f"{cn_field}不能超过{ctx.get('le', '')}"
         elif err_type == "value_error":
             # 自定义 field_validator 抛出的 ValueError
             # Pydantic v2 会给 msg 加上 "Value error, " 前缀，需要去掉
