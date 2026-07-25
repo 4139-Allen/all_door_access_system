@@ -237,9 +237,9 @@ def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> b
         logger.warning(f"⚠️  停用用户失败 | 用户ID: {user_id} | 原因: 用户不存在")
         raise NotFoundError("用户不存在")
 
-    # 不能删除管理员
-    if user.role == "admin":
-        raise ValueError("无权删除超级管理员")
+    # 不能删除系统内置账号
+    if user.is_builtin:
+        raise ValueError("系统内置账号不可删除")
 
     if not user.is_active:
         raise ValueError("该用户已被停用")
@@ -385,6 +385,7 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
             "role": u.role,
             "role_name": role_name_map.get(u.role, u.role),
             "avatar": u.avatar or "",
+            "is_builtin": u.is_builtin,
             "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else ""
         } for u in users]
     }
@@ -784,6 +785,8 @@ def init_admin():
 
         # 复用 db_create_user 创建管理员
         admin_user = db_create_user(db, ADMIN_USERNAME, ADMIN_PASSWORD, role="admin")
+        admin_user.is_builtin = True
+        db.commit()
 
         logger.info("=" * 50)
         logger.info("✅ 默认管理员账户创建成功！")
