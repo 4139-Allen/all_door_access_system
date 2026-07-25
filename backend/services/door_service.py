@@ -160,8 +160,8 @@ def _build_log_cache_key(user_id: int, params: LogQuery) -> str:
         f"p:{params.page}",
         f"s:{params.size}",
     ]
-    if params.user_id:
-        parts.append(f"uid:{params.user_id}")
+    if params.username:
+        parts.append(f"uname:{params.username}")
     if params.device_name:
         parts.append(f"dev:{params.device_name}")
     if params.status:
@@ -219,9 +219,9 @@ def query_logs(
     # 构造查询条件
     conditions = []
 
-    # 用户ID筛选（仅有 log.view 权限的用户可用）
-    if params.user_id and can_view_all:
-        conditions.append(DoorLog.user_id == params.user_id)
+    # 用户名模糊搜索（仅有 log.view 权限的用户可用）
+    if params.username and can_view_all:
+        conditions.append(User.username.contains(params.username))
 
     # 设备名称模糊搜索
     if params.device_name:
@@ -303,8 +303,8 @@ def export_logs(
 
     # 筛选条件
     conditions = []
-    if params.user_id and can_view_all:
-        conditions.append(DoorLog.user_id == params.user_id)
+    if params.username and can_view_all:
+        conditions.append(User.username.contains(params.username))
     if params.device_name:
         conditions.append(Device.name.contains(params.device_name))
     if params.status:

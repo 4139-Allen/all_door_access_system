@@ -1,4 +1,5 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 
 /**
@@ -51,6 +52,10 @@ export function useListFetch(url, {
       }
       const res = await request.get(url, { params, signal: controller.signal })
       if (unmounted) return
+      if (!res.success) {
+        ElMessage.error(res.msg || '请求失败')
+        return
+      }
       dataList.value = res.data?.list || []
       total.value = res.data?.total || 0
     } catch (e) {

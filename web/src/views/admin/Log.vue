@@ -69,10 +69,10 @@ const {
   dataList: logList, page, size, total, loading, filterForm,
   fetchData: getLogList, resetPageAndSearch, resetFilter
 } = useListFetch('/door-logs', {
-  defaultFilter: { user_id: '', device_name: '', status: '', time_range: [] },
+  defaultFilter: { username: '', device_name: '', status: '', time_range: [] },
   paramsBuilder: (f) => {
     const p = {}
-    if (f.user_id?.trim()) p.user_id = f.user_id.trim()
+    if (f.username?.trim()) p.username = f.username.trim()
     if (f.device_name?.trim()) p.device_name = f.device_name.trim()
     if (f.status?.trim()) p.status = f.status.trim()
     if (f.time_range?.length === 2) {
@@ -89,7 +89,7 @@ const exportExcel = async () => {
 
     const params = {}
     const f = filterForm.value
-    if (f.user_id?.trim()) params.user_id = f.user_id.trim()
+    if (f.username?.trim()) params.username = f.username.trim()
     if (f.device_name?.trim()) params.device_name = f.device_name.trim()
     if (f.status?.trim()) params.status = f.status.trim()
     if (f.time_range?.length === 2) {
