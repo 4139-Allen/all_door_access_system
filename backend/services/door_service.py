@@ -3,16 +3,16 @@ from database.models.user import User
 from database.models.door_log import DoorLog
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
 from services.device_service import check_user_permission
 from services.mqtt_service import mqtt_manager
 from services.stat_service import invalidate_stat_cache
 from services.permission_service import user_has_permission
+from services.log_service import invalidate_log_cache
 from utils.service_exception_handler import service_exception_handler
-from schemas.door_schema import LogQuery
 from utils.logger import AppLogger
 from core.exceptions import NotFoundError
-from database.redis import redis_client, cache_get_json, cache_set_json
+from database.redis import redis_client
+from services.alert_service import invalidate_alert_cache
 import asyncio
 import uuid
 
@@ -20,10 +20,6 @@ logger = AppLogger.get_logger()
 
 # 远程开门冷却时间（秒）
 DOOR_OPEN_COOLDOWN = 3
-
-# 日志缓存配置
-LOG_CACHE_TTL = 30  # 缓存30秒
-LOG_CACHE_PREFIX = "cache:logs:"
 
 
 def _add_door_log(db: Session, user_id: int, device_id: int, status: str, ip: str = None):
@@ -40,7 +36,6 @@ def _add_door_log(db: Session, user_id: int, device_id: int, status: str, ip: st
 
     # 清除日志缓存和异常事件缓存
     invalidate_log_cache()
-    from services.alert_service import invalidate_alert_cache
     invalidate_alert_cache()
 
 
@@ -148,212 +143,3 @@ async def open_door_service(db: Session, user_id: int, device_id: int, ip: str =
             current_val = redis_client.get(lock_key)
             if current_val and current_val == lock_value:
                 redis_client.delete(lock_key)
-
-
-
-# =================== 3. 日志查询功能======================
-def _build_log_cache_key(user_id: int, params: LogQuery) -> str:
-    """生成日志缓存键"""
-    # 构造参数字符串用于生成唯一键
-    parts = [
-        f"u:{user_id}",
-        f"p:{params.page}",
-        f"s:{params.size}",
-    ]
-    if params.username:
-        parts.append(f"uname:{params.username}")
-    if params.device_name:
-        parts.append(f"dev:{params.device_name}")
-    if params.status:
-        parts.append(f"st:{params.status}")
-    if params.start_time:
-        parts.append(f"from:{params.start_time}")
-    if params.end_time:
-        parts.append(f"to:{params.end_time}")
-
-    return LOG_CACHE_PREFIX + ":".join(parts)
-
-
-@service_exception_handler
-def query_logs(
-        db: Session,
-        params: LogQuery,
-        current_user_id: int,
-        can_view_all: bool = False
-) -> tuple[int, list]:
-    """
-    查询门禁日志
-
-    参数:
-        db: 数据库会话
-        params: LogQuery schema 对象
-        current_user_id: 当前用户ID
-        can_view_all: 是否可查看全部日志（由 API 层根据权限传入）
-
-    返回:
-        (total, result): 总数和日志列表
-    """
-    # 尝试从缓存获取
-    cache_key = _build_log_cache_key(current_user_id, params)
-    cached = cache_get_json(cache_key)
-    if cached is not None:
-        logger.debug(f"日志缓存命中: {cache_key}")
-        return cached["total"], cached["list"]
-
-    # 缓存未命中，查询数据库
-    # 基础查询 - 关联设备表获取设备信息
-    query = db.query(
-        DoorLog,
-        Device.name.label("device_name"),
-        Device.location.label("device_location"),
-        User.username.label("username")
-    ).outerjoin(Device, DoorLog.device_id == Device.id
-    ).outerjoin(User, DoorLog.user_id == User.id)
-
-    # 权限过滤：不能看全部时只看自己的
-    if not can_view_all:
-        query = query.filter(DoorLog.user_id == current_user_id)
-
-    # 构造查询条件
-    conditions = []
-
-    # 用户名模糊搜索（仅管理员可用）
-    if params.username and can_view_all:
-        conditions.append(User.username.contains(params.username))
-
-    # 设备名称模糊搜索
-    if params.device_name:
-        conditions.append(Device.name.contains(params.device_name))
-
-    # 状态筛选（前缀匹配，如"失败"匹配"失败：无权限"）
-    if params.status:
-        conditions.append(DoorLog.status.startswith(params.status))
-
-    # 时间范围筛选
-    if params.start_time:
-        conditions.append(DoorLog.time >= params.start_time)
-    if params.end_time:
-        conditions.append(DoorLog.time <= params.end_time)
-
-    if conditions:
-        query = query.filter(and_(*conditions))
-
-    # 按时间倒序排列（最新的在前）
-    query = query.order_by(DoorLog.time.desc())
-
-    # 总数
-    total = query.count()
-
-    # 分页
-    offset = (params.page - 1) * params.size
-    logs = query.offset(offset).limit(params.size).all()
-
-    # 格式化返回
-    result = []
-    for log, device_name, device_location, username in logs:
-        result.append({
-            "id": log.id,
-            "user_id": log.user_id,
-            "username": "本地" if log.user_id is None else (username or "未知用户"),
-            "device_id": log.device_id,
-            "device_name": device_name or "未知设备",
-            "device_location": device_location or "未知位置",
-            "action": log.action,
-            "status": log.status,
-            "ip": log.ip or "",
-            "time": str(log.time) if log.time else None
-        })
-
-    # 写入缓存
-    cache_set_json(cache_key, {"total": total, "list": result}, LOG_CACHE_TTL)
-    logger.debug(f"日志缓存写入: {cache_key}")
-
-    return total, result
-
-
-@service_exception_handler
-def export_logs(
-    db: Session,
-    params: LogQuery,
-    current_user_id: int,
-    can_view_all: bool = False
-) -> list[dict]:
-    """
-    导出门禁日志（不分页，用于生成 Excel）
-
-    复用 query_logs 的查询条件，跳过缓存和分页。
-    """
-    # 基础查询（与 query_logs 保持一致）
-    query = db.query(
-        DoorLog,
-        Device.name.label("device_name"),
-        Device.location.label("device_location"),
-        User.username.label("username")
-    ).outerjoin(Device, DoorLog.device_id == Device.id
-    ).outerjoin(User, DoorLog.user_id == User.id)
-
-    # 权限过滤：不能看全部时只看自己的
-    if not can_view_all:
-        query = query.filter(DoorLog.user_id == current_user_id)
-
-    # 筛选条件
-    conditions = []
-    if params.username and can_view_all:
-        conditions.append(User.username.contains(params.username))
-    if params.device_name:
-        conditions.append(Device.name.contains(params.device_name))
-    if params.status:
-        conditions.append(DoorLog.status.startswith(params.status))
-    if params.start_time:
-        conditions.append(DoorLog.time >= params.start_time)
-    if params.end_time:
-        conditions.append(DoorLog.time <= params.end_time)
-    if conditions:
-        query = query.filter(and_(*conditions))
-
-    query = query.order_by(DoorLog.time.desc())
-
-    # 不分页，全部返回
-    logs = query.all()
-
-    result = []
-    for log, device_name, device_location, username in logs:
-        result.append({
-            "id": log.id,
-            "user_id": log.user_id,
-            "username": "本地" if log.user_id is None else (username or "未知用户"),
-            "device_name": device_name or "未知设备",
-            "device_location": device_location or "未知位置",
-            "action": log.action,
-            "status": log.status,
-            "ip": log.ip or "",
-            "time": str(log.time) if log.time else None
-        })
-
-    return result
-
-
-def invalidate_log_cache():
-    """
-    清除所有日志缓存
-    在新增日志时调用
-    """
-    if not redis_client:
-        return
-
-    try:
-        # 扫描并删除所有日志缓存键
-        cursor = 0
-        deleted = 0
-        while True:
-            cursor, keys = redis_client.scan(cursor, match=f"{LOG_CACHE_PREFIX}*", count=100)
-            if keys:
-                redis_client.delete(*keys)
-                deleted += len(keys)
-            if cursor == 0:
-                break
-
-        if deleted > 0:
-            logger.info(f"已清除 {deleted} 个日志缓存")
-    except Exception as e:
-        logger.warning(f"清除日志缓存失败: {e}")
