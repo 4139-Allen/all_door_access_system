@@ -12,6 +12,7 @@ from api.websocket_api import router as websocket_router
 from api.wx_auth_api import router as wx_auth_router
 from api.permission_api import router as permission_router
 from api.alert_api import router as alert_router
+from api.log_api import router as log_router
 
 # 3. 创建总路由
 routers = APIRouter()
@@ -20,6 +21,7 @@ routers = APIRouter()
 routers.include_router(auth_router)         # 认证管理
 routers.include_router(admin_user_router)   # 管理员用户管理
 routers.include_router(door_router)         # 门禁管理
+routers.include_router(log_router)          # 日志管理
 routers.include_router(device_router)       # 设备管理
 routers.include_router(stat_router)         # 统计数据
 routers.include_router(ai_router)           # AI智能助手
