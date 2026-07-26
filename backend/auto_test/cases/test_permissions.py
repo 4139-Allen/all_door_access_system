@@ -132,11 +132,18 @@ class TestPermissionMatrix:
 
     # ---- 门禁 ----
 
-    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_VIEW)
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_FULL)
     def test_view_door_logs_permission(self, request, client_fixture, status_code):
-        """GET /door-logs 权限测试（用户可查看自己的日志）"""
+        """GET /door-logs 权限测试（仅管理员可查看全部日志）"""
         client = request.getfixturevalue(client_fixture)
         resp = client.get("/door-logs?page=1&size=10")
+        assert resp.status_code == status_code
+
+    @pytest.mark.parametrize("client_fixture,status_code", ADMIN_VIEW)
+    def test_view_my_logs_permission(self, request, client_fixture, status_code):
+        """GET /door/my-logs 权限测试（所有用户可查看个人日志）"""
+        client = request.getfixturevalue(client_fixture)
+        resp = client.get("/door/my-logs?page=1&size=10")
         assert resp.status_code == status_code
 
 

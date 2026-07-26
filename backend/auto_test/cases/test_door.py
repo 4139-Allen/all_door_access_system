@@ -81,9 +81,9 @@ class TestDoorLogs:
 
     @pytest.mark.smoke
     def test_get_logs_as_user(self, shared_user_client):
-        """普通用户查看日志（只能看到自己的）"""
+        """普通用户查看自己的日志"""
         resp = shared_user_client.get(
-            "/door-logs?page=1&size=10"
+            "/door/my-logs?page=1&size=10"
         )
         assert_success(resp).has_pagination()
 

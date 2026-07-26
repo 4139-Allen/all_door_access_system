@@ -103,8 +103,8 @@ class TestLogAuthorization:
     """日志访问权限"""
 
     def test_user_sees_only_own_logs(self, shared_user_client, admin_client):
-        """普通用户只能看到自己的日志（数量 <= 管理员看到的全部）"""
-        user_resp = shared_user_client.get("/door-logs?page=1&size=100")
+        """普通用户只能通过 /door/my-logs 看到自己的日志（数量 <= 管理员看到的全部）"""
+        user_resp = shared_user_client.get("/door/my-logs?page=1&size=100")
         admin_resp = admin_client.get("/door-logs?page=1&size=100")
 
         user_total = user_resp.json()["data"]["total"]
@@ -113,6 +113,11 @@ class TestLogAuthorization:
         assert user_total <= admin_total, (
             f"用户看到的日志数({user_total})不应超过管理员({admin_total})"
         )
+
+    def test_user_cannot_access_admin_logs(self, shared_user_client):
+        """普通用户不能访问 /door-logs（需要 log.view 权限）"""
+        resp = shared_user_client.get("/door-logs?page=1&size=10")
+        assert resp.status_code == 403
 
     def test_log_no_auth(self, anon_client):
         """未登录 → 401"""
