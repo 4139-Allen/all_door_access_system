@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from utils.auth import RequirePermission
 from database.db import get_db
-from services.door_service import query_logs, export_logs
+from services.log_service import query_logs, export_logs, _build_admin_log_msg, _build_my_log_msg
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
 from database.models.user import User
@@ -26,36 +26,9 @@ def get_logs(
         can_view_all=True
     )
 
-    # 根据筛选条件生成对应的消息
-    filters = []
-    if params.username:
-        filters.append("指定用户名")
-    if params.device_name:
-        filters.append("指定设备")
-    if params.status:
-        filters.append(f"状态「{params.status}」")
-    if params.start_time and params.end_time:
-        filters.append(f"时间范围")
-    elif params.start_time:
-        filters.append("开始时间")
-    elif params.end_time:
-        filters.append("结束时间")
-
-    if total == 0:
-        if not filters:
-            msg = "日志记录为空"
-        else:
-            msg = f"已筛选{'、'.join(filters)}，没有找到符合条件的记录"
-    elif len(log_list) == 0:
-        msg = f"当前页无数据，共 {total} 条记录"
-    elif not filters:
-        msg = f"获取日志成功，共 {total} 条"
-    else:
-        msg = f"已筛选{'、'.join(filters)}，共 {total} 条"
-
     return success(
         data={"total": total, "page": params.page, "size": params.size, "list": log_list},
-        msg=msg
+        msg=_build_admin_log_msg(params, total, len(log_list))
     )
 
 
@@ -73,16 +46,9 @@ def get_my_logs(
         can_view_all=False
     )
 
-    if total == 0:
-        msg = "暂无开门记录"
-    elif len(log_list) == 0:
-        msg = f"当前页无数据，共 {total} 条记录"
-    else:
-        msg = f"获取日志成功，共 {total} 条"
-
     return success(
         data={"total": total, "page": params.page, "size": params.size, "list": log_list},
-        msg=msg
+        msg=_build_my_log_msg(total, len(log_list))
     )
 
 

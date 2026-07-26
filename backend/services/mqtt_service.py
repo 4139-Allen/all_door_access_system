@@ -46,7 +46,7 @@ def _save_local_door_log(db: Session, device_id: str, action: str, status: str =
     db.commit()
 
     # 清除日志缓存和异常事件缓存
-    from services.door_service import invalidate_log_cache
+    from services.log_service import invalidate_log_cache
     from services.alert_service import invalidate_alert_cache
     invalidate_log_cache()
     invalidate_alert_cache()
