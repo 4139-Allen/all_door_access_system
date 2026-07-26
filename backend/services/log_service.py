@@ -110,11 +110,11 @@ def query_logs(
 
     conditions = []
     if params.username and can_view_all:
-        conditions.append(User.username.contains(params.username))
+        conditions.append(User.username.contains(params.username, autoescape=True))
     if params.device_name:
-        conditions.append(Device.name.contains(params.device_name))
+        conditions.append(Device.name.contains(params.device_name, autoescape=True))
     if params.status:
-        conditions.append(DoorLog.status.startswith(params.status))
+        conditions.append(DoorLog.status.startswith(params.status, autoescape=True))
     if params.start_time:
         conditions.append(DoorLog.time >= params.start_time)
     if params.end_time:
@@ -170,11 +170,11 @@ def export_logs(
 
     conditions = []
     if params.username and can_view_all:
-        conditions.append(User.username.contains(params.username))
+        conditions.append(User.username.contains(params.username, autoescape=True))
     if params.device_name:
-        conditions.append(Device.name.contains(params.device_name))
+        conditions.append(Device.name.contains(params.device_name, autoescape=True))
     if params.status:
-        conditions.append(DoorLog.status.startswith(params.status))
+        conditions.append(DoorLog.status.startswith(params.status, autoescape=True))
     if params.start_time:
         conditions.append(DoorLog.time >= params.start_time)
     if params.end_time:
