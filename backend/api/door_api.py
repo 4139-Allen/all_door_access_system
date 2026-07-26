@@ -46,17 +46,18 @@ async def door_open(
     }, msg=result["message"])
 
 
-@router.get("/door-logs", summary="获取开门日志")
+@router.get("/door-logs", summary="获取开门日志（管理员查看全部）")
 @handle_api_exception
 def get_logs(
     params: LogQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("door.view_own_log"))
+    current_user: User = Depends(RequirePermission("log.view"))
 ):
     total, log_list = query_logs(
         db=db,
         params=params,
-        current_user_id=current_user.id
+        current_user_id=current_user.id,
+        can_view_all=True
     )
 
     # 根据筛选条件生成对应的消息
@@ -92,6 +93,33 @@ def get_logs(
     )
 
 
+@router.get("/door/my-logs", summary="获取个人开门日志（普通用户）")
+@handle_api_exception
+def get_my_logs(
+    params: LogQuery = Depends(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("door.view_own_log"))
+):
+    total, log_list = query_logs(
+        db=db,
+        params=params,
+        current_user_id=current_user.id,
+        can_view_all=False
+    )
+
+    if total == 0:
+        msg = "暂无开门记录"
+    elif len(log_list) == 0:
+        msg = f"当前页无数据，共 {total} 条记录"
+    else:
+        msg = f"获取日志成功，共 {total} 条"
+
+    return success(
+        data={"total": total, "page": params.page, "size": params.size, "list": log_list},
+        msg=msg
+    )
+
+
 @router.get("/door-logs/export", summary="导出门禁日志（Excel）")
 @handle_api_exception
 def export_logs_endpoint(
@@ -102,7 +130,8 @@ def export_logs_endpoint(
     log_list = export_logs(
         db=db,
         params=params,
-        current_user_id=current_user.id
+        current_user_id=current_user.id,
+        can_view_all=True
     )
 
     return success(

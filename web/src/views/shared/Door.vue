@@ -80,7 +80,7 @@ const {
   dataList: myLogs, page, size, total,
   loading: logsLoading, filterForm,
   fetchData: getMyLogs, resetPageAndSearch, resetFilter
-} = useListFetch('/door-logs', {
+} = useListFetch('/door/my-logs', {
   immediate: false,
   defaultFilter: { device_name: '', status: '', time_range: [] },
   paramsBuilder: (f) => {

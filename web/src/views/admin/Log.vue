@@ -17,7 +17,7 @@
     <div class="filter-card">
       <LogFilter
         :filter-form="filterForm"
-        show-user
+        :show-user="isAdmin"
         show-labels
         @search="resetPageAndSearch"
         @reset="resetFilter"
@@ -65,14 +65,18 @@ import LogTable from '@/components/business/Log/LogTable.vue'
 
 const exporting = ref(false)
 
+// 根据权限选择接口：管理员查全部，普通用户只看自己的
+const isAdmin = hasPermission('log.view')
+const logApiUrl = isAdmin ? '/door-logs' : '/door/my-logs'
+
 const {
   dataList: logList, page, size, total, loading, filterForm,
   fetchData: getLogList, resetPageAndSearch, resetFilter
-} = useListFetch('/door-logs', {
+} = useListFetch(logApiUrl, {
   defaultFilter: { username: '', device_name: '', status: '', time_range: [] },
   paramsBuilder: (f) => {
     const p = {}
-    if (f.username?.trim()) p.username = f.username.trim()
+    if (isAdmin && f.username?.trim()) p.username = f.username.trim()
     if (f.device_name?.trim()) p.device_name = f.device_name.trim()
     if (f.status?.trim()) p.status = f.status.trim()
     if (f.time_range?.length === 2) {
