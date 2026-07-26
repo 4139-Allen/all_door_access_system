@@ -178,7 +178,8 @@ def _build_log_cache_key(user_id: int, params: LogQuery) -> str:
 def query_logs(
         db: Session,
         params: LogQuery,
-        current_user_id: int
+        current_user_id: int,
+        can_view_all: bool = False
 ) -> tuple[int, list]:
     """
     查询门禁日志
@@ -187,6 +188,7 @@ def query_logs(
         db: 数据库会话
         params: LogQuery schema 对象
         current_user_id: 当前用户ID
+        can_view_all: 是否可查看全部日志（由 API 层根据权限传入）
 
     返回:
         (total, result): 总数和日志列表
@@ -208,18 +210,14 @@ def query_logs(
     ).outerjoin(Device, DoorLog.device_id == Device.id
     ).outerjoin(User, DoorLog.user_id == User.id)
 
-    # 权限过滤：有 log.view 可看全部日志，否则只能看自己的
-    from database.models.user import User as UserModel
-    _user = db.query(UserModel).filter(UserModel.id == current_user_id).first()
-    can_view_all = _user and user_has_permission(db, _user, "log.view")
-
+    # 权限过滤：不能看全部时只看自己的
     if not can_view_all:
         query = query.filter(DoorLog.user_id == current_user_id)
 
     # 构造查询条件
     conditions = []
 
-    # 用户名模糊搜索（仅有 log.view 权限的用户可用）
+    # 用户名模糊搜索（仅管理员可用）
     if params.username and can_view_all:
         conditions.append(User.username.contains(params.username))
 
@@ -277,7 +275,8 @@ def query_logs(
 def export_logs(
     db: Session,
     params: LogQuery,
-    current_user_id: int
+    current_user_id: int,
+    can_view_all: bool = False
 ) -> list[dict]:
     """
     导出门禁日志（不分页，用于生成 Excel）
@@ -293,11 +292,7 @@ def export_logs(
     ).outerjoin(Device, DoorLog.device_id == Device.id
     ).outerjoin(User, DoorLog.user_id == User.id)
 
-    # 权限过滤
-    from database.models.user import User as UserModel
-    _user = db.query(UserModel).filter(UserModel.id == current_user_id).first()
-    can_view_all = _user and user_has_permission(db, _user, "log.view")
-
+    # 权限过滤：不能看全部时只看自己的
     if not can_view_all:
         query = query.filter(DoorLog.user_id == current_user_id)
 
