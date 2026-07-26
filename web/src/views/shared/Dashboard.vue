@@ -268,7 +268,8 @@ const goRoute = (path) => {
 const getRecentLogs = async () => {
   logsLoading.value = true
   try {
-    const res = await request.get('/door-logs', {
+    const url = hasPermission('log.view') ? '/door-logs' : '/door/my-logs'
+    const res = await request.get(url, {
       params: { page: 1, size: 5 }
     })
     if (res.success) {
