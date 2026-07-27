@@ -1,3 +1,5 @@
+import re
+
 from database.models.device import Device
 from database.models.user import User
 from database.models.door_log import DoorLog
@@ -9,6 +11,9 @@ from utils.logger import AppLogger
 from database.redis import redis_client, cache_get_json, cache_set_json
 
 logger = AppLogger.get_logger()
+
+# 软删除用户 username 格式：deleted_{id}_{original_name}
+_DELETED_USER_RE = re.compile(r'^deleted_\d+_(.*)$')
 
 # 日志缓存配置
 LOG_CACHE_TTL = 30  # 缓存30秒
@@ -101,7 +106,8 @@ def query_logs(
         DoorLog,
         Device.name.label("device_name"),
         Device.location.label("device_location"),
-        User.username.label("username")
+        User.username.label("username"),
+        User.is_active.label("user_is_active")
     ).outerjoin(Device, DoorLog.device_id == Device.id
     ).outerjoin(User, DoorLog.user_id == User.id)
 
@@ -129,11 +135,21 @@ def query_logs(
     logs = query.offset(offset).limit(params.size).all()
 
     result = []
-    for log, device_name, device_location, username in logs:
+    for log, device_name, device_location, username, user_is_active in logs:
+        if log.user_id is None:
+            display_name = "本地"
+        elif not username:
+            display_name = "未知用户"
+        elif user_is_active is False:
+            m = _DELETED_USER_RE.match(username)
+            display_name = f"{m.group(1)}（已停用）" if m else username
+        else:
+            display_name = username
+
         result.append({
             "id": log.id,
             "user_id": log.user_id,
-            "username": "本地" if log.user_id is None else (username or "未知用户"),
+            "username": display_name,
             "device_id": log.device_id,
             "device_name": device_name or "未知设备",
             "device_location": device_location or "未知位置",
@@ -161,7 +177,8 @@ def export_logs(
         DoorLog,
         Device.name.label("device_name"),
         Device.location.label("device_location"),
-        User.username.label("username")
+        User.username.label("username"),
+        User.is_active.label("user_is_active")
     ).outerjoin(Device, DoorLog.device_id == Device.id
     ).outerjoin(User, DoorLog.user_id == User.id)
 
@@ -186,11 +203,21 @@ def export_logs(
     logs = query.all()
 
     result = []
-    for log, device_name, device_location, username in logs:
+    for log, device_name, device_location, username, user_is_active in logs:
+        if log.user_id is None:
+            display_name = "本地"
+        elif not username:
+            display_name = "未知用户"
+        elif user_is_active is False:
+            m = _DELETED_USER_RE.match(username)
+            display_name = f"{m.group(1)}（已停用）" if m else username
+        else:
+            display_name = username
+
         result.append({
             "id": log.id,
             "user_id": log.user_id,
-            "username": "本地" if log.user_id is None else (username or "未知用户"),
+            "username": display_name,
             "device_name": device_name or "未知设备",
             "device_location": device_location or "未知位置",
             "action": log.action,
