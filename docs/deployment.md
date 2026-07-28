@@ -231,10 +231,10 @@ Nginx 配置（`web/nginx.conf`）处理：
 
 ## SSL 证书
 
-生产环境 SSL 证书存放在 `SSL/` 目录：
+生产环境 SSL 证书存放在 `ssl/` 目录：
 
 ```
-SSL/
+ssl/
 ├── doorlink.top.pem    # 证书文件
 └── doorlink.top.key    # 私钥文件
 ```
@@ -242,8 +242,8 @@ SSL/
 Docker Compose 通过 volume 挂载到 Nginx 容器：
 ```yaml
 volumes:
-  - ../SSL/doorlink.top.pem:/etc/nginx/ssl/doorlink.top.pem:ro
-  - ../SSL/doorlink.top.key:/etc/nginx/ssl/doorlink.top.key:ro
+  - ../ssl/doorlink.top.pem:/etc/nginx/ssl/doorlink.top.pem:ro
+  - ../ssl/doorlink.top.key:/etc/nginx/ssl/doorlink.top.key:ro
 ```
 
 ## 系统初始化

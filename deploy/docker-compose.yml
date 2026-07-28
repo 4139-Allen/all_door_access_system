@@ -104,8 +104,8 @@
       - "80:80"
       - "443:443"
     volumes:
-      - ../SSL/doorlink.top.pem:/etc/nginx/ssl/doorlink.top.pem:ro
-      - ../SSL/doorlink.top.key:/etc/nginx/ssl/doorlink.top.key:ro
+      - ../ssl/doorlink.top.pem:/etc/nginx/ssl/doorlink.top.pem:ro
+      - ../ssl/doorlink.top.key:/etc/nginx/ssl/doorlink.top.key:ro
     environment:
       - TZ=Asia/Shanghai
     depends_on:

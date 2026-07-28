@@ -20,7 +20,7 @@ all_door_access_system/
 │   ├── .env
 │   ├── mosquitto.conf
 │   └── deploy.sh / deploy.bat
-├── SSL/            # SSL certificates for doorlink.top
+├── ssl/            # SSL certificates for doorlink.top
 ├── CLAUDE.md
 └── README.md
 ```

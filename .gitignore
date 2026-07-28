@@ -16,7 +16,7 @@ backend/.env*
 deploy/.env*
 
 # SSL 证书和私钥（绝对不能提交）
-SSL/
+ssl/
 *.pem
 *.key
 *.cer
