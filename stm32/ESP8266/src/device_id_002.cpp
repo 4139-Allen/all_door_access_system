@@ -34,7 +34,7 @@
 // ==================== 配置项（根据实际修改）====================
 const char *ssid = "iPhone";             // WiFi 名称
 const char *password = "123456889";      // WiFi 密码
-const char *mqtt_server = "47.242.179.46"; // MQTT 服务器（运行后端的服务器IP公网）
+const char *mqtt_server = "47.242.60.67"; // MQTT 服务器（运行后端的服务器IP公网）
 const int mqtt_port = 1883;
 const char *device_id = "002"; // 与数据库设备名称一致
 // =============================================================

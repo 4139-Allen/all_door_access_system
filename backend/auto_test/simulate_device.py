@@ -10,7 +10,7 @@
   python simulate_device.py 001                              # 普通模式
   python simulate_device.py 001 --interactive                 # 交互模式
   python simulate_device.py 001 002 --interactive             # 多设备交互
-  python simulate_device.py 001 --broker 47.242.179.46        # 指定 MQTT 地址
+  python simulate_device.py 001 --broker 47.242.60.67        # 指定 MQTT 地址
 """
 import argparse
 import time
@@ -18,7 +18,7 @@ import threading
 import sys
 import paho.mqtt.client as mqtt
 
-DEFAULT_BROKER = "47.242.179.46"
+DEFAULT_BROKER = "47.242.60.67"
 DEFAULT_PORT = 1883
 TOPIC_PREFIX = "door"
 HEARTBEAT_INTERVAL = 30
