@@ -250,7 +250,7 @@ all_door_access_system/
 │   ├── deploy.sh               # Linux 部署脚本
 │   └── deploy.bat              # Windows 部署脚本
 │
-├── SSL/                        # SSL 证书（doorlink.top）
+├── ssl/                        # SSL 证书（doorlink.top）
 ├── CLAUDE.md                   # Claude Code 项目指引
 ├── LICENSE                     # MIT License
 └── README.md
