@@ -49,10 +49,22 @@ pipeline {
             when { expression { params.RUN_TESTS == 'yes' } }
             steps {
                 dir('backend') {
-                    sh 'pip install --break-system-packages -r requirements.txt'
+                    sh 'pip install --break-system-packages -r requirements.txt && pip install --break-system-packages allure-pytest'
                 }
                 dir('backend/auto_test') {
                     sh '''
+                        # 创建测试环境配置
+                        cat > ../.env << 'EOF'
+SECRET_KEY=test-secret-key-for-ci
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=test123
+MYSQL_DB=door_access_test
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+EOF
+
                         cat > config/test_env.yaml << 'EOF'
 default_env: dev
 dev:
