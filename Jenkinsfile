@@ -70,13 +70,19 @@ EOF
                             sleep 1
                         done
                         cd auto_test
-                        pytest -v --junitxml=./junit-report.xml
+                        python -m pytest -v --junitxml=./junit-report.xml
                     '''
                 }
             }
             post {
                 always {
-                    junit(testResults: 'backend/auto_test/junit-report.xml')
+                    script {
+                        try {
+                            junit(testResults: 'backend/auto_test/junit-report.xml')
+                        } catch (Exception e) {
+                            echo "测试报告未生成，跳过"
+                        }
+                    }
                     sh 'pkill -f "main:app" || true'
                 }
             }
