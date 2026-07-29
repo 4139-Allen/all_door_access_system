@@ -62,7 +62,7 @@ dev:
     password: "123456"
 EOF
                         cd ..
-                        nohup python main.py > server.log 2>&1 &
+                        nohup python3 main.py > server.log 2>&1 &
                         for i in $(seq 1 30); do
                             if curl -s http://127.0.0.1:8000/api/health > /dev/null 2>&1; then
                                 echo "后端就绪"; break
@@ -70,7 +70,7 @@ EOF
                             sleep 1
                         done
                         cd auto_test
-                        python -m pytest -v --junitxml=./junit-report.xml
+                        python3 -m pytest -v --junitxml=./junit-report.xml
                     '''
                 }
             }
