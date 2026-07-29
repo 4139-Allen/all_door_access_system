@@ -49,7 +49,7 @@ pipeline {
             when { expression { params.RUN_TESTS == 'yes' } }
             steps {
                 dir('backend') {
-                    sh 'pip install -r requirements.txt'
+                    sh 'pip install --break-system-packages -r requirements.txt'
                 }
                 dir('backend/auto_test') {
                     sh '''
@@ -139,18 +139,9 @@ EOF
                     sh """
                         ssh -o StrictHostKeyChecking=no ${DEPLOY_HOST} '
                             set -e
-                            echo "===== 登录镜像仓库 ====="
-                            # 这里要用 docker login，密码在正式服上提前登录过就不用再登
-                            # 确保正式服已经 docker login 过了
-                            # docker login ${REGISTRY} -u xxx -p xxx
-
-                            cd ${DEPLOY_PATH}
-
-                            echo "===== 拉取最新代码（docker-compose.prod.yml）====="
-                            git pull origin ${BRANCH}
 
                             echo "===== 拉取最新镜像 ====="
-                            cd deploy
+                            cd ${DEPLOY_PATH}/deploy
                             docker compose -f docker-compose.prod.yml pull fastapi frontend
 
                             echo "===== 重启服务 ====="
