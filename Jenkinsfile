@@ -115,9 +115,9 @@ EOF
                             backend/
                     """
 
-                    echo "构建前端镜像（限制 50% CPU）..."
+                    echo "构建前端镜像..."
                     sh """
-                        docker build --memory=1g --cpus=0.5 \
+                        docker build --memory=1g \
                             -f web/Dockerfile.frontend \
                             -t ${IMAGE_FRONTEND}:${IMAGE_TAG} \
                             -t ${IMAGE_FRONTEND}:latest \
