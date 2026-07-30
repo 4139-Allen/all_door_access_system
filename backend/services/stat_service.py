@@ -82,7 +82,7 @@ def get_statistics(db: Session, user: User) -> StatisticsResult:
         device_online = db.query(Device).filter(Device.id.in_(device_ids), Device.status == "online").count() if device_ids else 0
         device_offline = db.query(Device).filter(Device.id.in_(device_ids), Device.status != "online").count() if device_ids else 0
         today_log = db.query(DoorLog).filter(
-            DoorLog.user_id == user.id,
+            DoorLog.user_name == user.username,
             DoorLog.time >= today_start
         ).count()
 
@@ -117,7 +117,7 @@ def get_weekly_trend(db: Session, user: User) -> list:
     ).filter(DoorLog.time >= start_dt)
 
     if not user_has_permission(db, user, "log.view"):
-        query = query.filter(DoorLog.user_id == user.id)
+        query = query.filter(DoorLog.user_name == user.username)
 
     rows = query.group_by(func.date(DoorLog.time)).all()
 
@@ -150,7 +150,7 @@ def get_action_distribution(db: Session, user: User) -> list:
     )
 
     if not user_has_permission(db, user, "log.view"):
-        query = query.filter(DoorLog.user_id == user.id)
+        query = query.filter(DoorLog.user_name == user.username)
 
     rows = query.group_by(DoorLog.action).all()
 

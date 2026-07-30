@@ -40,7 +40,8 @@ def _save_local_door_log(db: Session, device_id: str, action: str, status: str =
     if not device:
         return
     db.add(DoorLog(
-        user_id=None, device_id=device.id,
+        device_name=device.name,
+        user_name="本地",
         action=action, status=status, time=datetime.now()
     ))
     db.commit()

@@ -1,7 +1,3 @@
-import re
-
-from database.models.device import Device
-from database.models.user import User
 from database.models.door_log import DoorLog
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -11,9 +7,6 @@ from utils.logger import AppLogger
 from database.redis import redis_client, cache_get_json, cache_set_json
 
 logger = AppLogger.get_logger()
-
-# 软删除用户 username 格式：deleted_{id}_{original_name}
-_DELETED_USER_RE = re.compile(r'^deleted_\d+_(.*)$')
 
 # 日志缓存配置
 LOG_CACHE_TTL = 30  # 缓存30秒
@@ -77,6 +70,20 @@ def _build_my_log_msg(total: int, log_list_len: int) -> str:
     return f"获取日志成功，共 {total} 条"
 
 
+def _build_result_row(log: DoorLog) -> dict:
+    """构建单条日志响应"""
+    return {
+        "id": log.id,
+        "username": log.user_name or "未知用户",
+        "device_name": log.device_name or "未知设备",
+        "action": log.action,
+        "status": log.status,
+        "ip": log.ip or "",
+        "time": str(log.time) if log.time else None,
+        "device_location": "",
+    }
+
+
 @service_exception_handler
 def query_logs(
         db: Session,
@@ -90,8 +97,8 @@ def query_logs(
     参数:
         db: 数据库会话
         params: LogQuery schema 对象
-        current_user_id: 当前用户ID
-        can_view_all: 是否可查看全部日志（由 API 层根据权限传入）
+        current_user_id: 当前用户ID（保留参数，不再用于过滤）
+        can_view_all: 是否可查看全部日志
 
     返回:
         (total, result): 总数和日志列表
@@ -102,23 +109,13 @@ def query_logs(
         logger.debug(f"日志缓存命中: {cache_key}")
         return cached["total"], cached["list"]
 
-    query = db.query(
-        DoorLog,
-        Device.name.label("device_name"),
-        Device.location.label("device_location"),
-        User.username.label("username"),
-        User.is_active.label("user_is_active")
-    ).outerjoin(Device, DoorLog.device_id == Device.id
-    ).outerjoin(User, DoorLog.user_id == User.id)
-
-    if not can_view_all:
-        query = query.filter(DoorLog.user_id == current_user_id)
+    query = db.query(DoorLog)
 
     conditions = []
     if params.username and can_view_all:
-        conditions.append(User.username.contains(params.username, autoescape=True))
+        conditions.append(DoorLog.user_name.contains(params.username, autoescape=True))
     if params.device_name:
-        conditions.append(Device.name.contains(params.device_name, autoescape=True))
+        conditions.append(DoorLog.device_name.contains(params.device_name, autoescape=True))
     if params.status:
         conditions.append(DoorLog.status.startswith(params.status, autoescape=True))
     if params.start_time:
@@ -134,30 +131,7 @@ def query_logs(
     offset = (params.page - 1) * params.size
     logs = query.offset(offset).limit(params.size).all()
 
-    result = []
-    for log, device_name, device_location, username, user_is_active in logs:
-        if log.user_id is None:
-            display_name = "本地"
-        elif not username:
-            display_name = "未知用户"
-        elif user_is_active is False:
-            m = _DELETED_USER_RE.match(username)
-            display_name = f"{m.group(1)}（已停用）" if m else username
-        else:
-            display_name = username
-
-        result.append({
-            "id": log.id,
-            "user_id": log.user_id,
-            "username": display_name,
-            "device_id": log.device_id,
-            "device_name": device_name or "未知设备",
-            "device_location": device_location or "未知位置",
-            "action": log.action,
-            "status": log.status,
-            "ip": log.ip or "",
-            "time": str(log.time) if log.time else None
-        })
+    result = [_build_result_row(log) for log in logs]
 
     cache_set_json(cache_key, {"total": total, "list": result}, LOG_CACHE_TTL)
     logger.debug(f"日志缓存写入: {cache_key}")
@@ -173,23 +147,13 @@ def export_logs(
     can_view_all: bool = False
 ) -> list[dict]:
     """导出门禁日志（不分页，用于生成 Excel）"""
-    query = db.query(
-        DoorLog,
-        Device.name.label("device_name"),
-        Device.location.label("device_location"),
-        User.username.label("username"),
-        User.is_active.label("user_is_active")
-    ).outerjoin(Device, DoorLog.device_id == Device.id
-    ).outerjoin(User, DoorLog.user_id == User.id)
-
-    if not can_view_all:
-        query = query.filter(DoorLog.user_id == current_user_id)
+    query = db.query(DoorLog)
 
     conditions = []
     if params.username and can_view_all:
-        conditions.append(User.username.contains(params.username, autoescape=True))
+        conditions.append(DoorLog.user_name.contains(params.username, autoescape=True))
     if params.device_name:
-        conditions.append(Device.name.contains(params.device_name, autoescape=True))
+        conditions.append(DoorLog.device_name.contains(params.device_name, autoescape=True))
     if params.status:
         conditions.append(DoorLog.status.startswith(params.status, autoescape=True))
     if params.start_time:
@@ -202,31 +166,7 @@ def export_logs(
     query = query.order_by(DoorLog.time.desc())
     logs = query.all()
 
-    result = []
-    for log, device_name, device_location, username, user_is_active in logs:
-        if log.user_id is None:
-            display_name = "本地"
-        elif not username:
-            display_name = "未知用户"
-        elif user_is_active is False:
-            m = _DELETED_USER_RE.match(username)
-            display_name = f"{m.group(1)}（已停用）" if m else username
-        else:
-            display_name = username
-
-        result.append({
-            "id": log.id,
-            "user_id": log.user_id,
-            "username": display_name,
-            "device_name": device_name or "未知设备",
-            "device_location": device_location or "未知位置",
-            "action": log.action,
-            "status": log.status,
-            "ip": log.ip or "",
-            "time": str(log.time) if log.time else None
-        })
-
-    return result
+    return [_build_result_row(log) for log in logs]
 
 
 def invalidate_log_cache():

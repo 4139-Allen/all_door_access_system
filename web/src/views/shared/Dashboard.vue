@@ -290,7 +290,7 @@ onMounted(() => {
       // API 返回倒序（最新在前），reverse 后按时间正序，再 unshift 保证最新在顶部
       recentLogs.value.reverse().forEach(log => {
         addDoorEvent({
-          username: log.user_id ? log.username : '本地',
+          username: log.username,
           device_name: log.device_name || '未知设备',
           location: log.device_location || '',
           action: log.action || '开门',

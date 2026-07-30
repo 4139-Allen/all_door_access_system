@@ -1,4 +1,4 @@
-"""
+﻿"""
 异常事件服务层
 处理设备锁定、安全告警等异常事件的业务逻辑
 """
@@ -78,18 +78,11 @@ def get_alert_list(
         return cached["total"], cached["list"]
 
     # 缓存未命中，查询数据库
-    # 基础查询
-    query = db.query(
-        DoorLog,
-        Device.name.label("device_name"),
-        Device.location.label("device_location"),
-        User.username.label("username")
-    ).outerjoin(Device, DoorLog.device_id == Device.id
-    ).outerjoin(User, DoorLog.user_id == User.id)
+    query = db.query(DoorLog)
 
     # 权限过滤：有 alert.view 权限可看全部日志，否则只能看自己的
     if not user_has_permission(db, current_user, "alert.view"):
-        query = query.filter(DoorLog.user_id == current_user.id)
+        query = query.filter(DoorLog.user_name == current_user.username)
 
     # 构造查询条件
     conditions = []
@@ -110,7 +103,7 @@ def get_alert_list(
 
     # 设备名称筛选
     if device_name:
-        conditions.append(Device.name.contains(device_name))
+        conditions.append(DoorLog.device_name.contains(device_name))
 
     # 时间范围筛选
     if start_time:
@@ -196,18 +189,17 @@ def get_alert_stats(db: Session, hours: int = 24) -> dict:
     error_count = base_query.filter(DoorLog.status.startswith("失败")).count()
 
     # 各设备异常分布
+    # 各设备异常分布
     device_stats = db.query(
-        Device.name,
+        DoorLog.device_name,
         func.count(DoorLog.id).label('count')
-    ).join(DoorLog, DoorLog.device_id == Device.id
     ).filter(
         DoorLog.time >= time_threshold,
         or_(
             DoorLog.status.startswith("失败"),
             DoorLog.status.contains("锁定")
         )
-    ).group_by(Device.name).all()
-
+    ).group_by(DoorLog.device_name).all()
     # 获取当前锁定的设备
     locked_devices = _get_locked_devices(db)
 
