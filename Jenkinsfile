@@ -80,6 +80,10 @@ EOF
                             echo "测试报告未生成，跳过"
                         }
                     }
+                    allure(
+                        includeProperties: false,
+                        results: [[path: 'backend/auto_test/report']]
+                    )
                     sh 'pkill -f "main:app" || true'
                 }
             }
