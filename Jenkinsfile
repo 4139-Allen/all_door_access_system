@@ -80,10 +80,14 @@ EOF
                             echo "测试报告未生成，跳过"
                         }
                     }
-                    allure(
-                        includeProperties: false,
-                        results: [[path: 'backend/auto_test/report']]
-                    )
+                    sh '''
+                        if [ -d backend/auto_test/report ] && [ "$(ls -A backend/auto_test/report 2>/dev/null)" ]; then
+                            /usr/local/bin/allure generate backend/auto_test/report -o backend/auto_test/allure-report --clean
+                            echo "✅ Allure 报告已生成"
+                        else
+                            echo "跳过 Allure 报告"
+                        fi
+                    '''
                     sh 'pkill -f "main:app" || true'
                 }
             }
