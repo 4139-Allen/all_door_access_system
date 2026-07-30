@@ -59,7 +59,8 @@ dev:
     password: "123456"
 EOF
                         cd ..
-                        echo "启动测试后端（端口 8001，不干扰运行中的服务）..."
+                        echo "清理旧进程，启动测试后端（端口 8001）..."
+                        pkill -f "uvicorn main:app" || true
                         nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 8001 > server.log 2>&1 &
                         for i in $(seq 1 30); do
                             if curl -s http://127.0.0.1:8001/api/health > /dev/null 2>&1; then
