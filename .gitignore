@@ -110,3 +110,6 @@ stm32/Project/DebugConfig/
 
 # === PlatformIO ===
 stm32/ESP8266/.pio/
+
+# Allure test reports
+backend/report/
