@@ -22,13 +22,14 @@ def upgrade() -> None:
     """Upgrade schema."""
 
     # ===== 1. 移除 id 列的冗余索引（PK 已是聚簇索引）=====
-    op.drop_index(op.f('ix_device_id'), table_name='device')
-    op.drop_index(op.f('ix_door_log_id'), table_name='door_log')
-    op.drop_index(op.f('ix_permission_id'), table_name='permission')
-    op.drop_index(op.f('ix_role_id'), table_name='role')
-    op.drop_index(op.f('ix_role_permission_id'), table_name='role_permission')
-    op.drop_index(op.f('ix_user_id'), table_name='user')
-    op.drop_index(op.f('ix_user_device_id'), table_name='user_device')
+    # 使用 IF EXISTS 兼容 create_all 初始化的数据库
+    op.execute("DROP INDEX IF EXISTS ix_device_id ON device")
+    op.execute("DROP INDEX IF EXISTS ix_door_log_id ON door_log")
+    op.execute("DROP INDEX IF EXISTS ix_permission_id ON permission")
+    op.execute("DROP INDEX IF EXISTS ix_role_id ON role")
+    op.execute("DROP INDEX IF EXISTS ix_role_permission_id ON role_permission")
+    op.execute("DROP INDEX IF EXISTS ix_user_id ON user")
+    op.execute("DROP INDEX IF EXISTS ix_user_device_id ON user_device")
 
     # ===== 2. device 表新增常用查询索引 =====
     op.create_index(op.f('ix_device_name'), 'device', ['name'], unique=False)

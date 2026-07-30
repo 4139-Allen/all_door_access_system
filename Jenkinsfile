@@ -59,13 +59,8 @@ dev:
     password: "123456"
 EOF
                         cd ..
-                        echo "迁移测试数据库（stamp 到旧版本再 upgrade）..."
-                        python3 -c "
-from alembic.config import Config
-from alembic import command
-cfg = Config('database/migrations/alembic.ini')
-command.stamp(cfg, '5c8d9e0f1a2b')
-" && python3 database/migrations/manage_db.py upgrade
+                        echo "迁移测试数据库..."
+                        python3 database/migrations/manage_db.py upgrade
                         echo "清理旧进程，启动测试后端（端口 8001）..."
                         fuser -k 8001/tcp || true
                         nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 8001 > server.log 2>&1 &
@@ -123,13 +118,8 @@ print('door_access_test 连接成功')
                         cd deploy
                         docker compose up -d --build
 
-                        echo "迁移生产数据库（先 stamp 跳过旧迁移）..."
-                        docker compose exec -T fastapi python -c "
-from alembic.config import Config
-from alembic import command
-cfg = Config('database/migrations/alembic.ini')
-command.stamp(cfg, '12c2f4507704')
-" && docker compose exec -T fastapi python database/migrations/manage_db.py upgrade
+                        echo "迁移生产数据库..."
+                        docker compose exec -T fastapi python database/migrations/manage_db.py upgrade
 
                         echo "部署完成"
                     '''
