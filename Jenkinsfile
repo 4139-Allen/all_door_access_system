@@ -45,7 +45,7 @@ SECRET_KEY=test-secret-key-for-ci
 MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3307
 MYSQL_USER=root
-MYSQL_PASSWORD=test123
+MYSQL_PASSWORD=123456
 MYSQL_DB=door_access_test
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
@@ -72,7 +72,7 @@ EOF
                         python3 -c "from core.config import MYSQL_DB; print(f'数据库: {MYSQL_DB}')"
                         python3 -c "
 import pymysql
-db = pymysql.connect(host='127.0.0.1', port=3307, user='root', password='test123', database='door_access_test')
+db = pymysql.connect(host='127.0.0.1', port=3307, user='root', password='123456', database='door_access_test')
 db.close()
 print('door_access_test 连接成功')
 " && echo "数据库验证通过" || (echo "数据库验证失败！测试终止" && exit 1)
