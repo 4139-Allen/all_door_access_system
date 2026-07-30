@@ -118,6 +118,9 @@ print('door_access_test 连接成功')
                         cd deploy
                         docker compose up -d --build
 
+                        echo "迁移生产数据库..."
+                        docker compose exec -T fastapi python database/migrations/manage_db.py upgrade
+
                         echo "部署完成"
                     '''
                 }
