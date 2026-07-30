@@ -60,7 +60,7 @@ dev:
 EOF
                         cd ..
                         echo "迁移测试数据库..."
-                        python database/migrations/manage_db.py upgrade
+                        python3 database/migrations/manage_db.py upgrade
                         echo "清理旧进程，启动测试后端（端口 8001）..."
                         pkill -f "uvicorn main:app" || true
                         nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 8001 > server.log 2>&1 &
