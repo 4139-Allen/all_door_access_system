@@ -108,15 +108,17 @@ EOF
                 script {
                     echo "构建后端镜像..."
                     sh """
-                        docker build -f backend/Dockerfile.backend \
+                        docker build --memory=512m \
+                            -f backend/Dockerfile.backend \
                             -t ${IMAGE_BACKEND}:${IMAGE_TAG} \
                             -t ${IMAGE_BACKEND}:latest \
                             backend/
                     """
 
-                    echo "构建前端镜像..."
+                    echo "构建前端镜像（限制 50% CPU）..."
                     sh """
-                        docker build -f web/Dockerfile.frontend \
+                        docker build --memory=1g --cpus=0.5 \
+                            -f web/Dockerfile.frontend \
                             -t ${IMAGE_FRONTEND}:${IMAGE_TAG} \
                             -t ${IMAGE_FRONTEND}:latest \
                             web/
