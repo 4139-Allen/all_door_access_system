@@ -1,18 +1,17 @@
 // ============================================================
-// 门禁管理系统 - Jenkins CI/CD Pipeline
-// 单机方案：Jenkins + 应用在同一服务器
+// 门禁管理系统 - Jenkins CI/CD Pipeline（单机版）
+// workspace 跑测试 → /opt/myproject/ 部署
 // ============================================================
 
 pipeline {
     agent any
 
     environment {
-        BRANCH = 'main'
+        PROJECT_DIR = '/opt/myproject/all_door_access_system'
     }
 
     parameters {
         choice(name: 'RUN_TESTS', choices: ['yes', 'no'], description: '部署前跑测试？')
-        string(name: 'BRANCH', defaultValue: 'main', description: '分支')
     }
 
     triggers {
@@ -21,7 +20,7 @@ pipeline {
 
     stages {
         // ============================================================
-        // 1. 拉取代码
+        // 1. 拉取代码到 workspace（跑测试用）
         // ============================================================
         stage('① 拉取代码') {
             steps {
@@ -31,17 +30,16 @@ pipeline {
         }
 
         // ============================================================
-        // 2. 运行测试
+        // 2. 运行测试（用 workspace 的代码）
         // ============================================================
         stage('② 运行测试') {
             when { expression { params.RUN_TESTS == 'yes' } }
             steps {
                 dir('backend') {
-                    sh 'pip install --break-system-packages -r requirements.txt && pip install --break-system-packages allure-pytest'
+                    sh 'pip install -r requirements.txt && pip install allure-pytest'
                 }
                 dir('backend/auto_test') {
                     sh '''
-                        # 创建测试环境配置
                         cat > ../.env << 'EOF'
 SECRET_KEY=test-secret-key-for-ci
 MYSQL_HOST=127.0.0.1
@@ -52,7 +50,6 @@ MYSQL_DB=door_access_test
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 EOF
-
                         cat > config/test_env.yaml << 'EOF'
 default_env: dev
 dev:
@@ -89,17 +86,18 @@ EOF
         }
 
         // ============================================================
-        // 3. 构建并部署
+        // 3. 部署：项目目录 git pull → docker compose
         // ============================================================
-        stage('③ 构建并部署') {
+        stage('③ 部署') {
             steps {
-                dir('deploy') {
+                dir(PROJECT_DIR) {
                     sh '''
-                        echo "===== 构建并重启服务 ====="
-                        docker compose up -d --build
+                        echo "===== 拉取最新代码 ====="
+                        git pull origin main
 
-                        echo "===== 清理旧镜像 ====="
-                        docker image prune -f --filter "dangling=true" || true
+                        echo "===== 构建并重启服务 ====="
+                        cd deploy
+                        docker compose up -d --build
 
                         echo "===== 部署完成 ====="
                     '''
@@ -118,7 +116,6 @@ EOF
                         code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health)
                         if [ "$code" = "200" ]; then
                             echo "✅ 服务正常"
-                            docker compose -f deploy/docker-compose.yml ps
                             exit 0
                         fi
                         sleep 5
