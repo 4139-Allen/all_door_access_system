@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Agent 服务层
 适配学校场景:设备编号(001、002...) + 学校位置
 要求:必须提供用户指令、设备编号、位置信息三个要素
@@ -242,20 +242,16 @@ def execute_query(db: Session, user: User, target: str) -> str:
     if target == "today_log_count":
         query = db.query(DoorLog)
         if not user_has_permission(db, user, "log.view"):
-            query = query.filter(DoorLog.user_id == user.id)
+            query = query.filter(DoorLog.user_name == user.username)
         count = query.filter(DoorLog.time >= today_start).count()
         return f"今日共开门 {count} 次"
 
     if target == "today_logs":
-        query = db.query(
-            DoorLog, Device.name.label("device_name"),
-            Device.location.label("device_location")
-        ).outerjoin(Device, DoorLog.device_id == Device.id
-        ).filter(DoorLog.time >= today_start
-        ).order_by(DoorLog.time.desc()).limit(20)
-
+        query = db.query(DoorLog)
         if not user_has_permission(db, user, "log.view"):
-            query = query.filter(DoorLog.user_id == user.id)
+            query = query.filter(DoorLog.user_name == user.username)
+        query = query.filter(DoorLog.time >= today_start
+        ).order_by(DoorLog.time.desc()).limit(20)
 
         rows = query.all()
         if not rows:
@@ -288,25 +284,18 @@ def execute_query(db: Session, user: User, target: str) -> str:
         return f"系统共有 {count} 个活跃用户"
 
     if target == "recent_logs":
-        query = db.query(
-            DoorLog, Device.name.label("device_name"),
-            Device.location.label("device_location"),
-            User.username.label("username")
-        ).outerjoin(Device, DoorLog.device_id == Device.id
-        ).outerjoin(User, DoorLog.user_id == User.id
-        ).order_by(DoorLog.time.desc()).limit(5)
+        query = db.query(DoorLog).order_by(DoorLog.time.desc()).limit(5)
 
         if not user_has_permission(db, user, "log.view"):
-            query = query.filter(DoorLog.user_id == user.id)
+            query = query.filter(DoorLog.user_name == user.username)
 
         rows = query.all()
         if not rows:
             return "暂无开门记录"
 
         lines = ["最近5条开门记录："]
-        for log, device_name, device_location, username in rows:
-            loc = f"（{device_location}）" if device_location else ""
-            lines.append(f"- {log.time}  用户:{username or '未知'}  {device_name or '未知设备'}{loc}  {log.status}")
+        for log in rows:
+            lines.append(f"- {log.time}  用户:{log.user_name or '未知'}  {log.device_name or '未知设备'}  {log.status}")
         return "\n".join(lines)
 
     return f"暂不支持查询「{target}」类型的数据"
