@@ -124,9 +124,9 @@ def get_alert_list(
     offset = (page - 1) * size
     alerts = query.offset(offset).limit(size).all()
 
-    # 格式化返回
+    # 格式化返回（door_log 已快照化：直接读 device_name/device_location/user_name，不再 JOIN）
     result = []
-    for log, device_name, device_location, username in alerts:
+    for log in alerts:
         # 判断事件类型和级别
         event_type = "error"
         event_level = "warning"
@@ -139,11 +139,9 @@ def get_alert_list(
 
         result.append({
             "id": log.id,
-            "user_id": log.user_id,
-            "username": "本地" if log.user_id is None else (username or "未知用户"),
-            "device_id": log.device_id,
-            "device_name": device_name or "未知设备",
-            "device_location": device_location or "未知位置",
+            "username": log.user_name or "未知用户",
+            "device_name": log.device_name or "未知设备",
+            "device_location": log.device_location or "未知位置",
             "action": log.action,
             "status": log.status,
             "event_type": event_type,

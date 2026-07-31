@@ -80,7 +80,7 @@ def _build_result_row(log: DoorLog) -> dict:
         "status": log.status,
         "ip": log.ip or "",
         "time": str(log.time) if log.time else None,
-        "device_location": "",
+        "device_location": log.device_location or "",
     }
 
 

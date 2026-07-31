@@ -9,6 +9,7 @@ class DoorLog(Base):
 
     id = Column(Integer, primary_key=True)
     device_name = Column(String(100), nullable=True, comment="设备名快照（开门时的设备名）")
+    device_location = Column(String(200), nullable=True, comment="设备位置快照（开门时的设备位置）")
     user_name = Column(String(50), nullable=True, comment="用户名快照（开门时的用户名）")
     action = Column(String(50))
     status = Column(String(50))
