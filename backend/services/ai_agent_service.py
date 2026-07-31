@@ -258,9 +258,9 @@ def execute_query(db: Session, user: User, target: str) -> str:
             return "今日暂无开门记录"
 
         lines = ["今日开门记录："]
-        for log, device_name, device_location in rows:
-            loc = f"（{device_location}）" if device_location else ""
-            lines.append(f"- {log.time}  {device_name or '未知设备'}{loc}  {log.status}")
+        for log in rows:
+            loc = f"（{log.device_location or ''}）" if log.device_location else ""
+            lines.append(f"- {log.time}  {log.device_name or '未知设备'}{loc}  {log.status}")
         return "\n".join(lines)
 
     if target == "device_list":
