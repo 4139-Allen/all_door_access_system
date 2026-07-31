@@ -174,6 +174,12 @@ def run_alembic_migrations():
 
         # 执行迁移到最新版本
         command.upgrade(alembic_cfg, "head")
+
+        # 保险：alembic 的 fileConfig 可能禁用过应用 logger，这里幂等地恢复，
+        # 确保迁移后业务日志、请求日志继续输出
+        import logging
+        logging.getLogger("app").disabled = False
+
         logger.info("✅ Alembic 迁移完成")
 
     except Exception as e:
