@@ -250,7 +250,7 @@ def delete_user_by_id(db: Session, user_id: int, current_user: User = None) -> b
     # 软删除：打标记 + 释放唯一约束
     user.is_active = False
     user.deleted_at = datetime.now()
-    user.username = f"deleted_{user.id}_{user.username}"[:50]  # 释放用户名，截断到字段长度
+    user.username = f"已停用_{user.id}_{user.username}"[:50]  # 释放用户名，截断到字段长度
 
     # 释放手机号和邮箱（如果有的话）
     user.phone = None

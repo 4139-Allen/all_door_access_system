@@ -1,3 +1,4 @@
+import re
 from database.models.door_log import DoorLog
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -11,6 +12,19 @@ logger = AppLogger.get_logger()
 # 日志缓存配置
 LOG_CACHE_TTL = 30  # 缓存30秒
 LOG_CACHE_PREFIX = "cache:logs:"
+
+# 软删除用户用户名格式：deleted_{user_id}_{原用户名}（旧）/ 已停用_{user_id}_{原用户名（新）}
+_DELETED_USERNAME_RE = re.compile(r"^(?:deleted|已停用)_(\d+)_(.+)$")
+
+
+def _format_username(username: str | None) -> str | None:
+    """去掉软删除用户名的前缀（deleted_/已停用_{id}_），改为显示「原用户名（已停用_id）」"""
+    if not username:
+        return username
+    m = _DELETED_USERNAME_RE.match(username)
+    if m:
+        return f"{m.group(2)}（已停用_{m.group(1)}）"
+    return username
 
 
 def _build_log_cache_key(user_id: int, params: LogQuery) -> str:
@@ -74,7 +88,7 @@ def _build_result_row(log: DoorLog) -> dict:
     """构建单条日志响应"""
     return {
         "id": log.id,
-        "username": log.user_name or "未知用户",
+        "username": _format_username(log.user_name) or "未知用户",
         "device_name": log.device_name or "未知设备",
         "action": log.action,
         "status": log.status,
