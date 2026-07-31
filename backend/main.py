@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from api.routers import routers
 from core.config import ALLOWED_ORIGINS
-from database.db import init_database, drop_all_tables
+from database.db import init_database
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from core.response_schema import error
@@ -27,10 +27,8 @@ async def lifespan(app: FastAPI):
     app_logger.info("🚀 门禁管理系统正在启动...")
     app_logger.info("=" * 50)
 
-    # 1. 初始化数据库（建库 + 建表）
+    # 1. 初始化数据库（建库 + Alembic 迁移建表）
     try:
-        # 如需重置数据库，取消下一行注释并重启（⚠️ 会清空所有数据）
-        # drop_all_tables()
         init_database()
     except Exception as e:
         app_logger.error(f"⚠️ 数据库初始化失败，服务将无法正常运行: {e}")
@@ -108,9 +106,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="门禁管理系统", version="1.0", lifespan=lifespan)  #  传入 lifespan
-
-# # 删除所有表
-# Base.metadata.drop_all(bind=engine)
 
 # CORS 跨域（* 与 allow_credentials 不兼容，浏览器会拒绝）
 allow_all_origins = "*" in ALLOWED_ORIGINS

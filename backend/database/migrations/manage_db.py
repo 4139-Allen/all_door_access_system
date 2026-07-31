@@ -80,6 +80,13 @@ def cmd_upgrade(args):
     alembic_cfg = get_alembic_config()
     revision = args.revision or 'head'
 
+    # 修复因旧迁移被 squash 而产生的失效版本号（幂等）
+    try:
+        from database.db import _fix_stale_alembic_revision
+        _fix_stale_alembic_revision()
+    except Exception as e:
+        print(f"⚠️ 修复失效版本号失败（忽略，继续升级）: {e}")
+
     print(f"⬆️ 正在升级数据库到版本：{revision}")
     command.upgrade(alembic_cfg, revision)
     print("✅ 数据库升级完成")
