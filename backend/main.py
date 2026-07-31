@@ -132,11 +132,11 @@ async def log_requests(request: Request, call_next):
     # 获取客户端 IP
     client_host = request.client.host if request.client else "unknown"
     
-    # 记录日志（跳过健康检查和静态文件）
-    # 使用 DEBUG 级别避免 INFO 刷屏；需要追踪请求时设 LOG_LEVEL=DEBUG
+    # 记录请求日志（跳过健康检查，避免被 Docker healthcheck 刷屏）
+    # INFO 级别：容器日志在默认 LOG_LEVEL 下即可见；uvicorn.access 已被抑制，不会重复
     if not request.url.path.startswith("/api/health"):
         logger = AppLogger.get_logger()
-        logger.debug(
+        logger.info(
             f"📊 {request.method} {request.url.path} | "
             f"状态: {response.status_code} | "
             f"耗时: {duration:.3f}s | "
