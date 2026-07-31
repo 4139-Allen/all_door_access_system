@@ -114,12 +114,15 @@ print('door_access_test 连接成功')
                         echo "拉取最新代码..."
                         git pull origin main
 
-                        echo "构建并重启服务..."
                         cd deploy
-                        docker compose up -d --build
+                        echo "构建新镜像..."
+                        docker compose build
 
-                        echo "迁移生产数据库..."
-                        docker compose exec -T fastapi python database/migrations/manage_db.py upgrade
+                        echo "先迁移生产数据库（避免容器启动时表结构未就绪）..."
+                        docker compose run --rm -T fastapi python database/migrations/manage_db.py upgrade
+
+                        echo "再启动服务..."
+                        docker compose up -d
 
                         echo "部署完成"
                     '''
