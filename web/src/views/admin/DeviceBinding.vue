@@ -60,7 +60,7 @@
           empty-text="该用户暂无绑定设备"
         >
           <el-table-column prop="name" label="设备编号" width="110" />
-          <el-table-column prop="location" label="位置" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="location" label="位置" min-width="120" />
           <el-table-column label="状态" width="70">
             <template #default="{ row }">
               <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
@@ -106,7 +106,7 @@
           empty-text="暂无设备"
         >
           <el-table-column prop="name" label="设备编号" width="110" />
-          <el-table-column prop="location" label="位置" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="location" label="位置" min-width="120" />
           <el-table-column label="状态" width="70">
             <template #default="{ row }">
               <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
@@ -320,6 +320,12 @@ onMounted(async () => {
   justify-content: flex-end;
   padding: 14px 20px;
   border-top: 1px solid #ebeef5;
+}
+
+/* 表格单元格内容优先换行增高，避免横向滚动 */
+.binding-page :deep(.el-table .cell) {
+  white-space: normal;
+  word-break: break-word;
 }
 
 @media (max-width: 1100px) {
