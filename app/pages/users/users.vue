@@ -49,19 +49,45 @@
         </view>
       </view>
 
-      <view class="modal-mask" v-if="showDeviceModal" @click="showDeviceModal = false">
+      <view class="modal-mask" v-if="showDeviceModal" @click="closeDeviceModal">
         <view class="modal-content" @click.stop>
-          <text class="modal-title">{{ selectedUser ? selectedUser.username : '' }} 的设备</text>
-          <view v-if="userDevices.length == 0" class="empty-hint">
-            <text class="text-muted">暂无绑定设备</text>
-          </view>
-          <view v-if="userDevices.length > 0" class="device-mini-list">
-            <view class="device-mini-item" v-for="d in userDevices" :key="d.id">
-              <text class="device-mini-name">{{ d.name }}</text>
-              <text class="device-mini-loc">{{ d.location }}</text>
+          <text class="modal-title">{{ selectedUser ? selectedUser.username : '' }} - 设备绑定</text>
+
+          <!-- 已绑定设备 -->
+          <view class="device-section">
+            <text class="device-section-title">已绑定设备（{{ userDevices.length }}）</text>
+            <view v-if="userDevices.length == 0" class="empty-hint">
+              <text class="text-muted">暂无绑定设备</text>
+            </view>
+            <view v-if="userDevices.length > 0" class="device-mini-list">
+              <view class="device-mini-item device-mini-row" v-for="d in userDevices" :key="d.id">
+                <view class="device-mini-info">
+                  <text class="device-mini-name">{{ d.name }}</text>
+                  <text class="device-mini-loc">{{ d.location || '无位置' }}</text>
+                </view>
+                <button v-if="canBind" class="btn-sm btn-delete" :loading="unbindingDeviceId == d.id" @click="handleUnbind(d)">解绑</button>
+              </view>
             </view>
           </view>
-          <text class="cancel-link" @click="showDeviceModal = false">关闭</text>
+
+          <!-- 可绑定设备 -->
+          <view v-if="canBind" class="device-section">
+            <text class="device-section-title">可绑定设备（{{ bindableDevices.length }}）</text>
+            <view v-if="bindableDevices.length == 0" class="empty-hint">
+              <text class="text-muted">无可绑定设备</text>
+            </view>
+            <view v-if="bindableDevices.length > 0" class="device-mini-list">
+              <view class="device-mini-item device-mini-row" v-for="d in bindableDevices" :key="d.id">
+                <view class="device-mini-info">
+                  <text class="device-mini-name">{{ d.name }}</text>
+                  <text class="device-mini-loc">{{ d.location || '无位置' }}</text>
+                </view>
+                <button class="btn-sm btn-bind" :loading="bindingDeviceId == d.id" @click="handleBind(d)">绑定</button>
+              </view>
+            </view>
+          </view>
+
+          <text class="cancel-link" @click="closeDeviceModal">关闭</text>
         </view>
       </view>
     </view>
@@ -71,6 +97,7 @@
 <script>
 import { hasPermission } from '../../stores/user'
 import { getUsers, createUser, deleteUser, getUserDevices } from '../../api/user'
+import { getDevices, bindUserDevice, unbindUserDevice } from '../../api/device'
 
 export default {
   data: function() {
@@ -89,12 +116,25 @@ export default {
       createLoading: false,
       showDeviceModal: false,
       selectedUser: null,
-      userDevices: []
+      userDevices: [],
+      allDevices: [],
+      bindingDeviceId: null,
+      unbindingDeviceId: null,
+      canBind: false
+    }
+  },
+  computed: {
+    // 可绑定设备 = 全部设备中未被当前用户绑定的
+    bindableDevices: function() {
+      var boundIds = {}
+      this.userDevices.forEach(function(d) { boundIds[d.id] = true })
+      return this.allDevices.filter(function(d) { return !boundIds[d.id] })
     }
   },
   onShow: function() {
     this.admin = hasPermission('user.view') || hasPermission('user.manage')
     this.canManage = hasPermission('user.manage')
+    this.canBind = hasPermission('device.bind')
     this.currentUsername = uni.getStorageSync('username') || ''
     if (this.admin) this.loadUsers(true)
   },
@@ -167,12 +207,72 @@ export default {
     viewDevices: async function(user) {
       this.selectedUser = user
       this.showDeviceModal = true
+      this.bindingDeviceId = null
+      this.unbindingDeviceId = null
       try {
         var res = await getUserDevices(user.id)
         this.userDevices = res.data || []
       } catch (e) {
         this.userDevices = []
       }
+      try {
+        var dres = await getDevices({ page: 1, size: 9999 })
+        this.allDevices = dres.data.list || []
+      } catch (e) {
+        this.allDevices = []
+      }
+    },
+    closeDeviceModal: function() {
+      this.showDeviceModal = false
+      this.selectedUser = null
+      this.userDevices = []
+      this.allDevices = []
+    },
+    refreshDeviceData: async function() {
+      try {
+        var res = await getUserDevices(this.selectedUser.id)
+        this.userDevices = res.data || []
+      } catch (e) {
+        this.userDevices = []
+      }
+    },
+    handleBind: function(device) {
+      var self = this
+      uni.showModal({
+        title: '确认绑定',
+        content: '确定将设备「' + device.name + '」绑定给用户「' + this.selectedUser.username + '」吗？',
+        success: async function(res) {
+          if (res.confirm) {
+            self.bindingDeviceId = device.id
+            try {
+              await bindUserDevice(device.id, self.selectedUser.id)
+              uni.showToast({ title: '绑定成功', icon: 'success' })
+              await self.refreshDeviceData()
+            } catch (e) {} finally {
+              self.bindingDeviceId = null
+            }
+          }
+        }
+      })
+    },
+    handleUnbind: function(device) {
+      var self = this
+      uni.showModal({
+        title: '确认解绑',
+        content: '确定解绑用户「' + this.selectedUser.username + '」与设备「' + device.name + '」的绑定关系吗？',
+        success: async function(res) {
+          if (res.confirm) {
+            self.unbindingDeviceId = device.id
+            try {
+              await unbindUserDevice(device.id, self.selectedUser.id)
+              uni.showToast({ title: '解绑成功', icon: 'success' })
+              await self.refreshDeviceData()
+            } catch (e) {} finally {
+              self.unbindingDeviceId = null
+            }
+          }
+        }
+      })
     },
     formatTime: function(t) {
       if (!t) return ''
@@ -388,8 +488,19 @@ export default {
   margin-top: 24rpx;
 }
 
+.device-section {
+  margin-bottom: 28rpx;
+}
+
+.device-section-title {
+  font-size: 26rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
 .device-mini-list {
-  max-height: 400rpx;
+  max-height: 320rpx;
   overflow-y: auto;
 }
 
@@ -400,6 +511,19 @@ export default {
 
 .device-mini-item:last-child {
   border-bottom: none;
+}
+
+.device-mini-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.device-mini-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .device-mini-name {
@@ -413,5 +537,10 @@ export default {
   color: #94a3b8;
   margin-top: 4rpx;
   display: block;
+}
+
+.btn-bind {
+  background: #e0e7ff;
+  color: #6366f1;
 }
 </style>

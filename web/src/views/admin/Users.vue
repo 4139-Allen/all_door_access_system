@@ -69,7 +69,7 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button v-if="hasPermission('device.bind')" @click="openBindDialog">绑定/解绑设备</el-button>
+          <el-button v-if="hasPermission('device.bind')" type="primary" plain @click="goBinding">绑定管理</el-button>
           <input ref="importInput" type="file" accept=".xlsx,.xls" style="display:none" @change="handleFileChange" />
         </div>
       </div>
@@ -95,52 +95,12 @@
         @change-role="handleChangeRole"
       />
     </div>
-
-    <!-- 绑定/解绑设备弹窗 -->
-    <el-dialog v-model="bindDialogVisible" title="绑定/解绑设备" width="420px" top="25vh">
-      <el-form label-width="80px" class="bind-form">
-        <el-form-item label="选择用户">
-          <el-select
-            v-model="bindForm.user_id"
-            placeholder="请选择用户"
-            filterable
-            style="width: 100%"
-          >
-            <el-option
-              v-for="u in allUsers"
-              :key="u.id"
-              :label="`${u.username} (ID: ${u.id})`"
-              :value="u.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="选择设备">
-          <el-select
-            v-model="bindForm.device_id"
-            placeholder="请选择设备"
-            filterable
-            style="width: 100%"
-          >
-            <el-option
-              v-for="d in allDevices"
-              :key="d.id"
-              :label="`${d.name} - ${d.location || '无位置'} (ID: ${d.id})`"
-              :value="d.id"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="bindDialogVisible = false">取消</el-button>
-        <el-button type="danger" plain :loading="unbinding" @click="unbindDevice">解绑</el-button>
-        <el-button type="primary" :loading="binding" @click="bindDevice">绑定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
 import { useListFetch } from '@/composables/useListFetch'
 import request from '@/utils/request'
@@ -159,16 +119,16 @@ const {
   paramsBuilder: (f) => f.username?.trim() ? { username: f.username.trim() } : {}
 })
 
+const router = useRouter()
 const roleList = ref([])
 const addForm = ref({ username: '', password: '', role: 'user' })
-const bindForm = ref({ user_id: '', device_id: '' })
 const adding = ref(false)
-const binding = ref(false)
-const unbinding = ref(false)
 const importing = ref(false)
-const bindDialogVisible = ref(false)
-const allUsers = ref([])
-const allDevices = ref([])
+
+// 跳转到独立的绑定管理页面
+const goBinding = () => {
+  router.push('/app/binding')
+}
 
 // 加载角色列表（用于新增用户下拉）
 const loadRoles = async () => {
@@ -176,27 +136,6 @@ const loadRoles = async () => {
     const res = await request.get('/roles')
     if (res.success) roleList.value = res.data || []
   } catch (e) {}
-}
-
-// 加载所有用户和设备（用于下拉选择）
-const loadAllUsers = async () => {
-  try {
-    const res = await request.get('/users', { params: { page: 1, size: 9999 } })
-    if (res.success) allUsers.value = res.data.list || []
-  } catch (e) {}
-}
-
-const loadAllDevices = async () => {
-  try {
-    const res = await request.get('/devices', { params: { page: 1, size: 9999 } })
-    if (res.success) allDevices.value = res.data.list || []
-  } catch (e) {}
-}
-
-const openBindDialog = async () => {
-  bindForm.value = { user_id: '', device_id: '' }
-  bindDialogVisible.value = true
-  await Promise.all([loadAllUsers(), loadAllDevices()])
 }
 
 // 下载导入模板
@@ -335,60 +274,6 @@ const handleChangeRole = async ({ userId, newRole }) => {
   }
 }
 
-const bindDevice = async () => {
-  if (!bindForm.value.user_id || !bindForm.value.device_id) {
-    ElMessage.warning('请选择用户和设备')
-    return
-  }
-  binding.value = true
-  try {
-    const res = await request.post(`/devices/${bindForm.value.device_id}/bind`, {
-      user_id: bindForm.value.user_id
-    })
-    if (res.success) {
-      ElMessage.success('绑定成功')
-      bindForm.value = { user_id: '', device_id: '' }
-    } else {
-      ElMessage.error(res.msg || '绑定失败')
-    }
-  } catch (e) {
-    ElMessage.error('网络错误，请稍后重试')
-  } finally {
-    binding.value = false
-  }
-}
-
-const unbindDevice = async () => {
-  if (!bindForm.value.user_id || !bindForm.value.device_id) {
-    ElMessage.warning('请选择用户和设备')
-    return
-  }
-  unbinding.value = true
-  try {
-    await ElMessageBox.confirm('确定要解绑设备吗？', '确认解绑', {
-      type: 'warning',
-      confirmButtonText: '确定解绑',
-      cancelButtonText: '取消',
-      confirmButtonClass: 'el-button--danger',
-    })
-    const res = await request.delete(`/devices/${bindForm.value.device_id}/unbind`, {
-      params: { user_id: bindForm.value.user_id }
-    })
-    if (res.success) {
-      ElMessage.success('解绑成功')
-      bindForm.value = { user_id: '', device_id: '' }
-    } else {
-      ElMessage.error(res.msg || '解绑失败')
-    }
-  } catch (e) {
-    if (e !== 'cancel') {
-      ElMessage.error('网络错误，请稍后重试')
-    }
-  } finally {
-    unbinding.value = false
-  }
-}
-
 onMounted(() => {
   if (hasPermission('user.manage')) loadRoles()
 })
@@ -412,14 +297,6 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-
-.bind-form {
-  padding: 0 10px;
-}
-
-.bind-form :deep(.el-select) {
-  width: 100%;
 }
 
 </style>

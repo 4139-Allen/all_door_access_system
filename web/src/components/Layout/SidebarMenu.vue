@@ -36,7 +36,7 @@
         <span>数据统计</span>
       </el-menu-item>
 
-      <template v-if="hasPermission('user.view') || hasPermission('user.manage') || hasPermission('device.view') || hasPermission('log.view') || hasPermission('alert.view')">
+      <template v-if="hasPermission('user.view') || hasPermission('user.manage') || hasPermission('device.view') || hasPermission('device.bind') || hasPermission('log.view') || hasPermission('alert.view')">
         <div class="menu-label">管理</div>
 
         <el-menu-item v-if="hasPermission('user.view')" :index="routePrefix + '/user'">
@@ -47,6 +47,11 @@
         <el-menu-item v-if="hasPermission('device.view')" :index="routePrefix + '/device'">
           <el-icon><Lock /></el-icon>
           <span>设备管理</span>
+        </el-menu-item>
+
+        <el-menu-item v-if="hasPermission('device.bind')" :index="routePrefix + '/binding'">
+          <el-icon><Link /></el-icon>
+          <span>绑定管理</span>
         </el-menu-item>
 
         <el-menu-item v-if="hasPermission('log.view')" :index="routePrefix + '/log'">
@@ -86,7 +91,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowRight, Lock, HomeFilled, Key, DataLine, UserFilled, List, Setting, Warning } from '@element-plus/icons-vue'
+import { ArrowRight, Lock, HomeFilled, Key, DataLine, UserFilled, List, Setting, Warning, Link } from '@element-plus/icons-vue'
 import { hasPermission } from '@/utils/permission'
 
 defineProps({ role: String })

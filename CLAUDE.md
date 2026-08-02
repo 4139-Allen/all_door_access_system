@@ -238,7 +238,7 @@ Just configure your log collector to read `logs/app.log` line by line.
 - `GET /users?page=1&size=10&username=&role=` - Get paginated user list with filters
 - `POST /users` - Create new user
 - `DELETE /users/{user_id}` - Delete user and associated data
-- `GET /users/{user_id}/devices` - Get devices bound to a specific user
+- `GET /users/{user_id}/devices` - Get devices bound to a specific user (returns full device objects: id/name/location/status)
 
 ### Device Management
 - `POST /devices` - Create new device (Admin only)
@@ -270,8 +270,9 @@ Just configure your log collector to read `logs/app.log` line by line.
 - `Login.vue` - Login/Register page with tab switching
 - `Layout.vue` - Main layout with sidebar navigation and password change dialog
 - `Dashboard.vue` - Dashboard with statistics and AI chat floating button
-- `Users.vue` - User management with bind/unbind functionality (Admin only)
+- `Users.vue` - User management with create/import/role/delete (Admin only); bind/unbind moved to `DeviceBinding.vue`
 - `Device.vue` - Device CRUD operations (Admin only)
+- `DeviceBinding.vue` - Dedicated two-pane binding page: select user, left pane shows bound devices (unbind), right pane shows all devices (bind, already-bound disabled)
 - `Door.vue` - Door control and personal access logs
 - `Log.vue` - Comprehensive door logs with advanced filtering (Admin only)
 

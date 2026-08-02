@@ -392,6 +392,8 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
 
     result = {
         "total": total,
+        "page": page,
+        "size": size,
         "list": [{
             "id": u.id,
             "username": u.username,
@@ -477,17 +479,29 @@ def import_users_from_bytes(db: Session, file_contents: bytes, filename: str = "
 @service_exception_handler
 def get_user_devices(db: Session, user_id: int) -> list:
     """
-    获取用户绑定的设备ID列表
+    获取用户绑定的设备列表（完整设备对象）
 
     参数:
         db: 数据库会话
         user_id: 用户ID
 
     返回:
-        list: 设备ID列表
+        list: 设备对象列表，每项含 id/name/location/status/signal_strength/last_online_at
     """
-    binds = db.query(UserDevice).filter(UserDevice.user_id == user_id).all()
-    return [b.device_id for b in binds]
+    devices = (
+        db.query(Device)
+        .join(UserDevice, UserDevice.device_id == Device.id)
+        .filter(UserDevice.user_id == user_id)
+        .all()
+    )
+    return [{
+        "id": d.id,
+        "name": d.name,
+        "location": d.location or "",
+        "status": d.status,
+        "signal_strength": d.signal_strength,
+        "last_online_at": d.last_online_at.strftime("%Y-%m-%d %H:%M:%S") if d.last_online_at else ""
+    } for d in devices]
 
 
 def get_user_profile(user: User, db: Session) -> dict:
