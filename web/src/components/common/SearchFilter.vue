@@ -40,8 +40,17 @@ onUnmounted(() => clearTimeout(debounceTimer))
 <style scoped>
 .filter-form {
   display: flex;
-  flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
   align-items: center;
   gap: 8px;
+}
+
+/* el-input 使用 #append 后渲染为 inline-table 的 .el-input-group，
+   在 flex 容器中强制按 flex 填满并允许收缩，避免按钮撑出容器 */
+.filter-form :deep(.el-input-group) {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
 }
 </style>
