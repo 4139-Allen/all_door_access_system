@@ -11,7 +11,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'RUN_TESTS', choices: ['yes', 'no'], description: '部署前跑测试？')
+        choice(name: 'RUN_TESTS', choices: ['no', 'yes'], description: '部署前跑测试？')
     }
 
     triggers {
