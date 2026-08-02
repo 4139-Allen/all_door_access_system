@@ -8,9 +8,6 @@
           <p class="header-desc">查看所有门禁开关记录与操作历史</p>
         </div>
       </div>
-      <div class="header-right">
-        <span class="total-count">共 {{ total }} 条记录</span>
-      </div>
     </div>
 
     <!-- 筛选 -->
@@ -22,19 +19,21 @@
         @search="resetPageAndSearch"
         @reset="resetFilter"
       />
-      <el-button v-if="hasPermission('log.export')" type="success" plain @click="openExport">
-        <el-icon><Download /></el-icon>
-        导出 Excel
-      </el-button>
     </div>
 
     <!-- 列表 -->
     <div class="table-card">
       <div class="table-header">
         <span class="table-header-title">开门记录</span>
-        <el-tag size="small" type="info" effect="plain">
-          共 {{ total }} 条记录
-        </el-tag>
+        <div class="table-header-actions">
+          <el-tag size="small" type="info" effect="plain">
+            共 {{ total }} 条记录
+          </el-tag>
+          <el-button v-if="hasPermission('log.export')" type="success" plain @click="openExport">
+            <el-icon><Download /></el-icon>
+            导出 Excel
+          </el-button>
+        </div>
       </div>
 
       <LogTable
@@ -213,6 +212,12 @@ const confirmExport = async () => {
 .filter-card {
   display: flex;
   align-items: flex-end;
+  gap: 12px;
+}
+
+.table-header-actions {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
