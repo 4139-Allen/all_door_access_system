@@ -17,6 +17,8 @@ class DoorLog(Base):
     time = Column(DateTime, default=datetime.now)
 
     # 单列 time 索引：管理员全局时间范围查询
+    # action 索引：开锁方式占比（GROUP BY action）等聚合查询
     __table_args__ = (
         Index("idx_door_log_time", "time"),
+        Index("idx_door_log_action", "action"),
     )
