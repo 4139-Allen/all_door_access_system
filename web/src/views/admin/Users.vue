@@ -69,7 +69,6 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button v-if="hasPermission('device.bind')" type="primary" plain @click="goBinding">绑定管理</el-button>
           <input ref="importInput" type="file" accept=".xlsx,.xls" style="display:none" @change="handleFileChange" />
         </div>
       </div>
@@ -100,7 +99,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
 import { useListFetch } from '@/composables/useListFetch'
 import request from '@/utils/request'
@@ -119,16 +117,10 @@ const {
   paramsBuilder: (f) => f.username?.trim() ? { username: f.username.trim() } : {}
 })
 
-const router = useRouter()
 const roleList = ref([])
 const addForm = ref({ username: '', password: '', role: 'user' })
 const adding = ref(false)
 const importing = ref(false)
-
-// 跳转到独立的绑定管理页面
-const goBinding = () => {
-  router.push('/app/binding')
-}
 
 // 加载角色列表（用于新增用户下拉）
 const loadRoles = async () => {

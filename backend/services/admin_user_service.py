@@ -25,7 +25,7 @@ from schemas.user_schema import UserCreate
 logger = AppLogger.get_logger()
 
 # ==================== 缓存配置 ====================
-USER_LIST_CACHE_KEY = "cache:user:list:page:{page}:size:{size}:user:{username}:role:{role}"
+USER_LIST_CACHE_KEY = "cache:user:list:v2:page:{page}:size:{size}:user:{username}:role:{role}"
 USER_PROFILE_CACHE_KEY = "cache:user:profile:{user_id}"
 USER_CACHE_TTL = 60  # 用户列表缓存 60 秒
 USER_PROFILE_CACHE_TTL = 300  # 个人信息缓存 5 分钟
@@ -378,17 +378,17 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
     roles = db.query(Role.code, Role.name).filter(Role.code.in_(role_codes)).all()
     role_name_map = {r.code: r.name for r in roles}
 
-    # 批量查询用户绑定的设备名
+    # 批量查询用户绑定的设备（名称 + 位置）
     user_ids = [u.id for u in users]
     bindings = (
-        db.query(UserDevice.user_id, Device.name)
+        db.query(UserDevice.user_id, Device.name, Device.location)
         .join(Device, Device.id == UserDevice.device_id)
         .filter(UserDevice.user_id.in_(user_ids))
         .all()
     )
     device_map = {}
-    for uid, name in bindings:
-        device_map.setdefault(uid, []).append(name)
+    for uid, name, location in bindings:
+        device_map.setdefault(uid, []).append({"name": name, "location": location or ""})
 
     result = {
         "total": total,
