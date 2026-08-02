@@ -107,6 +107,10 @@ SMTP_FROM = os.getenv("SMTP_FROM", "")
 # ==================== CORS 配置 ====================
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
+# ==================== 日志导出配置 ====================
+# 单次导出最大条数，防止全量导出拖垮数据库/接口
+LOG_EXPORT_MAX_ROWS = int(os.getenv("LOG_EXPORT_MAX_ROWS", "10000"))
+
 # ==================== 管理员初始化配置 ====================
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "123456")

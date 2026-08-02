@@ -6,6 +6,7 @@ from utils.service_exception_handler import service_exception_handler
 from schemas.door_schema import LogQuery
 from utils.logger import AppLogger
 from database.redis import redis_client, cache_get_json, cache_set_json
+from core.config import LOG_EXPORT_MAX_ROWS
 
 logger = AppLogger.get_logger()
 
@@ -158,9 +159,14 @@ def export_logs(
     db: Session,
     params: LogQuery,
     current_user_id: int,
-    can_view_all: bool = False
-) -> list[dict]:
-    """导出门禁日志（不分页，用于生成 Excel）"""
+    can_view_all: bool = False,
+    max_rows: int = LOG_EXPORT_MAX_ROWS,
+) -> tuple[list[dict], bool]:
+    """导出门禁日志（不分页，用于生成 Excel）
+
+    返回 (日志列表, 是否被上限截断)。
+    当匹配记录超过 max_rows 时，仅导出最新的 max_rows 条，并通过第二个返回值告知调用方。
+    """
     query = db.query(DoorLog)
 
     conditions = []
@@ -177,10 +183,10 @@ def export_logs(
     if conditions:
         query = query.filter(and_(*conditions))
 
-    query = query.order_by(DoorLog.time.desc())
-    logs = query.all()
+    total = query.count()
+    logs = query.order_by(DoorLog.time.desc()).limit(max_rows).all()
 
-    return [_build_result_row(log) for log in logs]
+    return [_build_result_row(log) for log in logs], total > max_rows
 
 
 def invalidate_log_cache():

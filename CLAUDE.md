@@ -321,6 +321,7 @@ Just configure your log collector to read `logs/app.log` line by line.
 - `ALLOWED_ORIGINS` - CORS allowed origins, comma-separated (default: *)
 - `WX_APPID` - WeChat Mini Program AppID
 - `WX_SECRET` - WeChat Mini Program AppSecret
+- `LOG_EXPORT_MAX_ROWS` - Max rows per log export (default: 10000, prevents huge full exports)
 
 ### Important Configuration Notes
 - In Docker environment, use service names: `MYSQL_HOST=mysql`, `REDIS_HOST=redis`
