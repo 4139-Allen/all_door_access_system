@@ -51,7 +51,6 @@
       <div class="table-card">
         <div class="table-header">
           <span class="table-header-title">已绑定设备</span>
-          <el-tag size="small" type="success" effect="plain">{{ boundDevices.length }} 台</el-tag>
         </div>
         <el-table
           :data="boundDevices"
@@ -81,6 +80,9 @@
             </template>
           </el-table-column>
         </el-table>
+        <div class="table-footer">
+          <span class="table-footer-text">共 {{ boundDevices.length }} 台设备</span>
+        </div>
       </div>
 
       <div class="table-card">
@@ -315,11 +317,27 @@ onMounted(async () => {
   align-items: center;
 }
 
-.table-pagination {
+/* 两栏表头统一高度，避免右侧含搜索框比左侧高 */
+.binding-grid .table-header {
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+/* 两栏底部栏统一高度（左侧设备数 / 右侧分页），保证卡片等高 */
+.table-pagination,
+.table-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  padding: 14px 20px;
+  height: 60px;
+  padding: 0 20px;
   border-top: 1px solid #ebeef5;
+  box-sizing: border-box;
+}
+
+.table-footer-text {
+  font-size: 13px;
+  color: #909399;
 }
 
 /* 表格单元格内容优先换行增高，避免横向滚动 */
