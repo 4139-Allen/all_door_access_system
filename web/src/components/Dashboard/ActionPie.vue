@@ -29,7 +29,15 @@ const renderChart = () => {
     },
     legend: {
       bottom: 0,
-      textStyle: { color: '#6b7280' }
+      textStyle: { color: '#6b7280' },
+      // 图例显示：名称 + 次数 + 百分比
+      formatter: (name) => {
+        const item = props.data.find(d => d.name === name)
+        if (!item) return name
+        const total = props.data.reduce((s, d) => s + d.value, 0)
+        const pct = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0
+        return `${name} ${item.value}次（${pct}%）`
+      }
     },
     color: colors,
     series: [{
