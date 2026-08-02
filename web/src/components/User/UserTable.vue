@@ -66,23 +66,51 @@
         </el-tag>
       </template>
     </el-table-column>
-    <el-table-column label="绑定设备" min-width="180">
+    <el-table-column label="绑定设备" min-width="200">
       <template #default="{ row }">
-        <div v-if="row.devices?.length" class="device-tag-list">
-          <el-tag
-            v-for="name in row.devices.slice(0, 3)"
-            :key="name"
+        <div class="device-cell">
+          <div v-if="row.devices?.length" class="device-tag-list">
+            <el-tag
+              v-for="d in row.devices.slice(0, 3)"
+              :key="d.name"
+              size="small"
+              type="info"
+              effect="plain"
+            >
+              {{ d.name }}
+            </el-tag>
+            <el-popover
+              v-if="row.devices.length > 3"
+              placement="bottom-start"
+              :width="260"
+              trigger="hover"
+            >
+              <template #reference>
+                <el-tag size="small" type="info" effect="dark" class="more-tag">
+                  +{{ row.devices.length - 3 }}
+                </el-tag>
+              </template>
+              <div class="device-popover">
+                <div class="device-popover-title">全部绑定设备（{{ row.devices.length }}）</div>
+                <div class="device-popover-list">
+                  <div v-for="d in row.devices" :key="d.name" class="device-popover-item">
+                    <span class="device-popover-name">{{ d.name }}</span>
+                    <span class="device-popover-loc">{{ d.location || '无位置' }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-popover>
+          </div>
+          <span v-else class="no-device">未绑定</span>
+          <el-button
+            v-if="canBind"
+            link
+            type="primary"
             size="small"
-            type="info"
-            effect="plain"
-          >
-            {{ name }}
-          </el-tag>
-          <el-tag v-if="row.devices.length > 3" size="small" type="info" effect="dark">
-            +{{ row.devices.length - 3 }}
-          </el-tag>
+            class="device-manage-btn"
+            @click="goBinding(row.id)"
+          >管理</el-button>
         </div>
-        <span v-else class="no-device">未绑定</span>
       </template>
     </el-table-column>
     <el-table-column label="创建时间" prop="created_at" width="175" />
@@ -100,9 +128,13 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import BaseTable from '@/components/common/BaseTable.vue'
 import { Delete, Edit } from '@element-plus/icons-vue'
 import { hasPermission } from '@/utils/permission'
+
+const router = useRouter()
+const canBind = hasPermission('device.bind')
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 const resolveAvatar = (path) => {
@@ -112,6 +144,11 @@ const resolveAvatar = (path) => {
 }
 
 const currentUsername = computed(() => localStorage.getItem('username') || '')
+
+// 跳转到绑定管理页并预选该用户
+const goBinding = (userId) => {
+  router.push({ path: '/app/binding', query: { userId } })
+}
 
 const props = defineProps({
   userList: Array,
@@ -149,6 +186,43 @@ const confirmChangeRole = (row, newRole) => {
 
 <style>
 @import '@/styles/page.css';
+
+/* 弹层内容（el-popover 默认 teleport 到 body，需全局样式） */
+.device-popover {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.device-popover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.device-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.device-popover-item:last-child {
+  border-bottom: none;
+}
+
+.device-popover-name {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.device-popover-loc {
+  font-size: 12px;
+  color: #94a3b8;
+}
 </style>
 
 <style scoped>
@@ -197,10 +271,25 @@ const confirmChangeRole = (row, newRole) => {
   background: #fef0f0;
 }
 
+.device-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .device-tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.more-tag {
+  cursor: pointer;
+}
+
+.device-manage-btn {
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .no-device {

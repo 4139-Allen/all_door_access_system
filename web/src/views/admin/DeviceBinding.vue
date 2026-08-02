@@ -59,16 +59,16 @@
           height="440"
           empty-text="该用户暂无绑定设备"
         >
-          <el-table-column prop="name" label="设备编号" width="130" />
-          <el-table-column prop="location" label="位置" min-width="150" show-overflow-tooltip />
-          <el-table-column label="状态" width="80">
+          <el-table-column prop="name" label="设备编号" width="110" />
+          <el-table-column prop="location" label="位置" min-width="120" show-overflow-tooltip />
+          <el-table-column label="状态" width="70">
             <template #default="{ row }">
               <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
                 {{ row.status === 'online' ? '在线' : '离线' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="80" align="center">
+          <el-table-column label="操作" width="70" align="center">
             <template #default="{ row }">
               <el-button
                 type="danger"
@@ -105,16 +105,16 @@
           height="440"
           empty-text="暂无设备"
         >
-          <el-table-column prop="name" label="设备编号" width="130" />
-          <el-table-column prop="location" label="位置" min-width="150" show-overflow-tooltip />
-          <el-table-column label="状态" width="80">
+          <el-table-column prop="name" label="设备编号" width="110" />
+          <el-table-column prop="location" label="位置" min-width="120" show-overflow-tooltip />
+          <el-table-column label="状态" width="70">
             <template #default="{ row }">
               <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
                 {{ row.status === 'online' ? '在线' : '离线' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="80" align="center">
+          <el-table-column label="操作" width="70" align="center">
             <template #default="{ row }">
               <el-button
                 type="primary"
@@ -143,9 +143,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useListFetch } from '@/composables/useListFetch'
 import request from '@/utils/request'
+
+const route = useRoute()
+const router = useRouter()
 
 // 全部设备（右栏，复用统一分页）
 const {
@@ -191,7 +195,15 @@ const loadBoundDevices = async (userId) => {
   }
 }
 
-const onUserChange = (userId) => loadBoundDevices(userId)
+const onUserChange = (userId) => {
+  loadBoundDevices(userId)
+  // 同步 URL，便于从用户管理页带参跳转 / 分享定位
+  if (userId) {
+    router.replace({ query: { userId } })
+  } else {
+    router.replace({ query: {} })
+  }
+}
 
 const bindDevice = async (device) => {
   if (!selectedUserId.value) {
@@ -253,7 +265,15 @@ const unbindDevice = async (device) => {
   }
 }
 
-onMounted(loadUsers)
+onMounted(async () => {
+  await loadUsers()
+  // 支持从用户管理页带 ?userId= 跳转，自动选中该用户
+  const userId = route.query.userId
+  if (userId && allUsers.value.some(u => u.id === Number(userId))) {
+    selectedUserId.value = Number(userId)
+    loadBoundDevices(selectedUserId.value)
+  }
+})
 </script>
 
 <style>
@@ -284,7 +304,7 @@ onMounted(loadUsers)
 
 .binding-grid {
   display: grid;
-  grid-template-columns: 1fr 1.3fr;
+  grid-template-columns: minmax(400px, 1fr) minmax(460px, 1.3fr);
   gap: 20px;
   align-items: start;
 }
