@@ -304,7 +304,7 @@ onMounted(async () => {
 
 .binding-grid {
   display: grid;
-  grid-template-columns: minmax(400px, 1fr) minmax(460px, 1.3fr);
+  grid-template-columns: minmax(400px, 1fr) minmax(400px, 1fr);
   gap: 20px;
   align-items: start;
 }
