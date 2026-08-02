@@ -14,19 +14,26 @@ logger = AppLogger.get_logger()
 
 STAT_CACHE_KEY_TEMPLATE = "stat:user:{user_id}"
 TREND_CACHE_KEY_TEMPLATE = "stat:trend:user:{user_id}"
-ACTIONS_CACHE_KEY_TEMPLATE = "stat:actions:user:{user_id}"
+ACTIONS_CACHE_KEY_TEMPLATE = "stat:actions:user:{user_id}:days:{days}"
 STAT_CACHE_TTL = 180  # 秒
 
 
 def invalidate_stat_cache(user_id: int):
-    """清除指定用户的统计缓存（含趋势和开锁方式）"""
+    """清除指定用户的统计缓存（含趋势和开锁方式各天数）"""
     if redis_client:
         try:
             redis_client.delete(
                 STAT_CACHE_KEY_TEMPLATE.format(user_id=user_id),
                 TREND_CACHE_KEY_TEMPLATE.format(user_id=user_id),
-                ACTIONS_CACHE_KEY_TEMPLATE.format(user_id=user_id),
             )
+            # 开锁方式缓存按天数区分，用前缀扫描清除该用户所有天数
+            cursor = 0
+            while True:
+                cursor, keys = redis_client.scan(cursor, match=f"stat:actions:user:{user_id}:*", count=100)
+                if keys:
+                    redis_client.delete(*keys)
+                if cursor == 0:
+                    break
         except Exception as e:
             logger.warning(f"清除用户统计缓存失败 [{user_id}]: {e}")
 
@@ -135,9 +142,9 @@ def get_weekly_trend(db: Session, user: User) -> list:
 
 
 @service_exception_handler
-def get_action_distribution(db: Session, user: User) -> list:
-    """获取开锁方式占比（带缓存）"""
-    cache_key = ACTIONS_CACHE_KEY_TEMPLATE.format(user_id=user.id)
+def get_action_distribution(db: Session, user: User, days: int = 7) -> list:
+    """获取开锁方式占比（带缓存），days=0 表示全部时间，默认近 7 天"""
+    cache_key = ACTIONS_CACHE_KEY_TEMPLATE.format(user_id=user.id, days=days)
     cached = cache_get_json(cache_key)
     if cached is not None:
         return cached
@@ -148,6 +155,10 @@ def get_action_distribution(db: Session, user: User) -> list:
         DoorLog.action,
         func.count().label('count')
     )
+
+    if days > 0:
+        start_dt = datetime.combine(date.today() - timedelta(days=days - 1), datetime.min.time())
+        query = query.filter(DoorLog.time >= start_dt)
 
     if not user_has_permission(db, user, "log.view"):
         query = query.filter(DoorLog.user_name == user.username)
