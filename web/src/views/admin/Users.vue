@@ -13,10 +13,9 @@
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具栏：搜索 + 新增用户 -->
     <div class="toolbar-card">
       <div class="toolbar-section">
-        <div class="section-label">搜索</div>
         <SearchFilter
           :filter-form="filterForm"
           field="username"
@@ -29,7 +28,6 @@
       <div v-if="hasPermission('user.manage')" class="toolbar-divider"></div>
 
       <div v-if="hasPermission('user.manage')" class="toolbar-section">
-        <div class="section-label">新增用户</div>
         <AddForm :loading="adding" @add="addUser">
           <el-input
             v-model="addForm.username"
@@ -56,12 +54,25 @@
           </el-select>
         </AddForm>
       </div>
+    </div>
 
-      <div v-if="hasPermission('user.manage')" class="toolbar-divider"></div>
-
-      <div v-if="hasPermission('user.manage')" class="toolbar-section">
-        <div class="batch-actions">
-          <el-dropdown @click="handleImportClick" @command="handleImportCommand" :loading="importing" split-button type="success" plain>
+    <!-- 用户列表 -->
+    <div class="table-card">
+      <div class="table-header">
+        <span class="table-header-title">用户列表</span>
+        <div class="table-header-actions">
+          <el-tag size="small" type="info" effect="plain">
+            共 {{ total }} 条记录
+          </el-tag>
+          <el-dropdown
+            v-if="hasPermission('user.manage')"
+            @click="handleImportClick"
+            @command="handleImportCommand"
+            :loading="importing"
+            split-button
+            type="success"
+            plain
+          >
             {{ importing ? '正在导入...' : '导入 Excel' }}
             <template #dropdown>
               <el-dropdown-menu>
@@ -71,16 +82,6 @@
           </el-dropdown>
           <input ref="importInput" type="file" accept=".xlsx,.xls" style="display:none" @change="handleFileChange" />
         </div>
-      </div>
-    </div>
-
-    <!-- 用户列表 -->
-    <div class="table-card">
-      <div class="table-header">
-        <span class="table-header-title">用户列表</span>
-        <el-tag size="small" type="info" effect="plain">
-          共 {{ total }} 条记录
-        </el-tag>
       </div>
 
       <UserTable
@@ -284,11 +285,10 @@ onMounted(() => {
   min-width: 0;
 }
 
-.batch-actions {
+.table-header-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   align-items: center;
+  gap: 12px;
 }
 
 </style>
