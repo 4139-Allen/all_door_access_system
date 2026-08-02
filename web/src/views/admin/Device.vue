@@ -13,23 +13,18 @@
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具栏：搜索 + 新增设备（分两行） -->
     <div class="toolbar-card">
       <div class="toolbar-section">
-        <div class="section-label">搜索</div>
         <SearchFilter
           :filter-form="filterForm"
           field="name"
           placeholder="设备编号"
           @search="resetPageAndSearch"
-          @reset="resetFilter"
         />
       </div>
 
-      <div class="toolbar-divider"></div>
-
       <div v-if="hasPermission('device.create')" class="toolbar-section">
-        <div class="section-label">新增设备</div>
         <AddForm :loading="adding" @add="addDevice">
           <el-input
             v-model="addForm.name"
@@ -112,7 +107,7 @@ const { deviceStatusMap } = useDeviceStatus()
 
 const {
   dataList: deviceList, page, size, total, loading, filterForm,
-  fetchData: getDeviceList, resetPageAndSearch, resetFilter
+  fetchData: getDeviceList, resetPageAndSearch
 } = useListFetch('/devices', {
   defaultFilter: { name: '' },
   paramsBuilder: (f) => f.name?.trim() ? { name: f.name.trim() } : {}
@@ -225,5 +220,15 @@ const delDevice = async (id) => {
 <style scoped>
 .device-page {
   padding: 4px;
+}
+
+/* 搜索与新增设备各占一行 */
+.toolbar-card :deep(.toolbar-section) {
+  min-width: 0;
+  flex: 1 0 100%;
+}
+
+.toolbar-card :deep(.toolbar-section + .toolbar-section) {
+  border-top: 1px solid #ebeef5;
 }
 </style>
