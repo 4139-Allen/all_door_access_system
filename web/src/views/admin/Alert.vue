@@ -442,10 +442,6 @@ onUnmounted(() => {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 16px;
-  padding: 16px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #ebeef5;
 }
 
 .filter-item {
