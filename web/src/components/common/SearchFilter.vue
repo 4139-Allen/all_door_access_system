@@ -5,11 +5,14 @@
       :placeholder="placeholder"
       clearable
       size="default"
+      class="search-input"
       @input="onInput"
       @keydown.enter="search"
-    />
-    <el-button type="primary" @click="search">搜索</el-button>
-    <el-button @click="reset">重置</el-button>
+    >
+      <template #append>
+        <el-button class="search-btn" @click="search">搜索</el-button>
+      </template>
+    </el-input>
   </div>
 </template>
 
@@ -23,17 +26,13 @@ defineProps({
   field: { type: String, required: true },
   placeholder: { type: String, default: '搜索' },
 })
-const emit = defineEmits(['search', 'reset'])
+const emit = defineEmits(['search'])
 
 const onInput = () => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => emit('search'), 300)
 }
 const search = () => emit('search')
-const reset = () => {
-  clearTimeout(debounceTimer)
-  emit('reset')
-}
 
 onUnmounted(() => clearTimeout(debounceTimer))
 </script>

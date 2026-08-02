@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <!-- 工具栏：搜索 + 新增用户 -->
+    <!-- 工具栏：搜索 + 新增用户（分两行） -->
     <div class="toolbar-card">
       <div class="toolbar-section">
         <SearchFilter
@@ -21,11 +21,8 @@
           field="username"
           placeholder="用户名"
           @search="resetPageAndSearch"
-          @reset="resetFilter"
         />
       </div>
-
-      <div v-if="hasPermission('user.manage')" class="toolbar-divider"></div>
 
       <div v-if="hasPermission('user.manage')" class="toolbar-section">
         <AddForm :loading="adding" @add="addUser">
@@ -112,7 +109,7 @@ import UserTable from '@/components/User/UserTable.vue'
 
 const {
   dataList: userList, page, size, total, loading, filterForm,
-  fetchData: getUserList, resetPageAndSearch, resetFilter
+  fetchData: getUserList, resetPageAndSearch
 } = useListFetch('/users', {
   defaultFilter: { username: '' },
   paramsBuilder: (f) => f.username?.trim() ? { username: f.username.trim() } : {}
@@ -283,6 +280,11 @@ onMounted(() => {
 
 .toolbar-card :deep(.toolbar-section) {
   min-width: 0;
+  flex: 1 0 100%;
+}
+
+.toolbar-card :deep(.toolbar-section + .toolbar-section) {
+  border-top: 1px solid #ebeef5;
 }
 
 .table-header-actions {
