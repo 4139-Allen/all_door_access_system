@@ -216,6 +216,8 @@ def get_device_list(
 
     result = {
         "total": total,
+        "page": page,
+        "size": size,
         "list": device_list
     }
 

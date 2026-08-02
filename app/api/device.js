@@ -14,3 +14,7 @@ export const createDevice = (data) => post('/api/devices', data)
 export const updateDevice = (id, data) => put(`/api/devices/${id}`, data)
 
 export const deleteDevice = (id) => del(`/api/devices/${id}`)
+
+export const bindUserDevice = (deviceId, userId) => post(`/api/devices/${deviceId}/bind`, { user_id: userId })
+
+export const unbindUserDevice = (deviceId, userId) => del(`/api/devices/${deviceId}/unbind?user_id=${userId}`)
