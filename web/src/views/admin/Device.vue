@@ -226,6 +226,7 @@ const delDevice = async (id) => {
 .toolbar-card :deep(.toolbar-section) {
   min-width: 0;
   flex: 1 0 100%;
+  box-sizing: border-box;
 }
 
 .toolbar-card :deep(.toolbar-section + .toolbar-section) {
