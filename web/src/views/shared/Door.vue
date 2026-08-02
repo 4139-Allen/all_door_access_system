@@ -35,12 +35,6 @@
         </div>
       </template>
 
-      <LogFilter
-        :filter-form="filterForm"
-        @search="resetPageAndSearch"
-        @reset="resetFilter"
-      />
-
       <LogTable
         :log-list="myLogs"
         :total="total"
@@ -62,7 +56,6 @@ import request from '@/utils/request'
 import { hasPermission } from '@/utils/permission'
 import { ElMessage } from 'element-plus'
 import DoorDeviceSelect from '@/components/Door/DoorDeviceSelect.vue'
-import LogFilter from '@/components/business/Log/LogFilter.vue'
 import LogTable from '@/components/business/Log/LogTable.vue'
 
 const { deviceStatusMap } = useDeviceStatus()
@@ -78,21 +71,10 @@ const offlineCount = computed(() => deviceList.value.length - onlineCount.value)
 
 const {
   dataList: myLogs, page, size, total,
-  loading: logsLoading, filterForm,
-  fetchData: getMyLogs, resetPageAndSearch, resetFilter
+  loading: logsLoading,
+  fetchData: getMyLogs
 } = useListFetch('/door/my-logs', {
-  immediate: false,
-  defaultFilter: { device_name: '', status: '', time_range: [] },
-  paramsBuilder: (f) => {
-    const p = {}
-    if (f.device_name?.trim()) p.device_name = f.device_name.trim()
-    if (f.status?.trim()) p.status = f.status.trim()
-    if (f.time_range?.length === 2) {
-      p.start_time = f.time_range[0]
-      p.end_time = f.time_range[1]
-    }
-    return p
-  }
+  immediate: false
 })
 
 const getMyDevices = async () => {
