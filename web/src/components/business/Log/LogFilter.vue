@@ -40,7 +40,7 @@
         size="default"
       />
     </div>
-    <div class="filter-actions">
+    <div v-if="showActions" class="filter-actions">
       <el-button type="primary" size="default" @click="$emit('search')">搜索</el-button>
       <el-button size="default" @click="$emit('reset')">重置</el-button>
     </div>
@@ -52,6 +52,8 @@ defineProps({
   filterForm: { type: Object, required: true },
   showUser: Boolean,
   showLabels: Boolean,
+  // 是否显示「搜索 / 重置」操作按钮，导出对话框等场景可隐藏
+  showActions: { type: Boolean, default: true },
 })
 defineEmits(['search', 'reset'])
 </script>

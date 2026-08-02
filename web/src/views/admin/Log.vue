@@ -22,9 +22,9 @@
         @search="resetPageAndSearch"
         @reset="resetFilter"
       />
-      <el-button v-if="hasPermission('log.export')" type="success" plain :loading="exporting" @click="exportExcel">
+      <el-button v-if="hasPermission('log.export')" type="success" plain @click="openExport">
         <el-icon><Download /></el-icon>
-        {{ exporting ? '正在导出...' : '导出 Excel' }}
+        导出 Excel
       </el-button>
     </div>
 
@@ -49,6 +49,30 @@
         v-model:size="size"
       />
     </div>
+
+    <!-- 导出确认对话框 -->
+    <el-dialog
+      v-model="exportVisible"
+      title="导出门禁日志"
+      width="560px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="!exporting"
+    >
+      <p class="export-tip">设置导出条件后点击「确认导出」，将按条件生成 Excel 文件。</p>
+      <LogFilter
+        :filter-form="exportFilter"
+        :show-user="isAdmin"
+        show-labels
+        :show-actions="false"
+      />
+      <template #footer>
+        <el-button size="default" :disabled="exporting" @click="exportVisible = false">取消</el-button>
+        <el-button size="default" :disabled="exporting" @click="resetExportFilter">重置</el-button>
+        <el-button type="success" :loading="exporting" @click="confirmExport">
+          {{ exporting ? '正在导出...' : '确认导出' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -64,6 +88,11 @@ import LogFilter from '@/components/business/Log/LogFilter.vue'
 import LogTable from '@/components/business/Log/LogTable.vue'
 
 const exporting = ref(false)
+const exportVisible = ref(false)
+
+// 导出对话框独立筛选条件（与页面筛选分离，打开时预填当前条件）
+const defaultExportFilter = { username: '', device_name: '', status: '', time_range: [] }
+const exportFilter = ref({ ...defaultExportFilter })
 
 // 根据权限选择接口：管理员查全部，普通用户只看自己的
 const isAdmin = hasPermission('log.view')
@@ -87,20 +116,36 @@ const {
   }
 })
 
-const exportExcel = async () => {
+// 打开导出对话框，预填当前页面筛选条件
+const openExport = () => {
+  exportFilter.value = { ...filterForm.value }
+  exportVisible.value = true
+}
+
+// 重置导出对话框筛选条件
+const resetExportFilter = () => {
+  exportFilter.value = { ...defaultExportFilter }
+}
+
+// 将导出筛选条件转为请求参数
+const buildExportParams = (f) => {
+  const params = {}
+  if (f.username?.trim()) params.username = f.username.trim()
+  if (f.device_name?.trim()) params.device_name = f.device_name.trim()
+  if (f.status?.trim()) params.status = f.status.trim()
+  if (f.time_range?.length === 2) {
+    params.start_time = f.time_range[0]
+    params.end_time = f.time_range[1]
+  }
+  return params
+}
+
+// 确认导出：按对话框内筛选条件导出
+const confirmExport = async () => {
   try {
     exporting.value = true
 
-    const params = {}
-    const f = filterForm.value
-    if (f.username?.trim()) params.username = f.username.trim()
-    if (f.device_name?.trim()) params.device_name = f.device_name.trim()
-    if (f.status?.trim()) params.status = f.status.trim()
-    if (f.time_range?.length === 2) {
-      params.start_time = f.time_range[0]
-      params.end_time = f.time_range[1]
-    }
-
+    const params = buildExportParams(exportFilter.value)
     const res = await request.get('/door-logs/export', { params, timeout: 60000 })
 
     if (!res.success) {
@@ -120,7 +165,7 @@ const exportExcel = async () => {
     }))
 
     if (rows.length === 0) {
-      ElMessage.warning('没有符合条件的记录可导出')
+      ElMessage.warning('没有符合条件的记录可导出，请调整筛选条件')
       return
     }
 
@@ -137,7 +182,13 @@ const exportExcel = async () => {
     const now = new Date()
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
     XLSX.writeFile(wb, `门禁日志_${dateStr}.xlsx`)
-    ElMessage.success(`成功导出 ${rows.length} 条记录`)
+    if (res.data?.truncated) {
+      const maxRows = res.data.max_rows || rows.length
+      ElMessage.warning(`记录较多，已按上限导出最新 ${rows.length} 条（上限 ${maxRows} 条），如需完整数据请缩小筛选范围`)
+    } else {
+      ElMessage.success(`成功导出 ${rows.length} 条记录`)
+    }
+    exportVisible.value = false
   } catch (e) {
     if (e.code === 'ECONNABORTED' || e.message?.includes('timeout')) {
       ElMessage.error('导出超时，请缩小筛选范围后重试')
@@ -163,5 +214,12 @@ const exportExcel = async () => {
   display: flex;
   align-items: flex-end;
   gap: 12px;
+}
+
+.export-tip {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
 }
 </style>

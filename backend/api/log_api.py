@@ -8,6 +8,7 @@ from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
 from database.models.user import User
 from schemas.door_schema import LogQuery, LogExportQuery
+from core.config import LOG_EXPORT_MAX_ROWS
 
 router = APIRouter(tags=["日志管理"])
 
@@ -59,14 +60,19 @@ def export_logs_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("log.export"))
 ):
-    log_list = export_logs(
+    log_list, truncated = export_logs(
         db=db,
         params=params,
         current_user_id=current_user.id,
-        can_view_all=True
+        can_view_all=True,
+        max_rows=LOG_EXPORT_MAX_ROWS,
     )
 
+    msg = f"导出 {len(log_list)} 条记录"
+    if truncated:
+        msg += f"（超过上限，仅导出最新 {len(log_list)} 条，请缩小筛选范围）"
+
     return success(
-        data={"list": log_list},
-        msg=f"导出 {len(log_list)} 条记录"
+        data={"list": log_list, "truncated": truncated, "max_rows": LOG_EXPORT_MAX_ROWS},
+        msg=msg,
     )
