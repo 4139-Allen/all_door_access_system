@@ -14,8 +14,10 @@
         <el-card shadow="never" class="chart-card">
           <template #header>
             <div class="chart-header">
-              <span class="chart-title">近 7 天开锁趋势</span>
-              <span class="chart-desc">每日开锁次数变化</span>
+              <div class="chart-header-left">
+                <span class="chart-title">近 7 天开锁趋势</span>
+                <span class="chart-desc">每日开锁次数变化</span>
+              </div>
             </div>
           </template>
           <el-skeleton :loading="trendLoading" animated>
@@ -34,8 +36,16 @@
         <el-card shadow="never" class="chart-card">
           <template #header>
             <div class="chart-header">
-              <span class="chart-title">开锁方式占比</span>
-              <span class="chart-desc">各验证方式使用比例</span>
+              <div class="chart-header-left">
+                <span class="chart-title">开锁方式占比</span>
+                <span class="chart-desc">各验证方式使用比例</span>
+              </div>
+              <el-select v-model="actionDays" size="small" style="width: 100px" @change="getActions">
+                <el-option label="近 7 天" :value="7" />
+                <el-option label="近 30 天" :value="30" />
+                <el-option label="近 90 天" :value="90" />
+                <el-option label="全部" :value="0" />
+              </el-select>
             </div>
           </template>
           <el-skeleton :loading="actionLoading" animated>
@@ -64,6 +74,7 @@ const trendLoading = ref(true)
 const actionLoading = ref(true)
 const trendData = ref([])
 const actionData = ref([])
+const actionDays = ref(7)
 
 const getTrend = async () => {
   trendLoading.value = true
@@ -80,7 +91,7 @@ const getTrend = async () => {
 const getActions = async () => {
   actionLoading.value = true
   try {
-    const res = await request.get('/statistics/actions')
+    const res = await request.get('/statistics/actions', { params: { days: actionDays.value } })
     if (res.success) actionData.value = res.data
   } catch (e) {
     console.error('获取开锁方式数据失败', e)
@@ -109,6 +120,12 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 .chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-header-left {
   display: flex;
   flex-direction: column;
   gap: 2px;

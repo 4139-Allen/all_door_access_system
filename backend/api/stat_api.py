@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from database.db import get_db
 from utils.auth import RequirePermission
@@ -33,8 +33,9 @@ def get_trend(
 @router.get("/statistics/actions", summary="开锁方式占比")
 @handle_api_exception
 def get_actions(
+    days: int = Query(7, ge=0, description="统计天数，0=全部时间"),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("dashboard.view"))
 ):
-    data = get_action_distribution(db, current_user)
+    data = get_action_distribution(db, current_user, days=days)
     return success(data=data, msg="获取开锁方式数据成功")
