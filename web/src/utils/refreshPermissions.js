@@ -10,10 +10,11 @@ export async function refreshPermissions() {
     const res = await request.get('/auth/permissions')
     if (res.success && Array.isArray(res.data?.permissions)) {
       localStorage.setItem('permissions', JSON.stringify(res.data.permissions))
+      return res.data.permissions
     }
-    return res.data?.permissions || []
+    return null
   } catch {
     // 静默失败 — 权限刷新失败不应阻塞用户操作
-    return []
+    return null
   }
 }

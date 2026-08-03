@@ -33,6 +33,11 @@
         </div>
 
         <div class="header-right">
+          <el-tooltip content="刷新权限" placement="bottom" :show-after="300">
+            <el-button text class="refresh-btn" :loading="refreshing" @click="handleRefreshPermission">
+              <el-icon :size="16"><Refresh /></el-icon>
+            </el-button>
+          </el-tooltip>
           <el-button text class="logout-btn" @click="logout">
             <el-icon :size="16"><SwitchButton /></el-icon>
             <span>退出登录</span>
@@ -57,8 +62,9 @@
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref, computed, watch } from 'vue'
-import { Fold, SwitchButton } from '@element-plus/icons-vue'
+import { Fold, SwitchButton, Refresh } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { refreshPermissions } from '@/utils/refreshPermissions'
 import { closeWebSocket } from '@/services/websocket'
 import { startRelativeTimeTick } from '@/utils/formatTime'
 
@@ -95,6 +101,21 @@ const pageNames = {
 }
 
 const currentPageName = computed(() => pageNames[route.path] || '')
+
+// 手动刷新当前用户权限（所有角色可用；菜单/按钮显隐读 localStorage，刷新后需重载页面生效）
+const refreshing = ref(false)
+const handleRefreshPermission = async () => {
+  refreshing.value = true
+  const perms = await refreshPermissions()
+  refreshing.value = false
+  if (perms !== null) {
+    ElMessage.success('权限已刷新')
+    // localStorage 非响应式，重新加载以应用最新的菜单/按钮显隐
+    setTimeout(() => location.reload(), 600)
+  } else {
+    ElMessage.error('权限刷新失败，请稍后重试')
+  }
+}
 
 const logout = async () => {
   try {
@@ -181,6 +202,15 @@ const logout = async () => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.refresh-btn {
+  color: #909399;
+  padding: 8px;
+}
+
+.refresh-btn:hover {
+  color: #6366f1;
 }
 
 .logout-btn {
