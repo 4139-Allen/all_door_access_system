@@ -16,6 +16,7 @@
 - [用户管理](#用户管理)
 - [设备管理](#设备管理)
 - [门禁管理](#门禁管理)
+- [日志管理](#日志管理)
 - [异常事件](#异常事件)
 - [权限管理](#权限管理)
 - [数据统计](#数据统计)
@@ -555,6 +556,8 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### POST /devices/{device_id}/bind — 绑定用户
 
+> 用户不存在 → 404；用户已停用 → 400 `该用户已停用，无法绑定`；重复绑定 → 400。
+
 ```json
 {"user_id": 1}
 ```
@@ -580,9 +583,6 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | 方法 | 路径 | 描述 | 权限 |
 |------|------|------|------|
 | POST | `/doors/{device_id}/open` | 远程开门 | `door.open` |
-| GET | `/door-logs` | 开门日志（分页+筛选，管理员看全部） | `log.view` |
-| GET | `/door/my-logs` | 个人开门日志（分页+筛选） | `door.view_own_log` |
-| GET | `/door-logs/export` | 导出门禁日志（Excel） | `log.export` |
 
 ### POST /doors/{device_id}/open — 远程开门
 
@@ -602,6 +602,14 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
   }
 }
 ```
+
+## 日志管理
+
+| 方法 | 路径 | 描述 | 权限 |
+|------|------|------|------|
+| GET | `/door-logs` | 开门日志（分页+筛选，管理员看全部） | `log.view` |
+| GET | `/door/my-logs` | 个人开门日志（分页+筛选） | `door.view_own_log` |
+| GET | `/door-logs/export` | 导出门禁日志（Excel） | `log.export` |
 
 ### GET /door-logs — 获取开门日志（管理员查看全部）
 
