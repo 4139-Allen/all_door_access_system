@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, Query, UploadFile, File
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.orm import Session
 from database.db import get_db
 from database.models.user import User
+from database.models.role import Role
 from schemas.user_schema import UserCreate, RoleUpdate
 from services.admin_user_service import (
     db_create_user, delete_user_by_id, get_user_devices,
@@ -12,6 +14,20 @@ from core.response_schema import success
 from utils.auth import RequirePermission
 from typing import Optional
 
+
+def validate_role_filter(
+    role: Optional[str] = Query(None, description="角色筛选: admin/operator/user"),
+    db: Session = Depends(get_db),
+) -> Optional[str]:
+    """校验 role 查询参数必须是已存在的角色，非法值返回 422"""
+    if role:
+        valid_roles = {r[0] for r in db.query(Role.code).all()}
+        if role not in valid_roles:
+            raise RequestValidationError([
+                {"loc": ["query", "role"], "msg": f"角色 '{role}' 不存在", "type": "value_error"}
+            ])
+    return role
+
 router = APIRouter(tags=["【超级管理员】用户管理"])
 
 
@@ -20,8 +36,8 @@ router = APIRouter(tags=["【超级管理员】用户管理"])
 def list_users(
         page: int = Query(1, ge=1),
         size: int = Query(10, ge=1, le=100),
-        username: Optional[str] = Query(None, description="用户名模糊搜索"),
-        role: Optional[str] = Query(None, description="角色筛选: admin/operator/user"),
+        username: Optional[str] = Query(None, max_length=50, description="用户名模糊搜索"),
+        role: Optional[str] = Depends(validate_role_filter),
         show_inactive: bool = Query(False, description="是否显示已停用用户"),
         db: Session = Depends(get_db),
         current_user: User = Depends(RequirePermission("user.view"))
@@ -37,6 +53,10 @@ def create_new_user(
         db: Session = Depends(get_db),
         current_user: User = Depends(RequirePermission("user.manage"))
 ):
+    # 校验角色必须存在（与修改角色接口一致，避免存入非法角色）
+    role_obj = db.query(Role).filter(Role.code == data.role).first()
+    if not role_obj:
+        raise ValueError(f"角色 '{data.role}' 不存在")
     user = db_create_user(db, data.username, data.password, role=data.role)
     return success(data={"id": user.id, "username": user.username, "role": user.role}, msg="用户创建成功")
 

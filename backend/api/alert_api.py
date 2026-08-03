@@ -4,13 +4,13 @@
 """
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from utils.auth import RequirePermission
 from database.db import get_db
 from utils.api_exception_handler import handle_api_exception
 from core.response_schema import success
 from database.models.user import User
+from schemas.alert_schema import AlertListQuery
 from services.alert_service import get_alert_list, get_alert_stats, unlock_device
 
 router = APIRouter(tags=["异常事件"])
@@ -19,12 +19,7 @@ router = APIRouter(tags=["异常事件"])
 @router.get("/alerts", summary="获取异常事件列表")
 @handle_api_exception
 def get_alerts(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
-    device_name: Optional[str] = Query(None, description="设备名称筛选"),
-    alert_type: Optional[str] = Query(None, description="事件类型: lock, offline, error"),
-    start_time: Optional[str] = Query(None, description="开始时间"),
-    end_time: Optional[str] = Query(None, description="结束时间"),
+    params: AlertListQuery = Depends(),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("alert.view"))
 ):
@@ -32,20 +27,20 @@ def get_alerts(
     total, result = get_alert_list(
         db=db,
         current_user=current_user,
-        page=page,
-        size=size,
-        device_name=device_name,
-        alert_type=alert_type,
-        start_time=start_time,
-        end_time=end_time
+        page=params.page,
+        size=params.size,
+        device_name=params.device_name,
+        alert_type=params.alert_type,
+        start_time=params.start_time,
+        end_time=params.end_time
     )
 
     if total == 0:
-        msg = "没有异常事件记录" if not device_name and not alert_type else "没有找到符合条件的异常事件"
+        msg = "没有异常事件记录" if not params.device_name and not params.alert_type else "没有找到符合条件的异常事件"
     else:
         msg = f"获取异常事件列表成功，共 {total} 条"
 
-    return success(data={"total": total, "page": page, "size": size, "list": result}, msg=msg)
+    return success(data={"total": total, "page": params.page, "size": params.size, "list": result}, msg=msg)
 
 
 @router.get("/alerts/stats", summary="获取异常事件统计")

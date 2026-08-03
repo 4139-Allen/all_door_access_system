@@ -209,6 +209,8 @@ def register_exception_handlers(app: FastAPI):
             "end_time": "结束时间",
             "page": "页码",
             "size": "每页条数",
+            "role": "角色",
+            "alert_type": "事件类型",
             "target": "接收目标",
             "avatar": "头像",
             "captcha": "验证码",
@@ -251,6 +253,10 @@ def register_exception_handlers(app: FastAPI):
                 msg = msg[len("Value error, "):]
             if not msg:
                 msg = f"{cn_field}格式错误"
+        elif err_type == "literal_error":
+            # Literal 枚举校验失败（如 alert_type 只能取 lock/offline/error）
+            expected = ctx.get("expected", "")
+            msg = f"{cn_field}取值不合法，只能为: {expected}"
         else:
             msg = first.get("msg", f"{cn_field}格式错误")
 
