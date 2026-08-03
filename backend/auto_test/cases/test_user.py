@@ -17,6 +17,7 @@ from test_util.assert_util import (
     assert_forbidden,
     assert_created,
     assert_unauthorized,
+    assert_not_found,
 )
 
 
@@ -193,3 +194,8 @@ class TestUserDevices:
         """普通用户无权查看其他用户的设备 → 403"""
         resp = shared_user_client.get("/users/1/devices")
         assert_forbidden(resp)
+
+    def test_get_user_devices_not_found(self, admin_client):
+        """用户不存在 → 404（而非空数组）"""
+        resp = admin_client.get("/users/999999/devices")
+        assert_not_found(resp)
