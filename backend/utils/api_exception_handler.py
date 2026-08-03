@@ -241,6 +241,9 @@ def register_exception_handlers(app: FastAPI):
             msg = f"{cn_field}格式错误，请使用 YYYY-MM-DD HH:mm:ss 格式"
         elif err_type == "int_parsing":
             msg = f"{cn_field}必须为数字"
+        elif err_type == "string_type":
+            # 非字符串类型（null / 数字等）传给 str 字段
+            msg = f"{cn_field}必须为字符串"
         elif err_type == "greater_than_equal":
             msg = f"{cn_field}不能小于{ctx.get('ge', '')}"
         elif err_type == "less_than_equal":

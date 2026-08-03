@@ -519,13 +519,20 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 设备名唯一、不可重复；设备名与位置均为必填。
 
+**校验规则**:
+- `name`: 必填，1~100 字符
+- `location`: 必填，1~200 字符
+- 名称重复 → 400 `设备名「xxx」已存在`
+- 纯空格 → 400 `设备名称不能为空` / `设备位置不能为空`（仅空格会通过长度校验，由服务层拦截）
+- 超长 / 空串 / 缺失 → 422（如 `名称长度不能超过100个字符`、`名称不能为空`）
+
 ```json
 {"name": "001", "location": "正门"}
 ```
 
 ```json
 // 响应 201
-{"code": 200, "msg": "创建设备成功", "data": {"device_id": 1}}
+{"code": 200, "msg": "设备创建成功", "data": {"device_id": 1}}
 ```
 
 ### PUT /devices/{device_id} — 更新设备
