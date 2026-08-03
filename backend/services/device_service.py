@@ -252,6 +252,10 @@ def bind_user_device(db: Session, user_id: int, device_id: int, operator_id: Opt
     if not user:
         raise NotFoundError("用户不存在")
 
+    # 已停用用户不能绑定设备
+    if not user.is_active:
+        raise ValueError("该用户已停用，无法绑定")
+
     # 检查是否已存在绑定关系
     exists = db.query(UserDevice).filter(
         UserDevice.user_id == user_id,

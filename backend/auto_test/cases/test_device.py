@@ -241,6 +241,31 @@ class TestDeviceBind:
         cleanup_device(admin_client, device_id)
 
     @allure.story("绑定/解绑用户")
+    @allure.title("绑定已停用用户返回 400")
+    @pytest.mark.destructive
+    def test_bind_deactivated_user(self, admin_client):
+        """绑定已停用用户 → 400"""
+        device_id = create_device(admin_client)
+        name = f"inactive_bind_{uuid.uuid4().hex[:8]}"
+
+        # 创建用户再停用
+        create_resp = admin_client.post("/users", json={
+            "username": name,
+            "password": "test123456",
+            "role": "user",
+        })
+        assert_success(create_resp)
+        user_id = create_resp.json()["data"]["id"]
+        deact_resp = admin_client.delete(f"/users/{user_id}")
+        assert_success(deact_resp, "停用成功")
+
+        # 绑定已停用用户 → 400
+        resp = admin_client.post(f"/devices/{device_id}/bind", json={"user_id": user_id})
+        assert_failure(resp, 400, "已停用")
+
+        cleanup_device(admin_client, device_id)
+
+    @allure.story("绑定/解绑用户")
     @allure.title("管理员解绑用户成功")
     @pytest.mark.destructive
     def test_unbind_user_success(self, admin_client):
