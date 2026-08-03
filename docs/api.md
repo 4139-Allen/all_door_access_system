@@ -51,12 +51,16 @@
 
 ### 翻页列表格式
 
+所有翻页列表统一返回 `{total, page, size, list}`：
+
 ```json
 {
   "code": 200,
   "msg": "获取成功",
   "data": {
     "total": 100,
+    "page": 1,
+    "size": 10,
     "list": [ ... ]
   }
 }
@@ -117,6 +121,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | PUT | `/auth/password` | 修改当前用户密码 | 已认证 | - |
 | POST | `/auth/reset-password` | 忘记密码（手机号+验证码重置） | 公开 | 5 次/60s |
 | GET | `/auth/profile` | 获取个人信息（含手机号/邮箱） | 已认证 | - |
+| GET | `/auth/permissions` | 刷新当前用户的权限列表 | 已认证 | - |
 | PUT | `/auth/profile` | 修改用户名 | 已认证 | - |
 | PUT | `/auth/avatar` | 上传头像 | 已认证 | - |
 | PUT | `/auth/bind-phone` | 绑定手机号（需验证码） | 已认证 | - |
@@ -154,7 +159,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### POST /auth/login-code — 统一验证码登录
 
-> 自动识别手机号或邮箱，未注册的凭据自动创建账号（随机用户名）。用户名不支持验证码登录。
+> 自动识别手机号或邮箱，未注册的凭据自动创建账号（用户名即为手机号/邮箱，无密码）。用户名不支持验证码登录。
 
 ```json
 {
@@ -185,7 +190,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ```json
 // 响应 201
-{"code": 200, "msg": "注册成功", "data": {"id": 2, "username": "newuser", "role": "user"}}
+{"code": 200, "msg": "用户注册成功", "data": {"id": 2, "username": "newuser", "role": "user"}}
 ```
 
 ### POST /auth/send-code — 发送验证码
@@ -250,6 +255,14 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
     "created_at": "2026-01-01 00:00:00"
   }
 }
+```
+
+### GET /auth/permissions — 刷新当前用户的权限列表
+
+> 清除缓存并重新查询当前用户的权限，用于管理员修改权限后前端主动刷新。
+
+```json
+{"code": 200, "msg": "权限刷新成功", "data": {"permissions": ["dashboard.view", "door.open", "device.view", ...]}}
 ```
 
 ### PUT /auth/profile — 修改用户名
@@ -347,6 +360,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | size | int | 10 | 每页条数 |
 | username | str | - | 用户名模糊搜索 |
 | role | str | - | 角色筛选：`admin` / `operator` / `user` |
+| show_inactive | bool | false | 是否显示已停用用户 |
 
 ```json
 {
@@ -354,6 +368,8 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
   "msg": "获取用户列表成功",
   "data": {
     "total": 50,
+    "page": 1,
+    "size": 10,
     "list": [
       {
         "id": 1,
@@ -361,12 +377,19 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
         "role": "admin",
         "role_name": "超级管理员",
         "avatar": "",
+        "is_builtin": true,
+        "devices": [
+          {"name": "001", "location": "正门"},
+          {"name": "002", "location": "侧门"}
+        ],
         "created_at": "2026-01-01 00:00:00"
       }
     ]
   }
 }
 ```
+
+> `devices` 为用户已绑定的设备列表（名称+位置），空数组表示未绑定设备。`is_builtin` 为 `true` 表示内置账号（如超级管理员），不可删除。
 
 ### POST /users — 创建用户
 
@@ -381,7 +404,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### PUT /users/{user_id}/role — 修改角色
 
-**限制**: 不能修改自己、不能修改超级管理员、不能降级最后一个管理员。
+**限制**: 不能修改自己的角色、超级管理员（`admin`）角色不可修改。
 
 ```json
 {"role": "operator"}
@@ -393,10 +416,12 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### DELETE /users/{user_id} — 删除用户
 
-**限制**: 不能删除自己、不能删除超级管理员、已绑定设备的用户需先解绑。
+> 删除为**软删除（停用）**：自动解绑该用户所有设备，并释放用户名/手机号/邮箱。
+
+**限制**: 不能删除自己、不能删除系统内置账号（如超级管理员）、已停用的用户不可重复删除。
 
 ```json
-{"code": 200, "msg": "删除成功", "data": null}
+{"code": 200, "msg": "停用成功", "data": null}
 ```
 
 ### POST /users/import — 批量导入用户
@@ -422,8 +447,23 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### GET /users/{user_id}/devices — 查询绑定的设备
 
+> 返回完整设备对象（用于绑定管理页双栏展示）。
+
 ```json
-{"code": 200, "msg": "获取用户设备成功", "data": [1, 2, 3]}
+{
+  "code": 200,
+  "msg": "获取用户设备成功",
+  "data": [
+    {
+      "id": 1,
+      "name": "001",
+      "location": "正门",
+      "status": "online",
+      "signal_strength": -65,
+      "last_online_at": "2026-07-19 10:30:00"
+    }
+  ]
+}
 ```
 
 ---
@@ -455,6 +495,8 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
   "msg": "获取设备列表成功",
   "data": {
     "total": 10,
+    "page": 1,
+    "size": 10,
     "list": [
       {
         "id": 1,
@@ -473,7 +515,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### POST /devices — 新增设备
 
-设备名+位置联合唯一，不可重复。
+设备名唯一、不可重复；设备名与位置均为必填。
 
 ```json
 {"name": "001", "location": "正门"}
@@ -529,42 +571,55 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | 方法 | 路径 | 描述 | 权限 |
 |------|------|------|------|
 | POST | `/doors/{device_id}/open` | 远程开门 | `door.open` |
-| GET | `/door-logs` | 开门日志（分页+筛选） | `door.view_own_log` |
+| GET | `/door-logs` | 开门日志（分页+筛选，管理员看全部） | `log.view` |
+| GET | `/door/my-logs` | 个人开门日志（分页+筛选） | `door.view_own_log` |
+| GET | `/door-logs/export` | 导出门禁日志（Excel） | `log.export` |
 
 ### POST /doors/{device_id}/open — 远程开门
 
 > 后台通过 MQTT 发送开门命令到硬件，异步等待设备回复确认。
 
 ```json
-{"code": 200, "msg": "已成功开启：001（正门）", "data": null}
+{
+  "code": 200,
+  "msg": "已成功开启：001（正门）",
+  "data": {
+    "device_id": 1,
+    "device_name": "001",
+    "location": "正门",
+    "username": "admin",
+    "time": "2026-07-19 10:00:00",
+    "success": true
+  }
+}
 ```
 
-### GET /door-logs — 获取开门日志
+### GET /door-logs — 获取开门日志（管理员查看全部）
 
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | page | int | 1 | 页码 |
 | size | int | 10 | 每页数量（最大 100） |
-| user_id | int | - | 用户ID筛选（仅管理员可用） |
+| username | str | - | 用户名模糊搜索 |
 | device_name | str | - | 设备名称模糊搜索 |
 | status | str | - | 状态筛选（支持前缀匹配，如"失败"匹配"失败：无权限"） |
 | start_time | datetime | - | 开始时间 |
 | end_time | datetime | - | 结束时间 |
 
-> 有 `log.view` 权限可查看全部日志，普通用户只能查看自己的日志。
+> 需 `log.view` 权限。普通用户请使用 `GET /door/my-logs` 查看自己的日志。
 
 ```json
 {
   "code": 200,
-  "msg": "获取日志成功",
+  "msg": "获取日志成功，共 200 条",
   "data": {
     "total": 200,
+    "page": 1,
+    "size": 10,
     "list": [
       {
         "id": 1,
-        "user_id": 1,
         "username": "admin",
-        "device_id": 1,
         "device_name": "001",
         "device_location": "正门",
         "action": "远程开门",
@@ -573,6 +628,30 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
         "time": "2026-07-19 10:00:00"
       }
     ]
+  }
+}
+```
+
+> 日志表采用反规范化存储（用户名/设备名直接冗余在日志行），因此响应不含 `user_id` / `device_id` 字段。
+
+### GET /door/my-logs — 获取个人开门日志（普通用户）
+
+参数与 `/door-logs` 一致（`username` 筛选仅管理员可用），但只返回当前用户的日志，需 `door.view_own_log` 权限。
+
+### GET /door-logs/export — 导出门禁日志（Excel）
+
+筛选参数与 `/door-logs` 一致（无 `page`/`size`），需 `log.export` 权限。
+
+> 默认最多导出 `LOG_EXPORT_MAX_ROWS`（默认 10000）条；超限时仅导出最新记录，并在响应中标记 `truncated`。
+
+```json
+{
+  "code": 200,
+  "msg": "导出 10000 条记录（超过上限，仅导出最新 10000 条，请缩小筛选范围）",
+  "data": {
+    "list": [ ... 与 /door-logs 单条结构相同 ... ],
+    "truncated": true,
+    "max_rows": 10000
   }
 }
 ```
@@ -619,15 +698,15 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {
   "code": 200,
-  "msg": "获取异常事件列表成功",
+  "msg": "获取异常事件列表成功，共 10 条",
   "data": {
     "total": 10,
+    "page": 1,
+    "size": 10,
     "list": [
       {
         "id": 1,
-        "user_id": null,
         "username": "本地",
-        "device_id": 1,
         "device_name": "001",
         "device_location": "正门",
         "action": "密码开门",
@@ -757,7 +836,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```
 
 ```json
-{"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "code": "security", "is_system": false}}
+{"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "code": "security"}}
 ```
 
 ### PUT /roles/{role_id}/permissions — 设置角色权限
@@ -818,6 +897,10 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```
 
 ### GET /statistics/actions — 开锁方式占比
+
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| days | int | 7 | 统计最近 N 天，`0` = 全部时间 |
 
 ```json
 {

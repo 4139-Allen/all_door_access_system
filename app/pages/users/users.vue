@@ -24,7 +24,7 @@
           </view>
           <view class="user-actions">
             <button class="btn-sm btn-view" @click="viewDevices(user)">设备</button>
-            <button v-if="canManage && user.role != 'admin' && user.username != currentUsername" class="btn-sm btn-delete" @click="handleDelete(user)">删除</button>
+            <button v-if="canManage && user.role != 'admin' && user.username != currentUsername" class="btn-sm btn-delete" @click="handleDelete(user)">停用</button>
           </view>
         </view>
       </view>
@@ -191,13 +191,13 @@ export default {
     handleDelete: function(user) {
       var self = this
       uni.showModal({
-        title: '确认删除',
-        content: '确定删除用户「' + user.username + '」吗？',
+        title: '确认停用',
+        content: '确定停用用户「' + user.username + '」吗？停用后无法登录，并解除所有设备绑定。',
         success: async function(res) {
           if (res.confirm) {
             try {
               await deleteUser(user.id)
-              uni.showToast({ title: '删除成功', icon: 'success' })
+              uni.showToast({ title: '停用成功', icon: 'success' })
               self.loadUsers(true)
             } catch (e) {}
           }

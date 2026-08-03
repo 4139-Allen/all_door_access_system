@@ -74,7 +74,7 @@ def delete_user(
         current_user: User = Depends(RequirePermission("user.manage"))
 ):
     delete_user_by_id(db, user_id, current_user)
-    return success(msg="删除成功")
+    return success(msg="停用成功")
 
 
 @router.get("/users/{user_id}/devices", summary="查询用户绑定的设备")
