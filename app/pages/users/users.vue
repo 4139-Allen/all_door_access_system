@@ -216,8 +216,17 @@ export default {
         this.userDevices = []
       }
       try {
-        var dres = await getDevices({ page: 1, size: 9999 })
-        this.allDevices = dres.data.list || []
+        // 分页循环拉取全部设备（每页上限 100）
+        var allDev = []
+        var dpage = 1
+        while (true) {
+          var dres = await getDevices({ page: dpage, size: 100 })
+          var dlist = (dres.data && dres.data.list) || []
+          allDev = allDev.concat(dlist)
+          if (!dres.data || allDev.length >= dres.data.total) break
+          dpage++
+        }
+        this.allDevices = allDev
       } catch (e) {
         this.allDevices = []
       }

@@ -357,7 +357,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | page | int | 1 | 页码 |
-| size | int | 10 | 每页条数 |
+| size | int | 10 | 每页条数（最大 100） |
 | username | str | - | 用户名模糊搜索 |
 | role | str | - | 角色筛选：`admin` / `operator` / `user` |
 | show_inactive | bool | false | 是否显示已停用用户 |
@@ -484,7 +484,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | page | int | 1 | 页码 |
-| size | int | 10 | 每页条数 |
+| size | int | 10 | 每页条数（最大 100） |
 | name | str | - | 设备名称模糊搜索 |
 
 > 有 `device.view` 权限可查看全部设备，否则只能查看已绑定的设备。
