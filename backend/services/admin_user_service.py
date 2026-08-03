@@ -488,6 +488,11 @@ def get_user_devices(db: Session, user_id: int) -> list:
     返回:
         list: 设备对象列表，每项含 id/name/location/status/signal_strength/last_online_at
     """
+    # 用户不存在 → 404（与 delete/update_role 接口保持一致）
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise NotFoundError("用户不存在")
+
     devices = (
         db.query(Device)
         .join(UserDevice, UserDevice.device_id == Device.id)

@@ -449,7 +449,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ### GET /users/{user_id}/devices — 查询绑定的设备
 
-> 返回完整设备对象（用于绑定管理页双栏展示）。
+> 返回完整设备对象（用于绑定管理页双栏展示）。用户不存在时返回 404 `用户不存在`（已停用用户仍存在，返回空数组）。
 
 ```json
 {
