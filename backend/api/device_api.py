@@ -35,8 +35,8 @@ def create(
 @router.get("/devices", summary="获取设备列表")
 @handle_api_exception
 def get_device_list_endpoint(
-    page: int = Query(1, description="页码"),
-    size: int = Query(10, description="每页条数"),
+    page: int = Query(1, ge=1, description="页码"),
+    size: int = Query(10, ge=1, le=100, description="每页条数（最大 100）"),
     name: Optional[str] = Query(None, description="设备名称模糊搜索"),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("device.view", "door.open"))

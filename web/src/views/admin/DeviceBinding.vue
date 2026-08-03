@@ -172,11 +172,21 @@ const unbindingId = ref(null)
 const selectedUser = computed(() => allUsers.value.find(u => u.id === selectedUserId.value) || null)
 const boundDeviceIds = computed(() => new Set(boundDevices.value.map(d => d.id)))
 
-// 加载全部用户（用于选择器）
+// 加载全部用户（用于选择器，分页循环拉取全部，每页上限 100）
 const loadUsers = async () => {
+  const all = []
   try {
-    const res = await request.get('/users', { params: { page: 1, size: 9999 } })
-    if (res.success) allUsers.value = res.data.list || []
+    let page = 1
+    const size = 100
+    while (true) {
+      const res = await request.get('/users', { params: { page, size } })
+      if (!res.success) break
+      const list = res.data.list || []
+      all.push(...list)
+      if (all.length >= res.data.total) break
+      page++
+    }
+    allUsers.value = all
   } catch (e) {}
 }
 

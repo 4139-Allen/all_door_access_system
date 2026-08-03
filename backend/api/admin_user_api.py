@@ -19,7 +19,7 @@ router = APIRouter(tags=["【超级管理员】用户管理"])
 @handle_api_exception
 def list_users(
         page: int = Query(1, ge=1),
-        size: int = Query(10, ge=1),
+        size: int = Query(10, ge=1, le=100),
         username: Optional[str] = Query(None, description="用户名模糊搜索"),
         role: Optional[str] = Query(None, description="角色筛选: admin/operator/user"),
         show_inactive: bool = Query(False, description="是否显示已停用用户"),
