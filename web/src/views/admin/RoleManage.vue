@@ -9,6 +9,9 @@
         </div>
       </div>
       <div class="header-right">
+        <el-button :loading="refreshing" @click="handleRefreshPerm">
+          <el-icon><Refresh /></el-icon>刷新权限
+        </el-button>
         <el-button type="primary" @click="openCreateDialog">
           <el-icon><Plus /></el-icon>新建角色
         </el-button>
@@ -122,13 +125,27 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Setting, Delete } from '@element-plus/icons-vue'
+import { Plus, Setting, Delete, Refresh } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { refreshPermissions } from '@/utils/refreshPermissions'
 
 const loading = ref(false)
+const refreshing = ref(false)
 const roleList = ref([])
 const allPermissions = ref([])
+
+// ======== 手动刷新当前用户权限 ========
+const handleRefreshPerm = async () => {
+  refreshing.value = true
+  const perms = await refreshPermissions()
+  refreshing.value = false
+  // refreshPermissions 静默失败时返回 []（admin 权限固定非空，可用长度区分成败）
+  if (Array.isArray(perms) && perms.length > 0) {
+    ElMessage.success(`权限已刷新（${perms.length} 项）`)
+  } else {
+    ElMessage.error('权限刷新失败，请稍后重试')
+  }
+}
 
 // ======== 角色列表 ========
 const fetchRoles = async () => {
