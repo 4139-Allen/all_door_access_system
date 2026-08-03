@@ -37,7 +37,7 @@ def create(
 def get_device_list_endpoint(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(10, ge=1, le=100, description="每页条数（最大 100）"),
-    name: Optional[str] = Query(None, description="设备名称模糊搜索"),
+    name: Optional[str] = Query(None, max_length=100, description="设备名称模糊搜索"),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("device.view", "door.open"))
 ):

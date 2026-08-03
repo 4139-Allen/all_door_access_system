@@ -358,7 +358,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 |------|------|------|------|
 | page | int | 1 | 页码 |
 | size | int | 10 | 每页条数（最大 100） |
-| username | str | - | 用户名模糊搜索 |
+| username | str | - | 用户名模糊搜索（最长 50 字符） |
 | role | str | - | 角色筛选：`admin` / `operator` / `user` |
 | show_inactive | bool | false | 是否显示已停用用户 |
 
@@ -397,9 +397,11 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 {"username": "newuser", "password": "123456", "role": "user"}
 ```
 
+**校验**: `role` 必须是已存在的角色（系统角色 `admin`/`operator`/`user` 或自定义角色），否则返回 400 `角色 'x' 不存在`。
+
 ```json
 // 响应 201
-{"code": 200, "msg": "创建成功", "data": {"id": 3, "username": "newuser", "role": "user"}}
+{"code": 200, "msg": "用户创建成功", "data": {"id": 3, "username": "newuser", "role": "user"}}
 ```
 
 ### PUT /users/{user_id}/role — 修改角色
@@ -485,7 +487,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 |------|------|------|------|
 | page | int | 1 | 页码 |
 | size | int | 10 | 每页条数（最大 100） |
-| name | str | - | 设备名称模糊搜索 |
+| name | str | - | 设备名称模糊搜索（最长 100 字符） |
 
 > 有 `device.view` 权限可查看全部设备，否则只能查看已绑定的设备。
 
