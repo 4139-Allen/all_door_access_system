@@ -116,7 +116,7 @@
     <el-table-column label="创建时间" prop="created_at" width="175" />
     <el-table-column label="操作" width="120" align="center">
       <template #default="scope">
-        <el-tooltip v-if="hasPermission('user.manage') && !scope.row.is_builtin && scope.row.username !== currentUsername" content="删除用户" placement="top" :show-after="300">
+        <el-tooltip v-if="hasPermission('user.manage') && !scope.row.is_builtin && scope.row.username !== currentUsername" content="停用用户" placement="top" :show-after="300">
           <el-button size="small" class="action-icon-btn action-icon-danger" @click="$emit('delete', scope.row.id)">
             <el-icon><Delete /></el-icon>
           </el-button>

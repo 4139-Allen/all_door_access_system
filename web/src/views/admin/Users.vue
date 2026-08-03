@@ -221,18 +221,18 @@ const addUser = async () => {
 
 const deleteUser = async (id) => {
   try {
-    await ElMessageBox.confirm('确定要删除该用户吗？此操作不可撤销。', '确认删除', {
+    await ElMessageBox.confirm('确定要停用该用户吗？停用后该用户将无法登录，并自动解除其所有设备绑定。', '确认停用', {
       type: 'warning',
-      confirmButtonText: '确定删除',
+      confirmButtonText: '确定停用',
       cancelButtonText: '取消',
       confirmButtonClass: 'el-button--danger',
     })
     const res = await request.delete(`/users/${id}`)
     if (res.success) {
-      ElMessage.success('删除成功')
+      ElMessage.success('停用成功')
       getUserList()
     } else {
-      ElMessage.error(res.msg || '删除失败')
+      ElMessage.error(res.msg || '停用失败')
     }
   } catch (e) {
     if (e !== 'cancel') {
