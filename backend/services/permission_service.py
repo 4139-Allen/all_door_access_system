@@ -39,13 +39,13 @@ def get_user_permission_codes(db: Session, user_id: int, role_code: str) -> list
         return cached
 
     permissions = (
-        db.query(Permission.code)
+        db.query(Permission.perm_code)
         .join(RolePermission, RolePermission.permission_id == Permission.id)
         .join(Role, Role.id == RolePermission.role_id)
-        .filter(Role.code == role_code)
+        .filter(Role.role_code == role_code)
         .all()
     )
-    codes = [p.code for p in permissions]
+    codes = [p.perm_code for p in permissions]
 
     cache_set_json(cache_key, codes, PERM_CACHE_TTL)
     return codes
@@ -100,7 +100,7 @@ def get_all_permissions(db: Session) -> list[dict]:
             module_map[p.module] = []
         module_map[p.module].append({
             "id": p.id,
-            "code": p.code,
+            "perm_code": p.perm_code,
             "name": p.name,
         })
 
@@ -131,9 +131,9 @@ def get_all_roles(db: Session) -> list[dict]:
         result.append({
             "id": r.id,
             "name": r.name,
-            "code": r.code,
+            "role_code": r.role_code,
             "is_system": r.is_system,
-            "permissions": [{"id": p.id, "code": p.code, "name": p.name, "module": p.module} for p in permissions],
+            "permissions": [{"id": p.id, "perm_code": p.perm_code, "name": p.name, "module": p.module} for p in permissions],
         })
     return result
 
@@ -148,10 +148,10 @@ def create_role(db: Session, name: str, code: str) -> Role:
     """
     if db.query(Role).filter(Role.name == name).first():
         raise ValueError(f"角色名称 '{name}' 已存在")
-    if db.query(Role).filter(Role.code == code).first():
+    if db.query(Role).filter(Role.role_code == code).first():
         raise ValueError(f"角色标识 '{code}' 已存在")
 
-    role = Role(name=name, code=code, is_system=False)
+    role = Role(name=name, role_code=code, is_system=False)
     db.add(role)
     db.commit()
     db.refresh(role)
@@ -201,7 +201,7 @@ def delete_role(db: Session, role_id: int) -> bool:
         raise ValueError("系统内置角色不可删除")
 
     # 检查是否有用户使用该角色
-    user_count = db.query(User).filter(User.role == role.code).count()
+    user_count = db.query(User).filter(User.role == role.role_code).count()
     if user_count > 0:
         raise ValueError(f"该角色下有 {user_count} 个用户，请先迁移用户后再删除")
 
@@ -236,7 +236,7 @@ def set_role_permissions(db: Session, role_id: int, permission_ids: list[int]) -
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise NotFoundError("角色不存在")
-    if role.code == "admin":
+    if role.role_code == "admin":
         raise ValueError("超级管理员角色的权限不可修改")
 
     # 验证所有 permission_id 是否合法
@@ -278,8 +278,8 @@ def init_permissions(db: Session):
         {"name": "普通用户", "code": "user"},
     ]
     for r in system_roles:
-        if not db.query(Role).filter(Role.code == r["code"]).first():
-            db.add(Role(name=r["name"], code=r["code"], is_system=True))
+        if not db.query(Role).filter(Role.role_code == r["code"]).first():
+            db.add(Role(name=r["name"], role_code=r["code"], is_system=True))
     db.commit()
 
     # 2. 创建权限
@@ -300,7 +300,7 @@ def init_permissions(db: Session):
         ("user.view", "查看用户列表", "用户管理"),
         ("user.manage", "管理用户", "用户管理"),
     ]
-    existing = {p.code: p for p in db.query(Permission).all()}
+    existing = {p.perm_code: p for p in db.query(Permission).all()}
     for code, name, module in perm_data:
         if code not in existing:
             db.add(Permission(code=code, name=name, module=module))
@@ -325,7 +325,7 @@ def init_permissions(db: Session):
     }
 
     for role_code, perm_codes in role_perm_map.items():
-        role = db.query(Role).filter(Role.code == role_code).first()
+        role = db.query(Role).filter(Role.role_code == role_code).first()
         if not role:
             continue
 
@@ -336,7 +336,7 @@ def init_permissions(db: Session):
         }
 
         # 获取需要分配的权限
-        perms = db.query(Permission).filter(Permission.code.in_(perm_codes)).all()
+        perms = db.query(Permission).filter(Permission.perm_code.in_(perm_codes)).all()
 
         # 只添加缺失的权限
         added = 0

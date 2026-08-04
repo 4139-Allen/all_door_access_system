@@ -45,10 +45,10 @@
             >
               <el-option
                 v-for="r in roleOptions"
-                :key="r.code"
+                :key="r.role_code"
                 :label="r.name"
-                :value="r.code"
-                :disabled="r.code === 'admin'"
+                :value="r.role_code"
+                :disabled="r.role_code === 'admin'"
               />
             </el-select>
             <div class="role-popover-actions">

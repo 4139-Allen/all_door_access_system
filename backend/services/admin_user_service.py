@@ -302,7 +302,7 @@ def update_user_role(db: Session, user_id: int, new_role: str, current_user: Use
         raise ValueError("超级管理员角色不可修改")
 
     # 查询角色是否存在
-    role_obj = db.query(Role).filter(Role.code == new_role).first()
+    role_obj = db.query(Role).filter(Role.role_code == new_role).first()
     if not role_obj:
         raise ValueError(f"角色 '{new_role}' 不存在")
 
@@ -375,8 +375,8 @@ def get_users_list_formatted(db: Session, page: int, size: int, username: Option
 
     # 批量查询角色名称
     role_codes = {u.role for u in users}
-    roles = db.query(Role.code, Role.name).filter(Role.code.in_(role_codes)).all()
-    role_name_map = {r.code: r.name for r in roles}
+    roles = db.query(Role.role_code, Role.name).filter(Role.role_code.in_(role_codes)).all()
+    role_name_map = {r.role_code: r.name for r in roles}
 
     # 批量查询用户绑定的设备（名称 + 位置）
     user_ids = [u.id for u in users]
@@ -517,7 +517,7 @@ def get_user_profile(user: User, db: Session) -> dict:
         return cached
 
     from database.models.role import Role
-    role_obj = db.query(Role.name).filter(Role.code == user.role).first()
+    role_obj = db.query(Role.name).filter(Role.role_code == user.role).first()
     role_name = role_obj.name if role_obj else user.role
 
     result = {

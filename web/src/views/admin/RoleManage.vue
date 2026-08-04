@@ -30,7 +30,7 @@
             <el-tag v-else size="small" type="warning" effect="plain">自定义</el-tag>
           </div>
           <div class="role-actions">
-            <el-button v-if="role.code !== 'admin'" size="small" @click="openPermDialog(role)">
+            <el-button v-if="role.role_code !== 'admin'" size="small" @click="openPermDialog(role)">
               <el-icon><Setting /></el-icon>权限
             </el-button>
             <el-button
@@ -45,7 +45,7 @@
           </div>
         </div>
 
-        <div class="role-code">{{ role.code }}</div>
+        <div class="role-code">{{ role.role_code }}</div>
 
         <div class="role-perms">
           <template v-if="role.permissions.length > 0">

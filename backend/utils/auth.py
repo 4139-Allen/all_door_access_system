@@ -73,7 +73,7 @@ def build_login_response(user, db: Session = None, **extra) -> dict:
     if db is not None:
         # 复用外部传入的会话（测试时使用测试数据库）
         permissions = get_user_permission_codes(db, user.id, user.role)
-        role_obj = db.query(Role.name).filter(Role.code == user.role).first()
+        role_obj = db.query(Role.name).filter(Role.role_code == user.role).first()
         role_name = role_obj.name if role_obj else user.role
     else:
         # 兼容旧调用方：内部创建临时会话
@@ -81,7 +81,7 @@ def build_login_response(user, db: Session = None, **extra) -> dict:
         _db = SessionLocal()
         try:
             permissions = get_user_permission_codes(_db, user.id, user.role)
-            role_obj = _db.query(Role.name).filter(Role.code == user.role).first()
+            role_obj = _db.query(Role.name).filter(Role.role_code == user.role).first()
             role_name = role_obj.name if role_obj else user.role
         finally:
             _db.close()

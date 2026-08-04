@@ -44,9 +44,9 @@
           <el-select v-model="addForm.role" style="width: 120px">
             <el-option
               v-for="r in roleList"
-              :key="r.code"
+              :key="r.role_code"
               :label="r.name"
-              :value="r.code"
+              :value="r.role_code"
             />
           </el-select>
         </AddForm>
@@ -242,7 +242,7 @@ const deleteUser = async (id) => {
 }
 
 const handleChangeRole = async ({ userId, newRole }) => {
-  const roleLabel = roleList.value.find(r => r.code === newRole)?.name || newRole
+  const roleLabel = roleList.value.find(r => r.role_code === newRole)?.name || newRole
   try {
     await ElMessageBox.confirm(`确定将该用户角色修改为「${roleLabel}」吗？`, '修改角色', {
       type: 'warning',

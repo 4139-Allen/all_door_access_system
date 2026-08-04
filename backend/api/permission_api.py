@@ -46,7 +46,7 @@ def add_role(
     current_user: User = Depends(RequirePermission("user.manage")),
 ):
     role = create_role(db, body.name, body.code)
-    return success({"id": role.id, "name": role.name, "code": role.code}, msg="创建成功")
+    return success({"id": role.id, "name": role.name, "role_code": role.role_code}, msg="创建成功")
 
 
 @router.put("/roles/{role_id}", summary="修改角色名称")

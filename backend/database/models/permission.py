@@ -6,6 +6,6 @@ class Permission(Base):
     __tablename__ = "permission"
 
     id = Column(Integer, primary_key=True)
-    code = Column(String(50), nullable=False, unique=True)
+    perm_code = Column(String(50), nullable=False, unique=True)
     name = Column(String(50), nullable=False)
     module = Column(String(30), nullable=False)
