@@ -67,6 +67,8 @@ service.interceptors.response.use(
         ElMessage.error('请求的资源不存在')
       } else if (status === 429) {
         ElMessage.warning(error.response.data?.msg || '请求过于频繁，请稍后再试')
+      } else if (status === 413) {
+        ElMessage.error('上传文件过大')
       } else if (status >= 500) {
         ElMessage.error('服务器错误，请稍后重试')
       }
