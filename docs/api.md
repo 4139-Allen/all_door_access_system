@@ -861,6 +861,43 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 }
 ```
 
+### GET /roles — 角色列表
+
+> 返回所有角色（含系统内置），每个角色带已分配的权限。前端权限管理页、用户管理页的角色下拉都依赖此接口。
+
+```json
+{
+  "code": 200,
+  "msg": "获取角色列表成功",
+  "data": [
+    {
+      "id": 1,
+      "name": "超级管理员",
+      "role_code": "admin",
+      "is_system": true,
+      "permissions": [
+        {"id": 1, "perm_code": "dashboard.view", "name": "查看仪表盘", "module": "仪表盘"},
+        {"id": 2, "perm_code": "door.open", "name": "远程开门", "module": "门禁控制"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "普通管理员",
+      "role_code": "operator",
+      "is_system": true,
+      "permissions": []
+    },
+    {
+      "id": 3,
+      "name": "普通用户",
+      "role_code": "user",
+      "is_system": true,
+      "permissions": []
+    }
+  ]
+}
+```
+
 ### POST /roles — 创建角色
 
 ```json
@@ -869,6 +906,27 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 
 ```json
 {"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "role_code": "security"}}
+```
+
+### PUT /roles/{role_id} — 修改角色名称
+
+> 仅可修改角色名称（name），角色标识 `role_code` 创建后不可修改。
+
+```json
+{"name": "设备运维员"}
+```
+
+```json
+{"code": 200, "msg": "修改成功", "data": null}
+```
+
+### DELETE /roles/{role_id} — 删除角色
+
+> - 系统内置角色（`is_system=true`）不可删除
+> - 角色下存在用户时不可删除，需先迁移用户
+
+```json
+{"code": 200, "msg": "删除成功", "data": null}
 ```
 
 ### PUT /roles/{role_id}/permissions — 设置角色权限
