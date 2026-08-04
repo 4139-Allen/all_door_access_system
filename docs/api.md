@@ -285,6 +285,15 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | 文件格式 | JPG、PNG、GIF、WebP |
 | 文件大小 | ≤ 1MB |
 
+**失败分支：**
+
+| 场景 | HTTP | msg |
+|------|:---:|------|
+| 文件格式不支持（content_type 非 jpg/png/gif/webp） | 400 | 仅支持 JPG、PNG、GIF、WebP 格式的图片 |
+| 文件超过 1MB | 400 | 头像文件大小不能超过 1MB |
+| 未提供 `file` 字段 | 422 | `file` 字段不能为空 |
+| 未登录 | 401 | 认证失败 |
+
 ```json
 {"code": 200, "msg": "头像上传成功", "data": {"avatar": "/uploads/avatars/1_abc123.jpg"}}
 ```
