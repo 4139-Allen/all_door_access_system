@@ -21,7 +21,7 @@ def validate_role_filter(
 ) -> Optional[str]:
     """校验 role 查询参数必须是已存在的角色，非法值返回 422"""
     if role:
-        valid_roles = {r[0] for r in db.query(Role.code).all()}
+        valid_roles = {r[0] for r in db.query(Role.role_code).all()}
         if role not in valid_roles:
             raise RequestValidationError([
                 {"loc": ["query", "role"], "msg": f"角色 '{role}' 不存在", "type": "value_error"}
@@ -54,7 +54,7 @@ def create_new_user(
         current_user: User = Depends(RequirePermission("user.manage"))
 ):
     # 校验角色必须存在（与修改角色接口一致，避免存入非法角色）
-    role_obj = db.query(Role).filter(Role.code == data.role).first()
+    role_obj = db.query(Role).filter(Role.role_code == data.role).first()
     if not role_obj:
         raise ValueError(f"角色 '{data.role}' 不存在")
     user = db_create_user(db, data.username, data.password, role=data.role)

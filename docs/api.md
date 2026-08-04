@@ -802,44 +802,44 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
   "data": [
     {
       "module": "仪表盘",
-      "permissions": [{"id": 1, "code": "dashboard.view", "name": "查看仪表盘"}]
+      "permissions": [{"id": 1, "perm_code": "dashboard.view", "name": "查看仪表盘"}]
     },
     {
       "module": "门禁控制",
       "permissions": [
-        {"id": 2, "code": "door.open", "name": "远程开门"},
-        {"id": 3, "code": "door.view_own_log", "name": "查看自己的开门记录"}
+        {"id": 2, "perm_code": "door.open", "name": "远程开门"},
+        {"id": 3, "perm_code": "door.view_own_log", "name": "查看自己的开门记录"}
       ]
     },
     {
       "module": "设备管理",
       "permissions": [
-        {"id": 4, "code": "device.view", "name": "查看设备列表"},
-        {"id": 5, "code": "device.create", "name": "创建设备"},
-        {"id": 6, "code": "device.edit", "name": "编辑设备"},
-        {"id": 7, "code": "device.delete", "name": "删除设备"},
-        {"id": 8, "code": "device.bind", "name": "绑定/解绑用户"}
+        {"id": 4, "perm_code": "device.view", "name": "查看设备列表"},
+        {"id": 5, "perm_code": "device.create", "name": "创建设备"},
+        {"id": 6, "perm_code": "device.edit", "name": "编辑设备"},
+        {"id": 7, "perm_code": "device.delete", "name": "删除设备"},
+        {"id": 8, "perm_code": "device.bind", "name": "绑定/解绑用户"}
       ]
     },
     {
       "module": "日志管理",
       "permissions": [
-        {"id": 9, "code": "log.view", "name": "查看门禁日志"},
-        {"id": 10, "code": "log.export", "name": "导出日志"}
+        {"id": 9, "perm_code": "log.view", "name": "查看门禁日志"},
+        {"id": 10, "perm_code": "log.export", "name": "导出日志"}
       ]
     },
     {
       "module": "异常事件",
       "permissions": [
-        {"id": 11, "code": "alert.view", "name": "查看异常事件"},
-        {"id": 12, "code": "alert.unlock", "name": "解除设备锁定"}
+        {"id": 11, "perm_code": "alert.view", "name": "查看异常事件"},
+        {"id": 12, "perm_code": "alert.unlock", "name": "解除设备锁定"}
       ]
     },
     {
       "module": "用户管理",
       "permissions": [
-        {"id": 13, "code": "user.view", "name": "查看用户列表"},
-        {"id": 14, "code": "user.manage", "name": "管理用户"}
+        {"id": 13, "perm_code": "user.view", "name": "查看用户列表"},
+        {"id": 14, "perm_code": "user.manage", "name": "管理用户"}
       ]
     }
   ]
@@ -853,7 +853,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```
 
 ```json
-{"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "code": "security"}}
+{"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "role_code": "security"}}
 ```
 
 ### PUT /roles/{role_id}/permissions — 设置角色权限
