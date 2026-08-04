@@ -170,3 +170,93 @@ class TestRoleSpecificBehavior:
         # 能访问 /doors/{id}/open 的权限检查通过即可
         # 具体开门测试在 test_door.py 中
         pass
+
+
+class TestRoleCreate:
+    """创建角色边界校验"""
+
+    @pytest.mark.destructive
+    def test_create_role_success(self, admin_client):
+        """创建角色成功 → 返回 role_code"""
+        code = f"role_{uuid.uuid4().hex[:8]}"
+        resp = admin_client.post("/roles", json={"name": "测试角色", "role_code": code})
+        assert resp.status_code in (200, 201)
+        assert resp.json()["data"]["role_code"] == code
+        admin_client.delete(f"/roles/{resp.json()['data']['id']}")
+
+    def test_create_role_name_too_long(self, admin_client):
+        """角色名称超长 31 字符 → 422"""
+        resp = admin_client.post("/roles", json={"name": "x" * 31, "role_code": "r1"})
+        assert resp.status_code == 422
+
+    def test_create_role_code_too_long(self, admin_client):
+        """角色标识超长 31 字符 → 422"""
+        resp = admin_client.post("/roles", json={"name": "r2", "role_code": "y" * 31})
+        assert resp.status_code == 422
+
+    def test_create_role_name_empty(self, admin_client):
+        """角色名称空串 → 422"""
+        resp = admin_client.post("/roles", json={"name": "", "role_code": "r3"})
+        assert resp.status_code == 422
+
+    def test_create_role_code_empty(self, admin_client):
+        """角色标识空串 → 422"""
+        resp = admin_client.post("/roles", json={"name": "r4", "role_code": ""})
+        assert resp.status_code == 422
+
+    def test_create_role_name_whitespace(self, admin_client):
+        """角色名称纯空白 → 400"""
+        resp = admin_client.post("/roles", json={"name": "   ", "role_code": "r5"})
+        assert_failure(resp, 400, "不能为空")
+
+    def test_create_role_code_whitespace(self, admin_client):
+        """角色标识纯空白 → 400"""
+        resp = admin_client.post("/roles", json={"name": "r6", "role_code": "   "})
+        assert_failure(resp, 400, "不能为空")
+
+    @pytest.mark.destructive
+    def test_create_role_duplicate_code(self, admin_client):
+        """角色标识重复 → 400"""
+        code = f"dup_{uuid.uuid4().hex[:8]}"
+        resp = admin_client.post("/roles", json={"name": "重复角色", "role_code": code})
+        assert resp.status_code in (200, 201)
+        resp2 = admin_client.post("/roles", json={"name": "另一角色", "role_code": code})
+        assert_failure(resp2, 400, "已存在")
+        admin_client.delete(f"/roles/{resp.json()['data']['id']}")
+
+    @pytest.mark.destructive
+    def test_create_role_duplicate_name(self, admin_client):
+        """角色名称重复 → 400"""
+        name = f"同名_{uuid.uuid4().hex[:8]}"
+        resp = admin_client.post("/roles", json={"name": name, "role_code": "n1"})
+        assert resp.status_code in (200, 201)
+        resp2 = admin_client.post("/roles", json={"name": name, "role_code": "n2"})
+        assert_failure(resp2, 400, "已存在")
+        admin_client.delete(f"/roles/{resp.json()['data']['id']}")
+
+
+class TestRolePermissionSetting:
+    """设置角色权限边界"""
+
+    def test_set_permissions_invalid_id(self, admin_client):
+        """非法权限 ID → 400"""
+        resp = admin_client.put("/roles/2/permissions", json={"permission_ids": [1, 99999]})
+        assert_failure(resp, 400, "无效的权限ID")
+
+    def test_set_permissions_empty(self, admin_client):
+        """空权限列表 → 成功（清空角色权限）"""
+        resp = admin_client.put("/roles/2/permissions", json={"permission_ids": []})
+        assert_success(resp)
+        # 恢复 operator 默认权限（避免影响后续测试）
+        default_ids = list(range(1, 13))  # dashboard.view ~ alert.unlock
+        admin_client.put("/roles/2/permissions", json={"permission_ids": default_ids})
+
+    def test_set_permissions_admin_forbidden(self, admin_client):
+        """超级管理员角色权限不可修改 → 400"""
+        resp = admin_client.put("/roles/1/permissions", json={"permission_ids": [1]})
+        assert_failure(resp, 400, "超级管理员")
+
+    def test_set_permissions_role_not_found(self, admin_client):
+        """角色不存在 → 404"""
+        resp = admin_client.put("/roles/99999/permissions", json={"permission_ids": [1]})
+        assert_failure(resp, 404, "不存在")

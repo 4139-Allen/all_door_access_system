@@ -144,8 +144,14 @@ def create_role(db: Session, name: str, code: str) -> Role:
     创建自定义角色
 
     异常:
-        ValueError: 角色名称或标识已存在
+        ValueError: 角色名称或标识为空 / 已存在
     """
+    # 验证必填字段（空白视为无效，与设备/用户名等接口一致）
+    if not name or not name.strip():
+        raise ValueError("角色名称不能为空")
+    if not code or not code.strip():
+        raise ValueError("角色标识不能为空")
+
     if db.query(Role).filter(Role.name == name).first():
         raise ValueError(f"角色名称 '{name}' 已存在")
     if db.query(Role).filter(Role.role_code == code).first():
@@ -172,6 +178,10 @@ def update_role(db: Session, role_id: int, name: str) -> Role:
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise NotFoundError("角色不存在")
+
+    # 空白名称视为无效
+    if not name or not name.strip():
+        raise ValueError("角色名称不能为空")
 
     existing = db.query(Role).filter(Role.name == name, Role.id != role_id).first()
     if existing:
