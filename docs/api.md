@@ -908,6 +908,17 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 {"code": 200, "msg": "创建成功", "data": {"id": 5, "name": "安保员", "role_code": "security"}}
 ```
 
+**字段校验规则：**
+
+| 场景 | HTTP | msg |
+|------|:---:|------|
+| `name` 缺失 / 空串 / 超长（>30） | 422 | 名称长度不能少于1个字符 / 名称长度不能超过30个字符 |
+| `role_code` 缺失 / 空串 / 超长（>30） | 422 | 角色标识长度不能少于1个字符 / 角色标识长度不能超过30个字符 |
+| `name` 纯空白 | 400 | 角色名称不能为空 |
+| `role_code` 纯空白 | 400 | 角色标识不能为空 |
+| `role_code` 重复 | 400 | 角色标识 'xxx' 已存在 |
+| `name` 重复 | 400 | 角色名称 'xxx' 已存在 |
+
 ### PUT /roles/{role_id} — 修改角色名称
 
 > 仅可修改角色名称（name），角色标识 `role_code` 创建后不可修改。
@@ -919,6 +930,14 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {"code": 200, "msg": "修改成功", "data": null}
 ```
+
+**字段校验规则：**
+
+| 场景 | HTTP | msg |
+|------|:---:|------|
+| `name` 缺失 / 空串 / 超长（>30） | 422 | 名称长度不能少于1个字符 / 名称长度不能超过30个字符 |
+| `name` 纯空白 | 400 | 角色名称不能为空 |
+| `name` 被其他角色占用 | 400 | 角色名称 'xxx' 已被使用 |
 
 ### DELETE /roles/{role_id} — 删除角色
 
@@ -940,6 +959,15 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```json
 {"code": 200, "msg": "权限设置成功", "data": {"role_id": 2, "role_name": "普通管理员", "permission_count": 5}}
 ```
+
+**字段校验规则：**
+
+| 场景 | HTTP | msg |
+|------|:---:|------|
+| `permission_ids` 包含不存在的权限 ID | 400 | 无效的权限ID: {99999} |
+| `permission_ids` 为空数组 `[]` | 200 | 权限设置成功（清空该角色全部权限） |
+| 角色为超级管理员（admin） | 400 | 超级管理员角色的权限不可修改 |
+| 角色不存在 | 404 | 角色不存在 |
 
 ---
 
