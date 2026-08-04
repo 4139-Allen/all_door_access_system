@@ -303,7 +303,7 @@ def init_permissions(db: Session):
     existing = {p.perm_code: p for p in db.query(Permission).all()}
     for code, name, module in perm_data:
         if code not in existing:
-            db.add(Permission(code=code, name=name, module=module))
+            db.add(Permission(perm_code=code, name=name, module=module))
         else:
             # 同步已有权限的名称/模块（允许代码定义覆盖数据库）
             perm = existing[code]
