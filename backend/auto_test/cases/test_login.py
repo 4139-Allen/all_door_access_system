@@ -215,6 +215,23 @@ class TestPassword:
         })
         assert_unauthorized(resp)
 
+    @allure.story("修改密码")
+    @allure.title("改密后旧 token 失效返回 401")
+    @pytest.mark.destructive
+    def test_old_token_invalid_after_password_change(self, user_client):
+        """改密后旧 token 应失效 → 401（安全要求，防止泄露的 token 继续有效）"""
+        # user_client 初始密码 test123456（conftest 注册）
+        resp = user_client.put("/auth/password", json={
+            "old_password": "test123456",
+            "new_password": "newpass123",
+        })
+        assert_success(resp, "密码修改成功")
+
+        # 改密后旧 token（当前 client 持有的）已失效 → 401
+        resp2 = user_client.get("/auth/profile")
+        assert resp2.status_code == 401
+        assert "已退出登录" in resp2.json().get("msg", "")
+
 
 @allure.feature("认证管理")
 class TestProfile:

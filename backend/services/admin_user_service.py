@@ -13,7 +13,7 @@ from database.models.role import Role
 from database.models.door_log import DoorLog
 from database.models.user_device import UserDevice
 from database.models.device import Device
-from utils.auth import verify_password, hash_password, build_login_response
+from utils.auth import verify_password, hash_password, build_login_response, invalidate_user_tokens
 from typing import Optional
 from utils.logger import AppLogger
 from database.redis import redis_client, cache_get_json, cache_set_json
@@ -656,6 +656,9 @@ def change_user_password(db: Session, user: User, old_password: str | None, new_
     user.password = hash_password(new_password)
     db.commit()
 
+    # 改密后使该用户所有 token 失效，防止旧 token 继续有效
+    invalidate_user_tokens(user.id)
+
     logger.info(f"🔑 修改密码成功 | 用户: {user.username} | 用户ID: {user.id}")
     return True
 
@@ -679,6 +682,9 @@ def reset_user_password(db: Session, phone: str, new_password: str) -> bool:
 
     user.password = hash_password(new_password)
     db.commit()
+
+    # 重置密码后使该用户所有 token 失效，防止旧 token 继续有效
+    invalidate_user_tokens(user.id)
 
     logger.info(f"🔑 重置密码成功 | 手机号: {phone} | 用户ID: {user.id}")
     return True
