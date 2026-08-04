@@ -142,8 +142,9 @@ class TestLogout:
     @allure.story("退出登录")
     @allure.title("未登录登出返回 401")
     def test_logout_no_token(self, anon_client):
-        """未提供 token → 401"""
+        """未提供 token → HTTP 401 + body code 401 一致"""
         resp = anon_client.post("/auth/logout")
+        assert resp.status_code == 401
         assert_unauthorized(resp)
 
     @allure.story("退出登录")

@@ -12,8 +12,9 @@ from services.admin_user_service import (
 )
 from services.verify_code_service import send_verify_code_service
 from utils.api_exception_handler import handle_api_exception
-from core.response_schema import success, error
+from core.response_schema import success
 from utils.auth import logout_token, get_current_user_obj, security
+from core.exceptions import AuthError
 from utils.rate_limiter import login_limiter
 from database.models.user import User
 from services.permission_service import get_user_permission_codes, invalidate_user_perm_cache
@@ -88,7 +89,7 @@ def logout(request: Request, credentials: HTTPAuthorizationCredentials = Depends
         token = request.headers.get("X-Token")
 
     if not token:
-        return error("未提供认证凭证", code=401)
+        raise AuthError("未提供认证凭证")
 
     logout_token(token)
     return success(msg="退出成功，Token 已失效")
