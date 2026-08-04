@@ -45,7 +45,7 @@ def add_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("user.manage")),
 ):
-    role = create_role(db, body.name, body.code)
+    role = create_role(db, body.name, body.role_code)
     return success({"id": role.id, "name": role.name, "role_code": role.role_code}, msg="创建成功")
 
 

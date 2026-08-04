@@ -210,6 +210,7 @@ def register_exception_handlers(app: FastAPI):
             "page": "页码",
             "size": "每页条数",
             "role": "角色",
+            "role_code": "角色标识",
             "alert_type": "事件类型",
             "target": "接收目标",
             "avatar": "头像",

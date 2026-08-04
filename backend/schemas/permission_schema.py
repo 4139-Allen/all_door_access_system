@@ -5,7 +5,7 @@ from typing import Optional
 class RoleCreate(BaseModel):
     """创建角色"""
     name: str = Field(..., min_length=1, max_length=30, description="角色名称")
-    code: str = Field(..., min_length=1, max_length=30, description="角色标识")
+    role_code: str = Field(..., min_length=1, max_length=30, description="角色标识")
 
 
 class RoleUpdate(BaseModel):
