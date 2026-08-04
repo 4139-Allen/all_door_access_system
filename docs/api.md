@@ -864,7 +864,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ### POST /roles — 创建角色
 
 ```json
-{"name": "安保员", "code": "security"}
+{"name": "安保员", "role_code": "security"}
 ```
 
 ```json

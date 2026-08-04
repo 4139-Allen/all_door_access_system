@@ -108,7 +108,7 @@
           <el-input v-model="createForm.name" placeholder="如：设备运维员" maxlength="30" />
         </el-form-item>
         <el-form-item label="角色标识">
-          <el-input v-model="createForm.code" placeholder="如：device_admin" maxlength="30" />
+          <el-input v-model="createForm.role_code" placeholder="如：device_admin" maxlength="30" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -224,16 +224,16 @@ const savePermissions = async () => {
 // ======== 新建角色 ========
 const createDialogVisible = ref(false)
 const creating = ref(false)
-const createForm = reactive({ name: '', code: '' })
+const createForm = reactive({ name: '', role_code: '' })
 
 const openCreateDialog = () => {
   createForm.name = ''
-  createForm.code = ''
+  createForm.role_code = ''
   createDialogVisible.value = true
 }
 
 const handleCreate = async () => {
-  if (!createForm.name.trim() || !createForm.code.trim()) {
+  if (!createForm.name.trim() || !createForm.role_code.trim()) {
     ElMessage.warning('请填写角色名称和标识')
     return
   }
@@ -241,7 +241,7 @@ const handleCreate = async () => {
   try {
     const res = await request.post('/roles', {
       name: createForm.name.trim(),
-      code: createForm.code.trim()
+      role_code: createForm.role_code.trim()
     })
     if (res.success) {
       ElMessage.success('创建成功')
