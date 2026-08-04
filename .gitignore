@@ -113,3 +113,6 @@ stm32/ESP8266/.pio/
 
 # Allure test reports
 backend/report/
+
+# 用户上传文件（头像等）
+backend/uploads/

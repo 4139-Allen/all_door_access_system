@@ -79,6 +79,12 @@ class ApiClient:
         url = f"{self.base_url}/{path.lstrip('/')}"
         kwargs.setdefault("timeout", self.timeout)
 
+        # multipart 请求（传 files）：清除默认 application/json，
+        # 让 requests 自动设置含 boundary 的 multipart Content-Type
+        if kwargs.get("files"):
+            headers = kwargs.setdefault("headers", {})
+            headers["Content-Type"] = None
+
         # 记录请求日志
         logger.debug(f"➡️  {method} {path}")
 

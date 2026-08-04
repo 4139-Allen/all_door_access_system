@@ -256,3 +256,53 @@ class TestProfile:
         assert_success(resp, "用户名修改成功")
 
         client.put("/auth/profile", json={"username": "admin"})
+
+
+@allure.feature("认证管理")
+class TestAvatar:
+    """头像上传"""
+
+    @allure.story("头像上传")
+    @allure.title("上传合法图片成功")
+    @pytest.mark.destructive
+    def test_upload_avatar_success(self, user_client):
+        """合法 JPG → 200 + avatar URL"""
+        resp = user_client.put("/auth/avatar", files={
+            "file": ("avatar.png", b"fake-png-data-1234", "image/png")
+        })
+        data = assert_success(resp, "头像上传成功").body["data"]
+        assert data["avatar"].startswith("/uploads/avatars/")
+
+    @allure.story("头像上传")
+    @allure.title("非图片文件返回 400")
+    def test_upload_avatar_invalid_type(self, admin_client):
+        """text/plain 非图片 → 400"""
+        resp = admin_client.put("/auth/avatar", files={
+            "file": ("test.txt", b"hello", "text/plain")
+        })
+        assert_failure(resp, 400, "仅支持")
+
+    @allure.story("头像上传")
+    @allure.title("超过 1MB 返回 400")
+    def test_upload_avatar_too_large(self, admin_client):
+        """> 1MB → 400"""
+        resp = admin_client.put("/auth/avatar", files={
+            "file": ("big.png", b"x" * (1024 * 1024 + 1), "image/png")
+        })
+        assert_failure(resp, 400, "1MB")
+
+    @allure.story("头像上传")
+    @allure.title("未提供文件返回 422")
+    def test_upload_avatar_missing_file(self, admin_client):
+        """缺 file 字段 → 422"""
+        resp = admin_client.put("/auth/avatar")
+        assert_validation_error(resp)
+
+    @allure.story("头像上传")
+    @allure.title("未登录上传返回 401")
+    def test_upload_avatar_no_auth(self, anon_client):
+        """未登录 → 401"""
+        resp = anon_client.put("/auth/avatar", files={
+            "file": ("a.png", b"x", "image/png")
+        })
+        assert_unauthorized(resp)
