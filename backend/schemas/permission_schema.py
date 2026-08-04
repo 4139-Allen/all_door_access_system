@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 
@@ -9,7 +9,8 @@ class RoleCreate(BaseModel):
 
 
 class RoleUpdate(BaseModel):
-    """修改角色名称"""
+    """修改角色名称（role_code 创建后不可修改，传多余字段将报 422）"""
+    model_config = ConfigDict(extra="forbid")
     name: str = Field(..., min_length=1, max_length=30, description="角色名称")
 
 

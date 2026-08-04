@@ -234,6 +234,12 @@ class TestRoleCreate:
         assert_failure(resp2, 400, "已存在")
         admin_client.delete(f"/roles/{resp.json()['data']['id']}")
 
+    def test_update_role_rejects_role_code(self, admin_client):
+        """PUT 修改角色名时传 role_code → 422（role_code 创建后不可改，多余字段明确拒绝）"""
+        resp = admin_client.put("/roles/2", json={"name": "新名称", "role_code": "newcode"})
+        assert resp.status_code == 422
+        assert "未允许" in resp.json().get("msg", "")
+
 
 class TestRolePermissionSetting:
     """设置角色权限边界"""

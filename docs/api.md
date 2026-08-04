@@ -938,6 +938,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | `name` 缺失 / 空串 / 超长（>30） | 422 | 名称长度不能少于1个字符 / 名称长度不能超过30个字符 |
 | `name` 纯空白 | 400 | 角色名称不能为空 |
 | `name` 被其他角色占用 | 400 | 角色名称 'xxx' 已被使用 |
+| 请求携带 `role_code` 等多余字段 | 422 | 存在未允许的字段: role_code（role_code 创建后不可改） |
 
 ### DELETE /roles/{role_id} — 删除角色
 

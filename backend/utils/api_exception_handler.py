@@ -261,6 +261,10 @@ def register_exception_handlers(app: FastAPI):
             # Literal 枚举校验失败（如 alert_type 只能取 lock/offline/error）
             expected = ctx.get("expected", "")
             msg = f"{cn_field}取值不合法，只能为: {expected}"
+        elif err_type == "extra_forbidden":
+            # 请求携带 schema 未定义的字段（如修改角色时传 role_code）
+            extras = [str(x) for x in first.get("loc", []) if str(x) not in ("body", "query", "path")]
+            msg = f"存在未允许的字段: {', '.join(extras)}"
         else:
             msg = first.get("msg", f"{cn_field}格式错误")
 
