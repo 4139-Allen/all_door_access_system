@@ -223,6 +223,7 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 ```
 
 > 未设置密码的用户（手机号注册）`old_password` 传 `null`。
+> 修改/重置密码成功后，该用户所有已签发的 token 立即失效，需重新登录。
 
 ```json
 {"code": 200, "msg": "密码修改成功", "data": null}

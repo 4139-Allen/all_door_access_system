@@ -142,6 +142,19 @@ def logout_token(token: str):
         # 加入黑名单，过期时间和JWT一致（24小时足够）
         redis_client.setex(f"blacklist:{token}", 86400, "true")
 
+
+def invalidate_user_tokens(user_id: int):
+    """
+    使指定用户的所有已签发 token 失效
+
+    在修改密码/重置密码后调用，防止旧 token 继续有效（安全要求）。
+    前端改密成功后提示重新登录，与此行为一致。
+    """
+    if redis_client:
+        for key in redis_client.scan_iter("token:*"):
+            if redis_client.get(key) == str(user_id):
+                redis_client.delete(key)
+
 # ====================== 获取当前用户对象 ======================
 def get_current_user_obj(
     db: Session = Depends(get_db),
