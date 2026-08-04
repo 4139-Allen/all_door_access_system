@@ -792,6 +792,9 @@ const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : undefined
 | PUT | `/roles/{role_id}` | 修改角色名称 | `user.manage` |
 | DELETE | `/roles/{role_id}` | 删除角色 | `user.manage` |
 | PUT | `/roles/{role_id}/permissions` | 设置角色权限（全量替换） | `user.manage` |
+| GET | `/auth/permissions` | 刷新当前用户权限（清除权限缓存后重新查询，管理员改权限后前端主动刷新） | 登录即可 |
+
+> `GET /auth/permissions` 响应示例见 [认证管理](#认证管理) 的「刷新当前用户的权限列表」。所有角色可用（无需 `user.manage`），右上角全局刷新按钮调用此接口。
 
 ### GET /permissions — 权限列表
 
