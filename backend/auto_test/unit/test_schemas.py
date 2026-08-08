@@ -156,17 +156,19 @@ class TestUsernameValidation:
         "user123",
         "abc_123_张三",
         "A",
+        "user.name",    # 点、中划线是合法用户名字符
+        "user-name",
+        "user+tag@example.com",  # 合法邮箱（本地部分可含 +）
+        "13800138000",           # 合法手机号
     ])
     def test_valid_usernames(self, valid_name):
         UserLogin(username=valid_name, password="pass123456")
 
     @pytest.mark.parametrize("invalid_name", [
         "",
-        "user@name",
-        "user name",
-        "user.name",
-        "user-name",
-        "a" * 51,
+        "user@name",   # 非合法邮箱（域名缺点）
+        "user name",   # 含空格
+        "a" * 51,      # 超长
     ])
     def test_invalid_usernames(self, invalid_name):
         with pytest.raises(ValidationError):
