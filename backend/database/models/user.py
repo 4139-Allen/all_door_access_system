@@ -9,7 +9,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True)
-    password = Column(String(100))
+    password = Column(String(100), nullable=True, comment="密码哈希；验证码登录自动注册的用户无密码为 NULL")
     role = Column(String(20), default="user", comment="角色标识")
     phone = Column(String(20), unique=True, nullable=True)
     email = Column(String(100), unique=True, nullable=True)
