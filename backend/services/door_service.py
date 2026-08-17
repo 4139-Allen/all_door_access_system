@@ -117,7 +117,7 @@ async def open_door_service(db: Session, user_id: int, device_id: int, ip: str =
         future = mqtt_manager.register_open_confirmation(device.name)
         mqtt_manager.publish_command(device.name, "OPEN_DOOR")
 
-        # 7. 等设备回复 OPENED（最长 5 秒）
+        # 7. 等设备回复 OPENED/OK（最长 5 秒）
         try:
             await asyncio.wait_for(future, timeout=5)
             # 设备确认开门成功

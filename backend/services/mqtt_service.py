@@ -74,7 +74,7 @@ class MQTTManager:
         self._retry_count: int = 0            # 连续断线次数（超过10次日志降频）
         # 客户端唯一标识，避免 Mosquitto 因重复 ID 踢掉旧连接
         self._client_id = f"door-backend-{uuid.uuid4().hex[:8]}"
-        # 开门确认：device_name -> Future，等待设备回复 OPENED
+        # 开门确认：device_name -> Future，等待设备回复 OPENED/OK
         self._pending_open: Dict[str, Future] = {}
 
     def start(self):
@@ -165,8 +165,8 @@ class MQTTManager:
         if redis_client and payload in ("ONLINE", "OK", "OPENED"):
             redis_client.setex(f"device:online:{device_id}", 70, "online")
 
-            # 设备回复 OPENED → 通知等待的开门请求
-            if payload == "OPENED":
+            # 设备回复 OPENED/OK → 通知等待的开门请求（OK 与 OPENED 同义，兼容仓库固件源码/串口桥）
+            if payload in ("OPENED", "OK"):
                 self._signal_open_confirmation(device_id)
 
             # 检查是否首次上线（不在已知在线列表中），避免心跳重复推送
@@ -288,13 +288,13 @@ class MQTTManager:
             return False
 
     def register_open_confirmation(self, device_name: str) -> Future:
-        """注册一个 Future，等待设备回复 OPENED 确认开门"""
+        """注册一个 Future，等待设备回复 OPENED/OK 确认开门"""
         future = self._loop.create_future()
         self._pending_open[device_name] = future
         return future
 
     def _signal_open_confirmation(self, device_name: str):
-        """设备回复了 OPENED，通知等待的开门请求"""
+        """设备回复了 OPENED/OK，通知等待的开门请求"""
         future = self._pending_open.pop(device_name, None)
         if future and not future.done():
             self._schedule_coroutine(
