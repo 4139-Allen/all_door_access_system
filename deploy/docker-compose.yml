@@ -46,6 +46,8 @@
     image: eclipse-mosquitto:2
     container_name: door-mqtt
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
     deploy:
       resources:
         limits:
