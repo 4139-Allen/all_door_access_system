@@ -13,13 +13,13 @@ if not DATABASE_URL:
 #连接池配置
 engine = create_engine(
     DATABASE_URL,
-    echo=False,
+    echo=False,             #是否启用日志输出，开发环境推荐开启
     pool_size=10,           # 连接池大小
     max_overflow=20,        # 最大溢出连接数
     pool_recycle=3600,      # 连接回收时间（秒）
     pool_pre_ping=True      # 连接前检查是否有效
 )
-
+#通过引擎创建会话
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()   # 创建基类
 

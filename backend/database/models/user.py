@@ -5,7 +5,7 @@ from database.db import Base
 
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "user"  #对应数据库中的表名
 
     id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True)

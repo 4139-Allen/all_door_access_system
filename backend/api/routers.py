@@ -17,7 +17,7 @@ from api.log_api import router as log_router
 # 3. 创建总路由
 routers = APIRouter()
 
-# 4. 注册子路由
+# 4. 注册子路由（新增路由）
 routers.include_router(auth_router)         # 认证管理
 routers.include_router(admin_user_router)   # 管理员用户管理
 routers.include_router(door_router)         # 门禁管理
