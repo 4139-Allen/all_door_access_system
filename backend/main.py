@@ -14,6 +14,7 @@ from utils.logger import AppLogger
 from contextlib import asynccontextmanager
 import time
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""

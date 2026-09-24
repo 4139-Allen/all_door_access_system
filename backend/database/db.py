@@ -10,16 +10,16 @@ logger = AppLogger.get_logger() #统一的日志记录
 if not DATABASE_URL:
     raise ValueError("未找到 DATABASE_URL 环境变量！\n请在 .env 文件中配置数据库连接")
 
-#连接池配置
+#连接池配置(引擎)
 engine = create_engine(
     DATABASE_URL,
-    echo=False,             #是否启用日志输出，开发环境推荐开启
+    echo=False,             # 是否启用日志输出，开发环境推荐开启
     pool_size=10,           # 连接池大小
     max_overflow=20,        # 最大溢出连接数
     pool_recycle=3600,      # 连接回收时间（秒）
     pool_pre_ping=True      # 连接前检查是否有效
 )
-#通过引擎创建会话
+#创建会话工厂（绑定引擎）
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()   # 创建基类
 
@@ -47,13 +47,13 @@ def init_database():
             if match:
                 base_url, db_name = match.group(1), match.group(2)
 
-                # 连接到 MySQL 服务器（不指定具体数据库）
+                    # 连接到 MySQL 服务器（不指定具体数据库）
                 temp_engine = create_engine(base_url, isolation_level="AUTOCOMMIT")
                 try:
                     with temp_engine.connect() as conn:
                         # 自动建库（如果不存在）
                         conn.execute(text(
-                            f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+                            f"CREATE DATABASE IF NOT EXISTS `{db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
                         logger.info(f"🗄️ 数据库 '{db_name}' 检查/创建成功")
                 finally:
                     temp_engine.dispose()
