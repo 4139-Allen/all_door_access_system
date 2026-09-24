@@ -33,7 +33,7 @@ pipeline {
         // 2. 运行测试（用 workspace 的代码，端口 8001）
         // ============================================================
         stage('② 运行测试') {
-            when { expression { params.RUN_TESTS == 'yes' } }
+            when { expression { params.RUN_TESTS == 'no' } }
             steps {
                 dir('backend') {
                     sh 'pip install -r requirements.txt && pip install allure-pytest'
