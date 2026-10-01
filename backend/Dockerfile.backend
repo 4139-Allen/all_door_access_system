@@ -1,5 +1,7 @@
+# 1.指定基础镜像：python 3.11 精简版约120MB，完整版900MB
 FROM python:3.11-slim
 
+#2.设置容器内的工作目录，用于存放脚本和依赖
 WORKDIR /app
 
 # 安装 curl 用于健康检查，安装 tzdata 设置时区为上海
@@ -16,6 +18,7 @@ COPY requirements.txt .
 # 加上 --trusted-host 忽略网络校验问题
 RUN pip install --no-cache-dir -r requirements.txt --trusted-host pypi.org --trusted-host files.pythonhosted.org
 
+# 把【构建上下文里当前目录】的全部文件，复制到容器内镜像的【工作目录】
 COPY . .
 
 # 暴露端口

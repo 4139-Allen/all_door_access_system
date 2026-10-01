@@ -69,9 +69,10 @@
           memory: 256m
     ports:
       - "8000:8000"
+    #依赖于mysql、redis、mosquitto,依赖于它们启动成功后才启动本容器
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_healthy  #仅当MySQL服务就绪时，才启动python镜像
       redis:
         condition: service_healthy
       mosquitto:
@@ -80,7 +81,7 @@
     environment:
       - TZ=Asia/Shanghai
       - MQTT_BROKER_HOST=mosquitto
-      - MYSQL_HOST=mysql
+      - MYSQL_HOST=mysql            #容器之间的通信地址，直接写容器名即可（无需ip）
       - REDIS_HOST=redis
     volumes:
       - ../backend/logs:/app/logs
